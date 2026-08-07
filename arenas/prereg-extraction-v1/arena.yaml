@@ -1,0 +1,49 @@
+arena_id: prereg-extraction-v1
+taxonomy_leaf_id: prereg-extraction
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: plain_text_section
+output_to_judge: structured_field_map
+difficulty_axes:
+  - {id: tier, min: 1, max: 6, description: "1 clean structured regs (incl. DOI/embargo-lifted/live-cited look-alikes) · 2 decoy false-alarm trap (no reg, but discusses prereg) · 3 single injected mistake (one per kind) · 4 subtle (each abuse beside its confusable clean twin; plain-text reg) · 5 multiple injected mistakes · 6 full composition"}
+task_set_versions:
+  - {version: v1, n_tasks: 40, released_on: "2026-06-06"}
+benchmark_splits:
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file        # task_sets/v1/.private_seed (gitignored)
+    real_holdout_dir: task_sets/v1/_held_out   # hand-curated real papers + regs (future)
+  parity:
+    match_axes: [tier]              # mistake-kind assignment is a deterministic function of tier+index
+    match_categories: true          # every injected mistake_kind must appear in both splits
+    count_tolerance: 0              # form placement is index-cycled (seed-independent) → exact parity
+error_categories:
+  - id: prereg_missed
+    description: A preregistration that is genuinely present was not detected (prereg_found=false when gold is true).
+    severity: major
+  - id: prereg_false_alarm
+    description: A preregistration was reported when none is present — e.g. flagging the T2 decoy text (prereg_found=true when gold is false).
+    severity: major
+  - id: platform_mislabel
+    description: The prereg was detected but assigned the wrong platform (osf vs aspredicted).
+    severity: minor
+  - id: field_wrong
+    description: An extracted field (hypotheses / design / sample_size / analysis_plan) poorly matches the gold registration content.
+    severity: minor
+display_columns:
+  - {id: composite,     source: score.primary,                 label: Composite,     description: "The headline score (higher is better) for finding and reading a study's preregistration. It multiplies four skills — noticing a prereg is present, naming the right platform, extracting its details, and being honestly confident — so weakness in any one drags it down (formula: detection × platform_acc × field_f1 × calibration).", direction: higher, format: f3, primary: true}
+  - {id: detection,     source: score.breakdown.detection,     label: Detection,     description: "Whether the player correctly judged if the text actually has a preregistration (1.0 = right). Some excerpts merely discuss prereg as a concept, which tempts false alarms here.", direction: higher, format: f2, primary: false}
+  - {id: platform_acc,  source: score.breakdown.platform_acc,  label: Platform acc., description: "When a prereg is present, whether the player named the right registry it lives on (OSF vs AsPredicted).", direction: higher, format: f2, primary: false}
+  - {id: field_f1,      source: score.breakdown.field_f1,      label: Field F1,      description: "How well the player's extracted fields (hypotheses, design, sample size, analysis plan) overlap the real registration content.", direction: higher, format: f2, primary: false}
+  - {id: calibration,   source: score.breakdown.calibration,   label: Calibration,   description: "How honest the player's confidence is — a well-calibrated player that says it is 90% sure is right about 90% of the time. It punishes confidently-wrong calls.", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "detection × platform_acc × field_f1 × calibration"
+  values:
+    - {value: 1, label: T1, sub: clean-structured}
+    - {value: 2, label: T2, sub: decoy-trap}
+    - {value: 3, label: T3, sub: single-mistake}
+    - {value: 4, label: T4, sub: plaintext-subtle}
+    - {value: 5, label: T5, sub: multi-mistake}
+    - {value: 6, label: T6, sub: full-composition}

@@ -1,0 +1,10 @@
+- {id: bracket_brackets, format: "[{lo}, {hi}]"}
+- {id: bracket_parens,   format: "({lo}, {hi})"}
+- {id: bracket_bare,     format: "{lo}, {hi}"}
+- {id: plus_minus,       format: "± {margin}"}
+- {id: se_based,         format: "SE = {se}"}
+- {id: with_level_95,    format: "95% CI [{lo}, {hi}]"}
+- {id: with_level_90,    format: "90% CI [{lo}, {hi}]"}
+- {id: with_level_99,    format: "99% CI [{lo}, {hi}]"}
+- {id: bootstrap_label,  format: "bootstrap 95% CI [{lo}, {hi}]"}
+- {id: bca_label,        format: "BCa 95% CI [{lo}, {hi}]"}

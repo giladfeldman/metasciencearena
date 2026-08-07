@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "prereg-extraction-v1 task input",
+  "description": "A paper text that may embed a preregistration link (OSF or AsPredicted) plus its registration content. The player must detect whether a prereg is present, name the platform, recover the link, and field-map the registration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {"type": "string", "description": "The paper text to inspect for an embedded preregistration."}
+  }
+}

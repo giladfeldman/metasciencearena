@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "grim-consistency-v1 player output",
+  "description": "Per-statistic granularity-consistency judgements. One record per reported statistic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["records"],
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stat_id", "flagged", "confidence"],
+        "properties": {
+          "stat_id": {"type": "string", "description": "Statistic id from input.statistics."},
+          "issue_kind": {
+            "type": ["string", "null"],
+            "description": "The inconsistency kind when flagged=true; null otherwise. grim_inconsistent: a stat_type='mean' value that cannot arise from any achievable integer total at the stated 1/N granularity. grim_percent_inconsistent: a stat_type='percent' value that equals no achievable count k/N*100 at the stated 100/N granularity.",
+            "enum": ["grim_inconsistent", "grim_percent_inconsistent", null]
+          },
+          "flagged": {"type": "boolean", "description": "True if this statistic's reported value (mean or percentage) is GRIM-inconsistent."},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the flagged judgement."}
+        }
+      }
+    }
+  }
+}

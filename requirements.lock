@@ -1,0 +1,24 @@
+# Pinned runtime dependencies for reproducible benchmark scoring (DR-0020).
+#
+# pyproject.toml declares floor + ceiling RANGES; this file pins the exact
+# versions a fresh install should resolve to, so scoring is byte-reproducible
+# across dev / CI / collaborators and a fresh install can never pull a
+# pre-release alpha (lxml resolved to 7.0.0a2 in an unpinned venv on 2026-06-28,
+# the exact footgun this closes).
+#
+# Install with:   pip install -r requirements.lock
+# Regenerate when bumping a dep: update the version here AND the range in
+# pyproject.toml in the same commit (portfolio rule: one lockfile, kept in sync).
+#
+# lxml is intentionally pinned to the latest STABLE 6.x (< 7.0.0a0); the rest are
+# the current resolved stable versions.
+
+jsonschema==4.26.0
+lxml==6.1.1
+numpy==2.4.4
+packaging==26.2
+pyyaml==6.0.3
+rapidfuzz==3.14.5
+reportlab==4.5.0
+requests==2.33.1
+scipy==1.17.1

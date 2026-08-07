@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "zcurve-evidential-v1 task input",
+  "description": "A set of statistically-significant test results, summarised as their z-scores (all |z|>1.96). The player must judge whether the set reflects genuine underlying effects (evidential value) or is consistent with selection-for-significance over null/weak effects (no evidential value / p-hacked). The reference tool is the R package `zcurve`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["study_set_id", "z_scores", "n_studies"],
+  "properties": {
+    "study_set_id": {
+      "type": "string",
+      "description": "Stable id for this set of significant studies."
+    },
+    "z_scores": {
+      "type": "array",
+      "description": "The significant test results as z-scores. Every value exceeds the significance threshold (|z|>1.96).",
+      "minItems": 1,
+      "items": {"type": "number", "minimum": 1.96}
+    },
+    "n_studies": {
+      "type": "integer",
+      "description": "Number of significant studies in the set (equals len(z_scores)).",
+      "minimum": 1
+    }
+  }
+}

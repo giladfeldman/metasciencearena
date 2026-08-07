@@ -1,0 +1,34 @@
+id: summary-stat-granularity-consistency
+name: Summary-stat granularity consistency (GRIM / GRIMMER)
+lifecycle_stage: 06-results-reporting
+order: 30
+description: |
+  Given reported summary statistics (mean or percentage, N, item granularity,
+  scale), flag values that are mathematically IMPOSSIBLE for integer-bounded data.
+  GRIM: a mean of N integer responses can only take values total/(N*n_items) for
+  integer total, so a reported mean inconsistent with that granularity is
+  impossible; the same arithmetic applies to a reported percentage of a count
+  (k/N*100, a 100/N grid). No recomputation of the underlying data is possible —
+  the test is pure granularity arithmetic. Mirrors the scrutiny R package
+  (grim, incl. percent = TRUE). Synthetic ground truth: the arena constructs
+  consistent stats from real integer samples and injects provably-impossible
+  means/percentages, each with a matched achievable-but-odd clean control.
+
+  SCOPE: the implementing arena (grim-consistency-v1) is GRIM-only. GRIMMER /
+  SD-granularity is covered by summary-stat-distribution-plausibility
+  (sprite-plausibility-v1); an attempt to inject it here shipped a gold bug and
+  was reverted. The leaf NAME retains "GRIMMER" for taxonomic continuity only.
+input_artifact: summary_statistics_table
+output_to_judge: list_of_grim_consistency_records
+existing_solutions:
+  - {id: scrutiny, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Deterministic, ground-truth-rich (gold is computed arithmetic, not judgement).
+  Distinct from stats-extraction-v1 (which extracts/validates reported test
+  statistics) — this leaf checks the granularity-plausibility of reported
+  descriptives. Arena: grim-consistency-v1.

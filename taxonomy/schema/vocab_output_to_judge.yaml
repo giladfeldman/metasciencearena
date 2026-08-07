@@ -1,0 +1,39 @@
+# Allowed values for leaf.output_to_judge.
+# Each entry describes the shape the player must return for tasks in this challenge.
+# Players that handle the same output_to_judge across multiple arenas can share adapters.
+- id: list_of_effect_size_records
+  description: List of {effect_size, ci_low, ci_high, test_statistic, claim_text}.
+- id: extracted_text_blocks
+  description: Ordered list of {block_type, text, page} extracted from a document.
+- id: retrieved_artifact
+  description: A file (PDF/HTML/XML/TXT) plus metadata about which path/source returned it.
+- id: list_of_deviation_records
+  description: List of {deviation_type, prereg_text, paper_text, severity}.
+- id: structured_field_map
+  description: A dict mapping declared field names to extracted values.
+- id: classification_label
+  description: A single label from a declared label set.
+- id: ranked_list
+  description: An ordered list with optional scores per item.
+- id: list_of_doi_pair_records
+  description: List of {replication_doi, original_doi, outcome, confidence, evidence, provenance, abstained}.
+- id: pdf_clean_text_with_pages
+  description: "Clean linear text plus per-page strings plus a footnote array: {full_text, pages, footnotes}."
+- id: pdf_section_records
+  description: Ordered IMRaD-labeled section records with heading text and char span.
+- id: pdf_table_records
+  description: "Table records with caption, page, header rows, and cell grid (r, c, rowspan, colspan, text, is_header)."
+- id: pdf_reference_records
+  description: Structured reference records (authors, year, title, venue, doi, pmid) parsed from a bibliography.
+- id: citation_reference_linkage_report
+  description: "In-text citation records {marker_text, char_start, char_end, reference_id} plus a consistency report {orphan_markers, uncited_reference_ids, duplicate_reference_groups}."
+- id: list_of_reporting_completeness_records
+  description: "Per reported test: {span, has_effect_size, p_precision_issue, p_zero, missing_ci, missing_df, is_nonsignificant} completeness/precision flags."
+- id: list_of_flagged_spans
+  description: "List of {span, category, confidence} flags for language patterns (e.g. marginal-significance, spin, causal-overclaim)."
+- id: list_of_reference_integrity_records
+  description: "Per reference: {reference_id, issue_kind, flagged, confidence} integrity flags (retracted, metadata mismatch, dangling/uncited, has-replication)."
+- id: list_of_open_practice_records
+  description: "Per repository file or claim: {target, issue_kind, flagged, confidence} reproducibility flags (absolute path, uncomment, missing-file, broken-link)."
+- id: translated_r_script
+  description: "An R script that reproduces the source script's analysis: {r_code, confidence}. Judged by EXECUTING it against the same dataset and comparing the statistics it emits to gold — not by textual similarity to a reference translation."

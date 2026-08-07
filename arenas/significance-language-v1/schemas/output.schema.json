@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "significance-language-v1 player output",
+  "description": "Flagged spans of interpretive-language problems in the excerpt. Each flag localises the offending phrase by character range, names its category, and carries a confidence. A correctly-written passage yields an empty flags list.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["flags"],
+  "properties": {
+    "flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["span", "category", "confidence"],
+        "properties": {
+          "span": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "char_start", "char_end"],
+            "properties": {
+              "text": {"type": "string", "description": "The flagged phrase, verbatim from the excerpt."},
+              "char_start": {"type": "integer", "minimum": 0, "description": "Inclusive character offset of the span start in input.text."},
+              "char_end": {"type": "integer", "minimum": 0, "description": "Exclusive character offset of the span end in input.text."}
+            }
+          },
+          "category": {
+            "type": "string",
+            "enum": ["marginal_significance", "spin_overclaim", "causal_overclaim", "one_sided_unjustified", "p_just_over_threshold_spin"],
+            "description": "The kind of interpretive-language problem."
+          },
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence that this span is a genuine problem."}
+        }
+      }
+    }
+  }
+}

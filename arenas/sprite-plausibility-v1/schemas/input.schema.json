@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sprite-plausibility-v1 task input",
+  "description": "A table of reported summary statistics. Each row reports a mean, SD, and N for a measure scored on an integer response scale [scale_min, scale_max]. The player must judge, per statistic, whether the reported (mean, SD) pair is GRANULARITY/RANGE-plausible — i.e. whether ANY sample of N integers in that range can actually produce that mean and SD. This is SPRITE-style (rsprite2) summary-stat plausibility checking.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["statistics"],
+  "properties": {
+    "statistics": {
+      "type": "array",
+      "description": "The reported summary statistics. One entry per measure.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stat_id", "label", "mean", "sd", "n", "scale_min", "scale_max", "decimals"],
+        "properties": {
+          "stat_id": {"type": "string", "description": "Stable id for this statistic row."},
+          "label": {"type": "string", "description": "Human-readable name of the measure as reported."},
+          "mean": {"type": "number", "description": "Reported sample mean."},
+          "sd": {"type": "number", "description": "Reported sample standard deviation."},
+          "n": {"type": "integer", "description": "Reported sample size (number of integer responses)."},
+          "scale_min": {"type": "integer", "description": "Smallest integer the response scale allows."},
+          "scale_max": {"type": "integer", "description": "Largest integer the response scale allows."},
+          "decimals": {"type": "integer", "description": "Number of decimals the mean and SD are reported to."}
+        }
+      }
+    }
+  }
+}

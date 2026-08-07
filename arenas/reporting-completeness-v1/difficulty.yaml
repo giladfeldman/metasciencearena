@@ -1,0 +1,36 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clean-simple
+    description: >-
+      a few reported tests, each complete and precise (stat + df + exact p +
+      effect size + CI, honestly framed). No defects.
+  2:
+    label: complete-but-busy
+    description: >-
+      a denser paragraph of several tests that LOOKS defect-prone but is
+      entirely complete and precise. The false-alarm trap: a good player must
+      NOT flag any of it.
+  3:
+    label: single-injected-defect
+    description: >-
+      exactly one reported test carries one completeness defect (cycling
+      through all six categories), the rest are clean.
+  4:
+    label: subtle-defect
+    description: >-
+      exactly one defect hidden in a longer paragraph of otherwise complete
+      reports (cycling through all six categories).
+  5:
+    label: multiple-defects
+    description: >-
+      several distinct completeness defects co-occur in one task, amid
+      complete reports.
+  6:
+    label: full-composition
+    description: >-
+      every reported test present, mixed across clean and all six defect
+      categories.
+
+n_defects: Count of completeness defects actually injected in the task (0 for T1/T2).

@@ -1,0 +1,39 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clean-simple
+    description: >-
+      every reported (mean, SD) pair is computed from a real sample of N
+      integers in the response range, so all are genuinely achievable. No
+      impossible statistics.
+  2:
+    label: controls-only
+    description: >-
+      extreme-but-POSSIBLE statistics: SD pushed near the theoretical maximum
+      for the reported mean, or a mean pushed near a scale bound, all still
+      genuinely achievable by some sample. The false-alarm trap: a good player
+      must NOT flag any of them just because they look extreme.
+  3:
+    label: single-injected-issue
+    description: >-
+      exactly one statistic carries one impossibility, cycling through every
+      issue kind across tasks so each kind is exercised; the rest clean.
+  4:
+    label: subtle-issue
+    description: >-
+      a single hard-to-spot impossibility (an SD that only barely exceeds the
+      maximum attainable variance for its mean) amid clean statistics.
+  5:
+    label: multiple-issues
+    description: >-
+      several statistics carry co-occurring impossibilities at once, the
+      remaining statistics clean.
+  6:
+    label: full-composition
+    description: >-
+      every injected impossibility kind present at once across the statistics
+      table.
+
+n_issues: Count of statistics that actually carry an injected impossible (mean, SD)
+  combination (0 for T1/T2).

@@ -1,0 +1,46 @@
+arena_id: open-practices-repro-v1
+taxonomy_leaf_id: code-and-repo-reproducibility-checks
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: repo_file_listing
+output_to_judge: list_of_open_practice_records
+difficulty_axes:
+  - {id: tier,      min: 1, max: 6, description: "1 clean/simple · 2 false-alarm trap (suspicious-looking but clean) · 3 single injected defect (cycles every kind) · 4 subtle defect amid traps (incl. open-practices look-alikes) · 5 multiple defects · 6 full composition"}
+  - {id: n_issues, min: 0, max: 5, description: "How many targets (files, the repo_url, or an availability statement) actually carry an injected reproducibility / open-practices defect"}
+task_set_versions:
+  - {version: v1, n_tasks: 20, released_on: "2026-06-06"}
+benchmark_splits:
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file          # task_sets/v1/.private_seed (gitignored)
+    real_holdout_dir: task_sets/v1/_held_out   # hand-curated real OSF/GitHub snapshots (future)
+  parity:
+    match_axes: [tier]                # n_issues is a deterministic function of tier
+    match_categories: true            # every issue_kind must appear in both splits
+    count_tolerance: 0               # index-cycled kind assignment => exactly-matched counts
+error_categories:
+  - id: repro_issue_missed
+    description: A target carrying a true reproducibility / open-practices defect (a code defect, a broken link, or a false availability claim) was not flagged by the player (false negative).
+    severity: major
+  - id: repro_issue_false_alarm
+    description: A clean target (often a suspicious-LOOKING but reproducible file, or a genuine DOI / real materials repository) was flagged as defective (false positive).
+    severity: major
+  - id: kind_mislabel
+    description: A correctly-flagged defect was given the wrong issue_kind.
+    severity: minor
+display_columns:
+  - {id: composite,     source: score.primary,                 label: Composite,     description: "The headline score (higher is better) for spotting reproducibility defects in a code/data repository. It multiplies three things — how well it finds the defects, whether it labels them correctly, and whether its confidence is honest — so being weak at any one drags the whole score down (formula: detection_f1 × kind_accuracy × calibration).", direction: higher, format: f3, primary: true}
+  - {id: detection_f1,  source: score.breakdown.detection_f1,  label: Detection F1,  description: "How well the player separated the truly-broken files from the clean ones — balancing catching real defects against raising false alarms. Some files are designed to look suspicious but be fine, which punishes trigger-happy players here.", direction: higher, format: f2, primary: false}
+  - {id: kind_accuracy, source: score.breakdown.kind_accuracy, label: Kind acc.,     description: "Of the defects it correctly flagged, the fraction it labelled with the right type of problem.", direction: higher, format: f2, primary: false}
+  - {id: calibration,   source: score.breakdown.calibration,   label: Calibration,   description: "How honest the player's confidence is — a well-calibrated player that says it is 90% sure is right about 90% of the time. It punishes confidently-wrong calls.", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "detection_f1 × kind_accuracy × calibration"
+  values:
+    - {value: 1, label: T1, sub: clean-simple}
+    - {value: 2, label: T2, sub: false-alarm-trap}
+    - {value: 3, label: T3, sub: single-defect}
+    - {value: 4, label: T4, sub: subtle-defect-and-open-practices}
+    - {value: 5, label: T5, sub: multi-defect}
+    - {value: 6, label: T6, sub: full-composition}

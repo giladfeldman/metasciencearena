@@ -1,0 +1,47 @@
+# Realistic integer response-scale definitions the generator draws from when
+# building summary-statistics tables. Each scale fixes the integer bounds a
+# survey item can take; the generator samples N integers in [scale_min, scale_max]
+# to compute achievable (mean, SD) pairs, then optionally injects an IMPOSSIBLE
+# pair. `typical_n` seeds a plausible sample size; `decimals` is the reporting
+# precision for the mean and SD (mirrors how papers round summary stats).
+- id: likert5_agree
+  label: "5-point Likert agreement (1 = strongly disagree … 5 = strongly agree)"
+  scale_min: 1
+  scale_max: 5
+  typical_n: 120
+  decimals: 2
+
+- id: likert7_agree
+  label: "7-point Likert agreement (1 = strongly disagree … 7 = strongly agree)"
+  scale_min: 1
+  scale_max: 7
+  typical_n: 200
+  decimals: 2
+
+- id: likert7_freq
+  label: "7-point frequency scale (1 = never … 7 = always)"
+  scale_min: 1
+  scale_max: 7
+  typical_n: 85
+  decimals: 2
+
+- id: vas0_10
+  label: "0–10 visual analog rating (0 = not at all … 10 = extremely)"
+  scale_min: 0
+  scale_max: 10
+  typical_n: 150
+  decimals: 2
+
+- id: likert6_forced
+  label: "6-point forced-choice attitude scale (1 = strongly oppose … 6 = strongly favor)"
+  scale_min: 1
+  scale_max: 6
+  typical_n: 64
+  decimals: 2
+
+- id: pct0_100
+  label: "0–100 percentage-confidence rating (0 = no confidence … 100 = full confidence)"
+  scale_min: 0
+  scale_max: 100
+  typical_n: 240
+  decimals: 1

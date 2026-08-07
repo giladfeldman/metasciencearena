@@ -1,0 +1,64 @@
+arena_id: stats-extraction-v1
+taxonomy_leaf_id: nhst-stats-and-effect-size-extraction
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: plain_text_section
+output_to_judge: list_of_effect_size_records
+difficulty_axes:
+  - {id: tier,           min: 1, max: 6, description: "Injection-difficulty tier 1..6 (tier 6 = full results section)"}
+  - {id: density,        min: 1, max: 5, description: "Stats per unit text"}
+  - {id: deception_rate, min: 0, max: 5, description: "Fraction of items that are deception (0=none, 5=>=50%)"}
+task_set_versions:
+  # n_tasks = the revealed single-seed count actually generated and committed to
+  # task_sets/v1/_ground_truth.json (6 tiers x 3 densities x 2 = 36); the
+  # leaderboard displays the real committed count. Was a stale 60.
+  - {version: v1, n_tasks: 36, released_on: "2026-04-29"}
+benchmark_splits:
+  # revealed seed 0 matches the gold already committed in task_sets/v1 (registry +
+  # _ground_truth.json), so adding splits does not invalidate existing artifacts.
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file   # task_sets/v1/.private_seed (gitignored)
+  parity:
+    match_axes: [tier, density]   # deception_rate is a deterministic function of tier
+    match_categories: true        # every deception_kind must appear in both splits
+    count_tolerance: 0.0          # identical matrix => exact per-cell counts
+error_categories:
+  - id: extraction_missed
+    description: A gold item has no matching player extraction (false negative).
+    severity: major
+  - id: extraction_extra
+    description: A player extraction has no matching gold item (false positive).
+    severity: minor
+  - id: kind_mismatch
+    description: An unmatched player extraction overlaps a gold span but disagrees on kind (e.g. labelled an effect_size as nhst_stat).
+    severity: major
+  - id: value_off
+    description: A matched extraction's numeric value differs from gold by ≥ 0.01.
+    severity: major
+  - id: deception_missed
+    description: A non-truthful gold item was matched but the extraction did not flag it as suspicious.
+    severity: major
+  - id: deception_false_alarm
+    description: A truthful gold item was matched but the extraction flagged it as suspicious.
+    severity: minor
+  - id: calibration_overconfident
+    description: An incorrect extraction (matched-but-wrong, or unmatched FP) carried confidence ≥ 0.9.
+    severity: minor
+
+display_columns:
+  - {id: composite,   source: score.primary,                 label: Composite,   description: "The headline score (higher is better) for pulling statistics and effect sizes out of a results section. It multiplies how accurate the extractions are (precision), how complete they are (recall), and how honest the confidence is (calibration), so being weak at any one drags the whole score down (formula: precision × recall × calibration).", direction: higher, format: f3, primary: true}
+  - {id: precision,   source: score.breakdown.precision,     label: Precision,   description: "Of the statistics the player reported, the fraction that matched the ground truth. Low precision means it invented or misread numbers.", direction: higher, format: f2, primary: false}
+  - {id: recall,      source: score.breakdown.recall,        label: Recall,      description: "Of the statistics actually present in the text, the fraction the player found. Low recall means it missed real numbers.",     direction: higher, format: f2, primary: false}
+  - {id: calibration, source: score.breakdown.calibration,   label: Calibration, description: "How honest the player's confidence is — a well-calibrated player that says it is 90% sure is right about 90% of the time. Penalises overconfident wrong extractions (and confidently extracting planted fake numbers instead of flagging them).", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "precision × recall × calibration"
+  values:
+    - {value: 1, label: T1, sub: baseline}
+    - {value: 2, label: T2, sub: notation}
+    - {value: 3, label: T3, sub: OCR-noise}
+    - {value: 4, label: T4, sub: density}
+    - {value: 5, label: T5, sub: catch-deception}
+    - {value: 6, label: T6, sub: multi-section}

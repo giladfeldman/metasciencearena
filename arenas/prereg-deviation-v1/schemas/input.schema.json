@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "prereg-deviation-v1 task input",
+  "description": "A preregistration and the eventual paper. The player must judge, per dimension, whether the paper deviates from what was preregistered.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["preregistration", "paper", "dimensions"],
+  "properties": {
+    "preregistration": {"type": "string", "description": "The preregistration document text."},
+    "paper": {"type": "string", "description": "The eventual published-paper text."},
+    "dimensions": {
+      "type": "array",
+      "description": "The closed set of dimension ids to assess (so scoring is well-defined). The player should return one record per dimension.",
+      "items": {"type": "string"}
+    }
+  }
+}

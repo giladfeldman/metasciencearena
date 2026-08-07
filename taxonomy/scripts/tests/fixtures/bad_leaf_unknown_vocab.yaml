@@ -1,0 +1,11 @@
+id: bad-leaf-unknown-vocab
+name: Leaf using an unknown input_artifact value
+lifecycle_stage: 06-results-reporting
+order: 99
+description: input_artifact value is not in the vocab file.
+input_artifact: not_a_real_artifact_type
+output_to_judge: list_of_effect_size_records
+existing_solutions: []
+ground_truth_feasibility: high
+arena_status: none
+scope_tier: A

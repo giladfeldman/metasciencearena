@@ -1,0 +1,23 @@
+id: code-and-repo-reproducibility-checks
+name: Code & repository reproducibility checks
+lifecycle_stage: 05-analysis-code
+order: 10
+description: |
+  Given a listing of a referenced data/code repository (file names, types, and
+  contents), flag reproducibility problems: hard-coded absolute file paths,
+  uncommented code, statements that load files absent from the repository, and
+  broken/placeholder repository links. Mirrors metacheck's repo_check and
+  code_check modules. Synthetic ground truth by generating mocked repository
+  snapshots with injected reproducibility defects (no live OSF/GitHub fetch).
+input_artifact: repo_file_listing
+output_to_judge: list_of_open_practice_records
+existing_solutions:
+  - {id: metacheck, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: medium
+arena_status: live
+scope_tier: A
+notes: |
+  Arena: open-practices-repro-v1. Hardest of the metacheck family — needs mocked
+  repository fixtures; build last.

@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciencearena.local/contract/arena_manifest.json",
+  "title": "Arena manifest (arena.yaml)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "arena_id",
+    "taxonomy_leaf_id",
+    "version",
+    "owner",
+    "license",
+    "input_artifact",
+    "output_to_judge",
+    "difficulty_axes",
+    "task_set_versions",
+    "display_columns",
+    "tier_pivot"
+  ],
+  "properties": {
+    "arena_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
+    },
+    "taxonomy_leaf_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "description": "Arena code version (semver)."
+    },
+    "owner": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string"
+    },
+    "input_artifact": {
+      "type": "string",
+      "description": "Must match the leaf's input_artifact."
+    },
+    "output_to_judge": {
+      "type": "string",
+      "description": "Must match the leaf's output_to_judge."
+    },
+    "min_ranked_n": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optional (2026-06-13 fairness handoff §E). Minimum size of the COMMON task set every ranked player shares, below which the leaderboard flags the headline ranking 'insufficient sample, not ranked'. Guards tiny synthetic-only splits (e.g. the table arena's 2 docs) from being read as a real ranking."
+    },
+    "difficulty_axes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "min",
+          "max",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "min": {
+            "type": "integer"
+          },
+          "max": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "task_set_versions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "version",
+          "n_tasks",
+          "released_on"
+        ],
+        "properties": {
+          "version": {
+            "type": "string",
+            "pattern": "^v[0-9]+$"
+          },
+          "n_tasks": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "released_on": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      }
+    },
+    "benchmark_splits": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional. Declares the revealed/private dual-benchmark policy for this arena. When present, the generator must accept a `split` argument and emit difficulty-matched 'revealed' and 'private' suites from the same injected-mistake catalog. framework/parity.py verifies they cover the same difficulty x mistake matrix. When absent, the arena is single-suite (legacy behavior; all tasks treated as their declared visibility).",
+      "required": [
+        "revealed",
+        "private",
+        "parity"
+      ],
+      "properties": {
+        "revealed": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "seed"
+          ],
+          "description": "The published suite. Its seed is committed so anyone can reproduce it; its gold and full per-task results are disclosed in the Open Benchmark.",
+          "properties": {
+            "seed": {
+              "type": "integer",
+              "description": "Committed generator seed for the revealed split."
+            },
+            "published": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "private": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "seed_source"
+          ],
+          "description": "The contamination-protected official suite. Seed is secret; gold is gitignored; findings are redacted at write time.",
+          "properties": {
+            "seed_source": {
+              "type": "string",
+              "enum": [
+                "secret_file",
+                "env"
+              ],
+              "description": "Where the private seed comes from. 'secret_file' = a gitignored arenas/<id>/task_sets/<v>/.private_seed; 'env' = the SCIENCEARENA_PRIVATE_SEED environment variable."
+            },
+            "real_holdout_dir": {
+              "type": "string",
+              "description": "Optional. Repo-relative dir (gitignored) of hand-curated real-world tasks whose gold is committed only to the eval-only registry; appended to the synthetic private split. PDF arenas point this at their _held_out/ PMC corpus."
+            }
+          }
+        },
+        "parity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "match_axes"
+          ],
+          "description": "Parity policy enforced by framework/parity.py.",
+          "properties": {
+            "match_axes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              },
+              "description": "Difficulty-axis ids (subset of difficulty_axes) whose per-cell coverage must match across splits."
+            },
+            "match_categories": {
+              "type": "boolean",
+              "default": true,
+              "description": "If true, every injected-mistake category (error_categories id / deception kind) present in one split must be present in the other."
+            },
+            "count_tolerance": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.2,
+              "description": "Max allowed relative difference in per-cell task counts between splits."
+            },
+            "independent_holdout": {
+              "type": "boolean",
+              "default": false,
+              "description": "True when the PRIVATE split is a GENUINELY INDEPENDENT corpus (real third-party artifacts under real_holdout_dir) rather than the same generator under a secret seed. Such a split cannot mirror the revealed difficulty grid — real material comes with whatever constructs its authors used, and hand-picking it to fit a template would stop it being a holdout. When true, framework/parity.py skips cell/category matching and reports OK with a note. The revealed split must still be fully symmetric across players; that is what framework audit gates."
+            }
+          }
+        }
+      }
+    },
+    "error_categories": {
+      "type": "array",
+      "description": "Optional. Failure modes that scorer.score() may report via score.findings[].category. Drives the categorical histogram in tool reports — including for held-out tasks (where per-task content is redacted but category counts survive). Arenas with no error_categories produce shallower reports (summary + ranking only). When benchmark_splits.parity.match_categories is true, this array doubles as the injected-mistake taxonomy that both splits must cover.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "severity"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "description": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "minor",
+              "major",
+              "critical"
+            ]
+          }
+        }
+      }
+    },
+    "display_columns": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Per-arena leaderboard column manifest. Each entry projects a numeric value out of a run-record and declares how to render it.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "source",
+          "label",
+          "description",
+          "direction",
+          "format",
+          "primary"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "source": {
+            "type": "string",
+            "pattern": "^score(\\.[a-z_][a-z0-9_]*)+$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "higher",
+              "lower"
+            ]
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "f2",
+              "f3",
+              "pct",
+              "int"
+            ]
+          },
+          "primary": {
+            "type": "boolean"
+          },
+          "aggregation": {
+            "type": "string",
+            "enum": [
+              "mean"
+            ],
+            "default": "mean"
+          }
+        }
+      }
+    },
+    "tier_pivot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "axis",
+        "composite_formula",
+        "values"
+      ],
+      "description": "Per-arena tier-pivot semantics for the per-tier composite score panel and the tasks-page tier filter.",
+      "properties": {
+        "axis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "composite_formula": {
+          "type": "string",
+          "minLength": 1
+        },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "value",
+              "label",
+              "sub"
+            ],
+            "properties": {
+              "value": {
+                "type": "integer"
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sub": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+# This file lives at `publish_templates/public-ci.yml` in the PRIVATE repo and
+# is placed at `.github/workflows/ci.yml` in the public mirror. The private
+# repo's own CI additionally builds the Next.js app and runs the mirror gate,
+# neither of which exists publicly.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: pip install -e ".[dev]"
+      # `--pyargs framework` rather than a path: it runs the tests as INSTALLED,
+      # so a test that only passes because the checkout is on sys.path fails here.
+      - run: pytest -q --pyargs framework

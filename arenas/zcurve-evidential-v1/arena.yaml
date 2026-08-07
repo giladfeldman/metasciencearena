@@ -1,0 +1,41 @@
+arena_id: zcurve-evidential-v1
+taxonomy_leaf_id: zcurve-evidential-value
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: significant_test_statistics_set
+output_to_judge: evidential_value_verdict
+difficulty_axes:
+  - {id: tier,      min: 1, max: 6, description: "1 clearly evidential (high power, large set) · 2 clearly non-evidential (pure nulls, large set) · 3 evidential moderate power · 4 non-evidential subtle (a few real effects mixed into nulls) · 5 small-set evidential (harder) · 6 small-set non-evidential (harder)"}
+  - {id: n_studies, min: 0, max: 200, description: "Number of significant studies (z-scores) in the set. Smaller sets are harder for any estimator (z-curve included)."}
+task_set_versions:
+  - {version: v1, n_tasks: 18, released_on: "2026-06-07"}
+benchmark_splits:
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file        # task_sets/v1/.private_seed (gitignored)
+    real_holdout_dir: task_sets/v1/_held_out   # hand-curated real significant-result sets (future)
+  parity:
+    match_axes: [tier]              # n_studies is a deterministic function of tier
+    match_categories: true          # both generating regimes must appear in both splits
+    count_tolerance: 0.2            # deterministic regime assignment => matched counts
+error_categories:
+  - id: misclassified_evidential
+    description: The set was generated from REAL effects (high true power) and genuinely has evidential value, but the player judged it non-evidential (a real-effect set dismissed as p-hacked).
+    severity: major
+  - id: misclassified_non_evidential
+    description: The set was generated from NULL effects selected for significance (no evidential value), but the player judged it evidential (a selection-over-nulls set credited with real effects).
+    severity: major
+display_columns:
+  - {id: accuracy,    source: score.primary,               label: Accuracy,    description: "The headline score (higher is better): did the player correctly judge whether a set of significant results carries genuine evidential value (real effects) or is consistent with selection over null findings (p-hacking)? Scored 1 for a correct verdict, 0 for a wrong one.", direction: higher, format: f3, primary: true}
+  - {id: calibration, source: score.breakdown.calibration, label: Calibration, description: "How honest the player's confidence is — how closely its stated certainty matches whether it was actually right. It punishes confidently-wrong verdicts.", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "1 if correct else 0"
+  values:
+    - {value: 1, label: T1, sub: evidential-clear}
+    - {value: 2, label: T2, sub: non-evidential-clear}
+    - {value: 3, label: T3, sub: evidential-moderate}
+    - {value: 4, label: T4, sub: non-evidential-subtle}
+    - {value: 5, label: T5, sub: evidential-small-set}
+    - {value: 6, label: T6, sub: non-evidential-small-set}

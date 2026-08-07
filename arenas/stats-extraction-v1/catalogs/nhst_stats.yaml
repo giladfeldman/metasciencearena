@@ -1,0 +1,10 @@
+- {id: t,     name: "t-test",            label_pattern: "t",       has_df: 1, range: [-6, 6]}
+- {id: F,     name: "F-test",            label_pattern: "F",       has_df: 2, range: [0.1, 30]}
+- {id: r,     name: "Pearson r",         label_pattern: "r",       has_df: 1, range: [-0.95, 0.95]}
+- {id: chi2,  name: "Chi-squared",       label_pattern: "chi2",    has_df: 1, range: [0.1, 50]}
+- {id: z,     name: "z-test",            label_pattern: "z",       has_df: 0, range: [-5, 5]}
+- {id: U,     name: "Mann-Whitney U",    label_pattern: "U",       has_df: 0, range: [0, 1000]}
+- {id: W,     name: "Wilcoxon W",        label_pattern: "W",       has_df: 0, range: [0, 1000]}
+- {id: H,     name: "Kruskal-Wallis H",  label_pattern: "H",       has_df: 1, range: [0.1, 50]}
+- {id: Q,     name: "Cochran Q",         label_pattern: "Q",       has_df: 1, range: [0.1, 50]}
+- {id: BF,    name: "Bayes factor",      label_pattern: "BF10",    has_df: 0, range: [0.1, 100]}

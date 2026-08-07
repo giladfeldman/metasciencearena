@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["extractions", "player_strategy_notes"],
+  "properties": {
+    "extractions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["span", "kind", "fields", "confidence", "flagged_suspicious"],
+        "properties": {
+          "span": {"type": "object", "required": ["text", "char_start", "char_end"], "properties": {"text": {"type": "string"}, "char_start": {"type": "integer"}, "char_end": {"type": "integer"}}},
+          "kind": {"type": "string", "enum": ["nhst_stat", "effect_size", "confidence_interval"]},
+          "fields": {"type": "object"},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "flagged_suspicious": {"type": "boolean"},
+          "rationale": {"type": "string"}
+        }
+      }
+    },
+    "player_strategy_notes": {"type": "string"}
+  }
+}

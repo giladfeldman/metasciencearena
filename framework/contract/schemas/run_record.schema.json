@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciencearena.local/contract/run_record.json",
+  "title": "Provenance record for a single player run on a single task",
+  "description": "Stored by the framework. Arena code never writes these directly.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id", "arena_id", "task_set_version", "task_id",
+    "player_id", "player_version", "player_type",
+    "input_hash", "output", "score", "timestamp_utc"
+  ],
+  "properties": {
+    "run_id": {"type": "string"},
+    "arena_id": {"type": "string"},
+    "task_set_version": {"type": "string", "pattern": "^v[0-9]+$"},
+    "task_id": {"type": "string"},
+    "player_id": {"type": "string"},
+    "player_version": {"type": "string"},
+    "resolved_tool_version": {"type": ["string", "null"], "description": "Optional. The actual installed version of the underlying tool, detected at runtime by the adapter (e.g. 'docpluck-2.4.84'). null when no underlying tool is detectable (e.g. an LLM, whose version is the model id in player_version). Lets the leaderboard rank on the version a score was produced with rather than the static registry label."},
+    "player_type": {"type": "string", "enum": ["platform", "tool", "human-baseline", "ai-model"]},
+    "input_hash": {"type": "string", "description": "SHA-256 of the canonicalized task envelope."},
+    "output": {"description": "Player's response, conforming to the arena's output schema."},
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary"],
+      "properties": {
+        "primary": {"type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "null = task excluded from scoring (e.g., unverifiable ground truth)."},
+        "breakdown": {"type": "object"},
+        "findings": {
+          "type": "array",
+          "description": "Optional. Structured failure-mode annotations. See contract/schemas/findings.schema.json for the per-item shape. Held-out task findings are redacted by the runner before persistence — only category + count survive.",
+          "items": {"type": "object"}
+        }
+      }
+    },
+    "task_visibility": {
+      "type": "string",
+      "enum": ["public", "held_out"],
+      "description": "Optional. Copied from the task envelope by the runner. Defaults to 'held_out' (fail-safe) when the envelope did not declare visibility. Drives report-engine redaction logic."
+    },
+    "split": {
+      "type": "string",
+      "enum": ["revealed", "private"],
+      "description": "Optional. Copied from the task envelope by the runner. 'revealed' records are published un-redacted in the Open Benchmark; 'private' records keep findings redaction. Mirrors task_visibility (revealed<->public, private<->held_out) but names the benchmark suite explicitly for leaderboard partitioning."
+    },
+    "timestamp_utc": {"type": "string", "format": "date-time"},
+    "cost_usd": {"type": "number", "minimum": 0},
+    "latency_ms": {"type": "integer", "minimum": 0},
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional. How/when/with-what this record was produced. Populated by the runner. Command is sanitized of any secrets before write.",
+      "properties": {
+        "tested_at_utc": {"type": "string", "format": "date-time"},
+        "host": {"type": "string"},
+        "adapter_class": {"type": "string"},
+        "command": {"type": "string"},
+        "tool_version_detail": {"type": "string"},
+        "resolved_tool_version": {"type": ["string", "null"]},
+        "trials": {"type": "integer", "minimum": 1},
+        "seed": {"type": ["integer", "string"]},
+        "split": {"type": "string", "enum": ["revealed", "private"]}
+      }
+    }
+  }
+}

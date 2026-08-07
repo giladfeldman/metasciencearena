@@ -1,0 +1,46 @@
+arena_id: grim-consistency-v1
+taxonomy_leaf_id: summary-stat-granularity-consistency
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: summary_statistics_table
+output_to_judge: list_of_grim_consistency_records
+difficulty_axes:
+  - {id: tier,     min: 1, max: 6, description: "1 clean/simple · 2 controls-only (false-alarm trap, incl. achievable-but-odd percentages) · 3 single GRIM error (one per injected kind) · 4 subtle GRIM error (one ULP; impossible % hidden among clean %; mixed mean/% table) · 5 multiple GRIM errors (kinds interleaved) · 6 max GRIM density"}
+  - {id: n_issues, min: 0, max: 6, description: "How many reported values (means or percentages) in this task are actually GRIM-inconsistent"}
+task_set_versions:
+  - {version: v1, n_tasks: 16, released_on: "2026-06-07"}   # 13 -> 16 on 2026-08-04 (cycle 7: percentage GRIM)
+benchmark_splits:
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file        # task_sets/v1/.private_seed (gitignored)
+    real_holdout_dir: task_sets/v1/_held_out   # hand-curated real summary-stat tables (future)
+  parity:
+    match_axes: [tier]              # n_issues is a deterministic function of tier
+    match_categories: true          # every injected issue kind must appear in both splits
+    count_tolerance: 0.2            # small per-cell tolerance; assignment is deterministic
+error_categories:
+  - id: grim_missed
+    description: A reported mean or percentage that is mathematically impossible (GRIM-inconsistent) was not flagged by the player (false negative).
+    severity: major
+  - id: grim_false_alarm
+    description: A consistent value (often a small-N, many-decimals, or odd-looking-but-achievable percentage control) was flagged as inconsistent (false positive).
+    severity: major
+  - id: kind_mislabel
+    description: A correctly-flagged statistic was given the wrong issue_kind — e.g. an impossible percentage labelled grim_inconsistent instead of grim_percent_inconsistent.
+    severity: minor
+display_columns:
+  - {id: composite,     source: score.primary,                 label: Composite,     description: "The headline score (higher is better) for catching reported means and percentages that are mathematically impossible for the stated sample size (the GRIM test). It multiplies how well it finds the impossible values, whether it labels them correctly, and whether its confidence is honest, so weakness in any one drags it down (formula: detection_f1 × kind_accuracy × calibration).", direction: higher, format: f3, primary: true}
+  - {id: detection_f1,  source: score.breakdown.detection_f1,  label: Detection F1,  description: "How well the player separated the genuinely-impossible values from the valid ones — balancing catching real GRIM violations against false alarms. Odd-looking but perfectly valid means, and achievable-but-arbitrary-looking percentages, are designed to tempt false alarms here.", direction: higher, format: f2, primary: false}
+  - {id: kind_accuracy, source: score.breakdown.kind_accuracy, label: Kind acc.,     description: "Of the values it correctly flagged, the fraction labelled with the right problem type — an impossible mean as grim_inconsistent, an impossible percentage as grim_percent_inconsistent. Confusing the two costs here.", direction: higher, format: f2, primary: false}
+  - {id: calibration,   source: score.breakdown.calibration,   label: Calibration,   description: "How honest the player's confidence is — a well-calibrated player that says it is 90% sure is right about 90% of the time. It punishes confidently-wrong calls.", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "detection_f1 × kind_accuracy × calibration"
+  values:
+    - {value: 1, label: T1, sub: clean-simple}
+    - {value: 2, label: T2, sub: controls-trap}
+    - {value: 3, label: T3, sub: single-grim}
+    - {value: 4, label: T4, sub: subtle-grim}
+    - {value: 5, label: T5, sub: multi-grim}
+    - {value: 6, label: T6, sub: max-grim}

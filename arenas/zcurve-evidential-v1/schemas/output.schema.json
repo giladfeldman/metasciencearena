@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "zcurve-evidential-v1 player output",
+  "description": "A single evidential-value verdict for the set of significant z-scores.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["has_evidential_value", "confidence"],
+  "properties": {
+    "has_evidential_value": {
+      "type": "boolean",
+      "description": "True if the set reflects genuine underlying effects (evidential value); false if it is consistent with selection-for-significance over null/weak effects (no evidential value / p-hacked)."
+    },
+    "expected_discovery_rate": {
+      "type": ["number", "null"],
+      "description": "Optional. The player's estimate of the expected discovery rate (EDR), as zcurve would report it. Not scored; provided for reporting/auditing only."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Player's confidence in the has_evidential_value verdict."
+    }
+  }
+}

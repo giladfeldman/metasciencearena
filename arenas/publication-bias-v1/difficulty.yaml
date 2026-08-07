@@ -1,0 +1,40 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+# Computed-gold meta-analysis arena: each dataset is constructed with a KNOWN bias
+# label far from the Egger decision boundary, so the metafor reference tool agrees.
+
+tier:
+  1:
+    label: small-k-baseline
+    description: >-
+      a clean (symmetric funnel) set vs a strong small-study-biased set, both
+      k=10. The minimal viable Egger test.
+  2:
+    label: controls-only-false-alarm-trap
+    description: >-
+      clean but NOISY sets with high between-study heterogeneity (tau) and a
+      wide precision range. Heterogeneity must NOT be read as funnel
+      asymmetry; a good player flags neither.
+  3:
+    label: null-true-effect
+    description: >-
+      clean vs biased at k=20 around mu=0. Small-study effect is the only
+      source of asymmetry.
+  4:
+    label: heterogeneous
+    description: >-
+      clean vs biased at k=24 where BOTH carry between-study tau. The test
+      must separate genuine asymmetry from heterogeneity.
+  5:
+    label: large-k
+    description: >-
+      clean vs biased at k=32 with a moderate true effect.
+  6:
+    label: largest-k
+    description: >-
+      clean vs biased at k=40, the most powered comparison.
+
+k: Number of studies in the set (10 -> 40). All tasks have k >= 10 so the Egger
+   regression has adequate residual degrees of freedom.
+label: Constructed ground-truth bias label — "unbiased" (symmetric funnel, no
+  censoring, no yi~sei coupling) or "biased" (explicit small-study coupling + censored
+  small-N under-shooters => strong funnel asymmetry, Egger p << threshold).

@@ -1,0 +1,94 @@
+[project]
+# PyPI distribution name (verified free 2026-08-07). The IMPORT package stays
+# `framework` and the GitHub slug stays `sciencearena` — that string is baked
+# into 14 `fixture__sciencearena__*` gold keys, the `sciencearena.local` schema
+# $ids, the `SCIENCEARENA_*` env vars, the NCBI User-Agent and
+# .vercel/project.json, so renaming it would invalidate published artifacts.
+name = "metasciencearena"
+version = "0.3.0"
+description = "Reproducible benchmark arenas for meta-science tools: task generation, scoring, contamination control, and leaderboards"
+readme = "PACKAGE_README.md"
+license = { text = "MIT" }
+authors = [{ name = "Gilad Feldman" }]
+keywords = ["meta-science", "benchmark", "reproducibility", "research-integrity", "leaderboard"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+requires-python = ">=3.11"
+dependencies = [
+  "pyyaml>=6.0",
+  "jsonschema>=4.21",
+  "requests>=2.31",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "reportlab>=4.0",          # synthetic PDF rendering for pdf-text-fidelity-v1
+  "rapidfuzz>=3.0",          # Levenshtein-similarity scoring for pdf-text-fidelity-v1
+  "lxml>=5.0,<7.0.0a0",      # JATS / TEI XML parsing; upper bound excludes pre-release alphas (DR-0020)
+  "packaging>=23.0",         # semver-aware version sort in framework/report.py
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+pdf-liteparse = ["liteparse>=2.0.4"]
+
+[project.urls]
+Homepage = "https://metasciencearena.app"
+Documentation = "https://metasciencearena.app/how-it-works"
+
+[project.scripts]
+# So `metasciencearena audit --all` works off-repo. `python -m framework …`
+# keeps working in a checkout.
+metasciencearena = "framework.cli:_console_main"
+
+[tool.setuptools.packages.find]
+include = ["framework*"]
+
+[tool.setuptools.package-data]
+# The contract schemas are not documentation — `discovery.py` and `storage.py`
+# validate against them on every load. A wheel without them raises
+# FileNotFoundError on the first `load_arena`, which is exactly what a clean
+# install revealed (2026-08-07). `scripts/check_clean_install.py` pins this.
+"framework.contract" = ["schemas/*.json"]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+# WITHOUT THIS, 119 TESTS SILENTLY DO NOT RUN (measured 2026-08-07).
+#
+# 19 arenas each ship `tests/test_generator.py` and `tests/test_scorer.py`.
+# Only 11 of those `tests/` dirs have an `__init__.py`, and the arena dirs above
+# them are hyphenated (`stats-extraction-v1`), so no valid package path can be
+# formed either way: files with `__init__.py` all resolve to `tests.test_scorer`
+# and files without it all resolve to `test_scorer`. Same name, so the first one
+# imported wins and every later arena's file is collected as a DUPLICATE of it.
+#
+# The suite reported a confident green 1025 the whole time. That is the
+# dangerous shape: not a failure, a smaller pass. One of the 119 hidden tests
+# was genuinely FAILING (stats-extraction-v1 renders a "clean control" whose
+# prose claims significance at p = 0.057).
+#
+# `consider_namespace_packages` makes importlib derive a unique module name from
+# the full path. Collection: 1025 -> 1144.
+consider_namespace_packages = true
+# Parent roots, not a per-arena/per-module enumeration: pytest recurses into
+# every `tests/` (and any module-local `test_*.py`) under these. This means a
+# NEW arena's tests are collected automatically — the per-arena list previously
+# here silently excluded 7 arenas + several module test dirs from CI (DR-0011).
+# Every test_*.py in the repo lives under one of these roots; none live outside
+# a tests/ dir except players/adapters/test_*.py, which `players` covers.
+testpaths = [
+  "taxonomy/scripts/tests",
+  "framework",
+  "arenas",
+  "players",
+]
+python_files = "test_*.py"
+# Don't descend into generated/vendored trees while recursing the roots above.
+norecursedirs = [
+  "*/task_sets", "*/runs", "*/_held_out", "*/__pycache__",
+  ".venv", "node_modules", "leaderboard-app",
+]

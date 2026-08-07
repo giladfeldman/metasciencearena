@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "open-practices-repro-v1 player output",
+  "description": "Per-target reproducibility judgements over the mocked repository.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["records"],
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target", "flagged", "confidence"],
+        "properties": {
+          "target": {"type": "string", "description": "A file name (one of input.files[].name) or the repo_url (for a broken_link defect)."},
+          "flagged": {"type": "boolean", "description": "True if this target carries a reproducibility / open-practices defect."},
+          "issue_kind": {"type": ["string", "null"], "enum": ["absolute_path", "uncommented_code", "missing_file_load", "broken_link", "dead_data_link", "available_upon_request", "materials_claim_no_link", null], "description": "If flagged=true, the kind of defect: 'absolute_path' | 'uncommented_code' | 'missing_file_load' | 'broken_link' | 'dead_data_link' | 'available_upon_request' | 'materials_claim_no_link'; null otherwise."},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the judgement for this target."},
+          "evidence": {"type": "string", "description": "Optional. Short snippet justifying the flag (e.g. the offending path)."}
+        }
+      }
+    }
+  }
+}

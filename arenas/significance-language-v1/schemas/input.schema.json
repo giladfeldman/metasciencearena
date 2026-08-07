@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "significance-language-v1 task input",
+  "description": "A manuscript excerpt (results / discussion / abstract prose). The player must flag interpretive-language problems: marginal-significance phrasing for p in (.05,.10), spin/overclaim not supported by the reported result, and causal language without a randomised design.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {"type": "string", "description": "The manuscript excerpt to scan for interpretive-language problems."}
+  }
+}

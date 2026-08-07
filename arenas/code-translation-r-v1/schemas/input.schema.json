@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "code-translation-r-v1 task input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_language", "source_code", "dataset_path", "codebook", "required_statistics", "analysis_description"],
+  "properties": {
+    "source_language": {
+      "enum": ["spss", "stata"],
+      "description": "Which statistical language source_code is written in."
+    },
+    "source_code": {
+      "type": "string",
+      "description": "The verbatim .sps syntax or .do file contents to translate."
+    },
+    "dataset_path": {
+      "type": "string",
+      "description": "Filename of the CSV the script runs against. The emitted R must read it from the ARENA_DATA environment variable, not from this literal path."
+    },
+    "codebook": {
+      "type": "array",
+      "description": "Column dictionary for the dataset, so the translation does not have to guess variable meanings or missing-value codes.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["name", "description"],
+        "properties": {
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "type": {"type": "string"},
+          "missing_code": {"type": ["number", "null"]}
+        }
+      }
+    },
+    "required_statistics": {
+      "type": "array",
+      "description": "The named quantities the emitted R must print in its JSON object. Scoring compares these by name.",
+      "items": {"type": "string"},
+      "minItems": 1
+    },
+    "analysis_description": {
+      "type": "string",
+      "description": "What the analysis does, including any convention the statistic names leave ambiguous (e.g. that mean_diff is group 1 minus group 2). The arena tests cross-language defaults, not the player's ability to guess sign conventions."
+    }
+  }
+}

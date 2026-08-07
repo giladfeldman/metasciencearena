@@ -1,0 +1,29 @@
+id: pdf-reference-parsing
+name: PDF reference list parsing (Layer 5)
+lifecycle_stage: 09-submission-artifacts
+order: 12
+description: |
+  Given a scientific PDF, return structured reference records (authors
+  with surname/given_names, year, title, venue, doi, pmid). Gold derived
+  from JATS <biblStruct> on the same PMC corpus seeded by
+  pdf-text-fidelity-v1.
+
+  Sibling of pdf-text-fidelity (Layer 1) and pdf-section-structure
+  (Layer 3) under the same lifecycle stage; the three together replace
+  the original placeholder leaf docpluck-pdf-docx-text-extraction.
+
+  Reference matching is greedy — first by DOI, then by title-similarity
+  (rapidfuzz token_set_ratio >= 0.85). Per-field micro-F1 over matched
+  pairs.
+input_artifact: pdf_or_docx_manuscript
+output_to_judge: pdf_reference_records
+existing_solutions:
+  - {id: grobid,               type: tool,     owner: third-party}
+  - {id: anystyle,             type: tool,     owner: third-party}
+  - {id: claude-haiku-4-5-pdf, type: ai-model, owner: anthropic}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Docpluck does not enter this arena — its scope is text fidelity, not
+  bibliographic parsing. GROBID is the strongest expected baseline.

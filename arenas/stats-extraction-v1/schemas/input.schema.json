@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text", "tier", "format_hint"],
+  "properties": {
+    "text":        {"type": "string"},
+    "tier":        {"type": "integer", "minimum": 1, "maximum": 6},
+    "format_hint": {"type": "string", "enum": ["plain_text"]}
+  }
+}

@@ -1,0 +1,43 @@
+# This file lives at `publish_templates/publish-pypi.yml` in the PRIVATE repo
+# and is placed at `.github/workflows/publish-pypi.yml` in the public mirror.
+# It is kept out of `.github/` here on purpose: PyPI trusted publishing is
+# configured for the public repository only, so a tag pushed to the private repo
+# must not even attempt a release.
+name: Publish to PyPI
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      # OIDC trusted publishing: no long-lived API token exists to leak or
+      # rotate. PyPI verifies the workflow identity directly.
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

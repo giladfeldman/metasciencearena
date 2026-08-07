@@ -1,0 +1,173 @@
+# Catalog of reference templates for reference-integrity-v1.
+#
+# Each entry is a "canonical" bibliographic record the generator KNOWS the truth
+# of (it injected any defect itself, so no live retraction/metadata DB is needed).
+# A reference is rendered into the task envelope either CLEAN (matches canonical)
+# or with ONE injected integrity issue, depending on the tier/index plan.
+#
+# Fields:
+#   authors / year / title / doi / venue : the CANONICAL values (what the record
+#                                  *should* say). `venue` is the publication outlet
+#                                  (a reputable journal); it is rendered for EVERY
+#                                  reference so the predatory_source issue is a
+#                                  same-shaped comparison against a clean venue.
+#   replication_of               : (optional) when present, this entry is itself a
+#                                  REPLICATION study of an original; used by the
+#                                  replication_uncited issue (an original whose known
+#                                  replication is absent from the reference list).
+#   miscite_year / miscite_title : (optional) commonly-confused wrong values used to
+#                                  render the miscitation issue (the reference *as listed*
+#                                  carries a known-wrong attribution).
+#   predatory_venue              : (optional) a known predatory / hijacked-style outlet
+#                                  the generator substitutes for `venue` to inject the
+#                                  predatory_source issue (the arena KNOWS — it injected
+#                                  the substitution; no live Beall/DOAJ lookup needed).
+#   tortured_title               : (optional) the SAME work's title rewritten with a
+#                                  paper-mill "tortured phrase" (a synonym-swapped
+#                                  paraphrase, e.g. "irregular esteem" for "random
+#                                  value"); substituted for `title` to inject the
+#                                  tortured_phrase issue. `title` remains the canonical
+#                                  (legitimate) wording stored in gold.
+- id: ref_sleep_memory
+  authors: ["Walker, M.", "Stickgold, R."]
+  year: 2006
+  title: "Sleep, memory, and plasticity"
+  doi: "10.1146/annurev.psych.56.091103.070307"
+  venue: "Annual Review of Psychology"
+  miscite_year: 2004
+  miscite_title: "Sleep and the consolidation of memory"
+
+- id: ref_ego_depletion
+  authors: ["Baumeister, R. F.", "Bratslavsky, E.", "Muraven, M.", "Tice, D. M."]
+  year: 1998
+  title: "Ego depletion: Is the active self a limited resource?"
+  doi: "10.1037/0022-3514.74.5.1252"
+  venue: "Journal of Personality and Social Psychology"
+  miscite_year: 2000
+  miscite_title: "The strength model of self-control"
+
+- id: ref_power_pose
+  authors: ["Carney, D. R.", "Cuddy, A. J. C.", "Yap, A. J."]
+  year: 2010
+  title: "Power posing: Brief nonverbal displays affect neuroendocrine levels"
+  doi: "10.1177/0956797610383437"
+  venue: "Psychological Science"
+  miscite_year: 2012
+  miscite_title: "Power posing increases testosterone and risk tolerance"
+
+- id: ref_facial_feedback
+  authors: ["Strack, F.", "Martin, L. L.", "Stepper, S."]
+  year: 1988
+  title: "Inhibiting and facilitating conditions of the human smile"
+  doi: "10.1037/0022-3514.54.5.768"
+  venue: "Journal of Personality and Social Psychology"
+  miscite_year: 1989
+  miscite_title: "The facial feedback hypothesis"
+
+- id: ref_marshmallow
+  authors: ["Mischel, W.", "Ebbesen, E. B.", "Zeiss, A. R."]
+  year: 1972
+  title: "Cognitive and attentional mechanisms in delay of gratification"
+  doi: "10.1037/h0032198"
+  venue: "Journal of Personality and Social Psychology"
+  miscite_year: 1970
+  miscite_title: "Delay of gratification in children"
+
+- id: ref_anchoring
+  authors: ["Tversky, A.", "Kahneman, D."]
+  year: 1974
+  title: "Judgment under uncertainty: Heuristics and biases"
+  doi: "10.1126/science.185.4157.1124"
+  venue: "Science"
+  miscite_year: 1979
+  miscite_title: "Prospect theory: An analysis of decision under risk"
+
+- id: ref_priming_elderly
+  authors: ["Bargh, J. A.", "Chen, M.", "Burrows, L."]
+  year: 1996
+  title: "Automaticity of social behavior: Direct effects of trait construct and stereotype activation on action"
+  doi: "10.1037/0022-3514.71.2.230"
+  venue: "Journal of Personality and Social Psychology"
+  miscite_year: 1998
+  miscite_title: "The unbearable automaticity of being"
+
+- id: ref_growth_mindset
+  authors: ["Blackwell, L. S.", "Trzesniewski, K. H.", "Dweck, C. S."]
+  year: 2007
+  title: "Implicit theories of intelligence predict achievement across an adolescent transition"
+  doi: "10.1111/j.1467-8624.2007.00995.x"
+  venue: "Child Development"
+  miscite_year: 2006
+  miscite_title: "Mindset: The new psychology of success"
+
+# --- Entries carrying a predatory-venue twin (predatory_source). The canonical
+#     `venue` is reputable; `predatory_venue` is the injected hijacked/predatory
+#     outlet the generator swaps in. ---
+- id: ref_neuro_plasticity
+  authors: ["Maguire, E. A.", "Gadian, D. G.", "Johnsrude, I. S."]
+  year: 2000
+  title: "Navigation-related structural change in the hippocampi of taxi drivers"
+  doi: "10.1073/pnas.070039597"
+  venue: "Proceedings of the National Academy of Sciences"
+  predatory_venue: "International Journal of Advanced Research in Science and Innovative Technology"
+
+- id: ref_serotonin_mood
+  authors: ["Cowen, P. J.", "Browning, M."]
+  year: 2015
+  title: "What has serotonin to do with depression?"
+  doi: "10.1002/wps.20229"
+  venue: "World Psychiatry"
+  predatory_venue: "Global Journal of Medical Sciences and Clinical Research"
+
+# --- Entries carrying a tortured-phrase twin (tortured_phrase). `title` is the
+#     legitimate wording; `tortured_title` is the synonym-mangled paper-mill
+#     paraphrase the generator swaps in. ---
+- id: ref_random_forests
+  authors: ["Breiman, L."]
+  year: 2001
+  title: "Random forests"
+  doi: "10.1023/A:1010933404324"
+  venue: "Machine Learning"
+  tortured_title: "Irregular timberlands"
+
+- id: ref_support_vector
+  authors: ["Cortes, C.", "Vapnik, V."]
+  year: 1995
+  title: "Support-vector networks"
+  doi: "10.1007/BF00994018"
+  venue: "Machine Learning"
+  tortured_title: "Backing-vector organizations"
+
+- id: ref_signal_noise
+  authors: ["Green, D. M.", "Swets, J. A."]
+  year: 1966
+  title: "Signal detection theory and psychophysics"
+  doi: "10.1063/1.3047995"
+  venue: "Journal of the Acoustical Society of America"
+  tortured_title: "Sign location hypothesis and psychophysics"
+
+# --- Originals whose KNOWN REPLICATION must be cited (replication_uncited). ---
+- id: ref_grit_original
+  authors: ["Duckworth, A. L.", "Peterson, C.", "Matthews, M. D.", "Kelly, D. R."]
+  year: 2007
+  title: "Grit: Perseverance and passion for long-term goals"
+  doi: "10.1037/0022-3514.92.6.1087"
+  venue: "Journal of Personality and Social Psychology"
+  replication_of: null
+  known_replication:
+    authors: ["Credé, M.", "Tynan, M. C.", "Harms, P. D."]
+    year: 2017
+    title: "Much ado about grit: A meta-analytic synthesis of the grit literature"
+    doi: "10.1037/pspp0000102"
+
+- id: ref_glucose_willpower
+  authors: ["Gailliot, M. T.", "Baumeister, R. F."]
+  year: 2007
+  title: "The physiology of willpower: Linking blood glucose to self-control"
+  doi: "10.1177/1088868307303030"
+  venue: "Personality and Social Psychology Review"
+  known_replication:
+    authors: ["Vadillo, M. A.", "Gold, N.", "Osman, M."]
+    year: 2016
+    title: "The bitter truth about sugar and willpower"
+    doi: "10.1177/0956797616654911"

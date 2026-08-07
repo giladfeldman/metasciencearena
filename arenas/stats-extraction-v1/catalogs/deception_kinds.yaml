@@ -1,0 +1,19 @@
+- {id: internal_inconsistency,  description: "Reported test stat and reported p are mutually inconsistent"}
+- {id: fabricated_value,        description: "Stat reported in text contradicted by subsequent claim"}
+- {id: swapped_test_label,      description: "Wrong test label for the value (e.g. F(48)=2.31 — F has two dfs)"}
+- {id: statistic_impostor,      description: "Stat-shaped string that isn't a stat (e.g. price, section number)"}
+- {id: missing_info_impostor,   description: "Stat presented as complete but missing critical fields (e.g. df)"}
+# Added 2026-07-01: statcheck-style failure modes. Each has a matched clean
+# control (a truthful look-alike that must NOT be flagged): nhst_inconsistent's
+# control is a correctly-reported NHST result whose p is consistent with the
+# statistic (every truthful nhst item now is one); wrong_df's control is the
+# truthful one-way ANOVA template that reports df2 = N - k consistent with the
+# stated sample size.
+- {id: nhst_inconsistent,       description: "Test statistic implies a decisive p but a contradicting p is reported (recompute two-sided p from stat+df to catch the decision error)"}
+- {id: wrong_df,                description: "Correctly-labelled F whose denominator df is inconsistent with the reported N and group count (df2 should be N - k)"}
+# Added 2026-07-01 (cycle 5): effect-size value-integrity failure. The reported
+# effect-size point estimate was re-rounded to fewer decimals so it no longer
+# matches its own CI (the CI midpoint disagrees with the stated estimate). Matched
+# clean control: clean_es (a correctly-rounded effect size whose estimate equals
+# its CI midpoint) in tier 1 — must NOT be flagged.
+- {id: effect_size_rounding,    description: "Effect-size point estimate re-rounded so it is inconsistent with its own reported CI (CI midpoint != stated estimate)"}

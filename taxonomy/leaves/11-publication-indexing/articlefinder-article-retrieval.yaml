@@ -1,0 +1,22 @@
+id: articlefinder-article-retrieval
+name: Article retrieval given DOI / title / URL
+lifecycle_stage: 11-publication-indexing
+order: 10
+description: |
+  Given a DOI, title+author, or URL, return the full-text artifact
+  (PDF/HTML/XML/TXT) of the article. Ground truth is the actual file
+  for items where it is legally retrievable; for items behind paywalls
+  the scoring is access-method success rather than file content match.
+input_artifact: doi_or_identifier
+output_to_judge: retrieved_artifact
+existing_solutions:
+  - {id: articlefinder, type: platform, owner: gilad}
+  - {id: unpaywall, type: tool, owner: third-party}
+  - {id: scihub-mirror, type: tool, owner: third-party}
+  - {id: human-librarian, type: human-baseline, owner: in-house}
+ground_truth_feasibility: medium
+arena_status: draft
+scope_tier: A
+notes: |
+  Legal/licensing constraints affect both ground-truth construction and
+  what may be redistributed. See Open Question 2 in the design spec.

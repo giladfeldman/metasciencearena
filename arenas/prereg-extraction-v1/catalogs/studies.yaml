@@ -1,0 +1,89 @@
+# Catalog of synthetic studies for prereg-extraction-v1.
+#
+# Each study supplies the four canonical preregistration FIELDS the player must
+# extract (hypotheses, design, sample_size, analysis_plan) plus a registration id
+# fragment used to build OSF / AsPredicted links and a view_only_token used to
+# build an anonymized OSF view-only URL. The generator renders these fields into
+# one of several surface forms:
+#   - osf            : a clean, structured OSF-style registration (clean control)
+#   - aspredicted    : a clean, structured AsPredicted-style registration (clean control)
+#   - doi_clean      : the canonical OSF registration DOI link (clean control;
+#                       confusable look-alike for the viewonly abuse)
+#   - embargo_lifted : embargo lifted before publication, fields public (clean
+#                       control; confusable look-alike for the embargoed abuse)
+#   - live_cited     : a live registration cited correctly (clean control;
+#                       confusable look-alike for the withdrawn abuse)
+#   - plaintext      : an unstructured plain-text registration (prereg_plaintext mistake)
+#   - wrong_schema   : AsPredicted field labels under an OSF link, or vice versa
+#                       (wrong_platform_schema mistake)
+#   - viewonly       : registration linked only via an anonymized view-only OSF
+#                       URL instead of the canonical link (viewonly_instead_of_doi)
+#   - embargoed      : registration referenced but still embargoed at publication;
+#                       fields unrecoverable (embargoed_at_publication mistake)
+#   - withdrawn      : a withdrawn (tombstone) registration still cited as
+#                       pre-registered; no usable plan (withdrawn_still_cited)
+#   - none           : no registration is embedded at all (no_prereg mistake)
+#
+# planned phrases (intro_options / measure_options) only vary the surrounding
+# narrative wording so revealed vs private content differs; the gold FIELD VALUES
+# come straight from the four canonical fields below.
+
+- id: sleep_memory
+  osf_frag: "a1b2c"
+  aspredicted_frag: "kx7"
+  view_only_token: "7c1f9a2e4b6d4f8a9c0e1b2d3a4f5e6c"
+  hypotheses: "Sleep deprivation reduces episodic memory recall accuracy."
+  design: "Between-subjects experiment with two conditions (sleep-deprived vs rested)."
+  sample_size: "120 undergraduate participants (60 per condition)."
+  analysis_plan: "Independent-samples t-test on recall accuracy, two-tailed at alpha .05."
+  topic: "sleep and memory"
+
+- id: framing_risk
+  osf_frag: "d3e4f"
+  aspredicted_frag: "mq2"
+  view_only_token: "2b8e0d1c3f5a4e7b8d9c0a1f2e3b4d5a"
+  hypotheses: "Loss framing increases risk-averse choices relative to gain framing."
+  design: "Within-subjects design with framing (loss vs gain) manipulated across trials."
+  sample_size: "200 participants recruited via Prolific."
+  analysis_plan: "Logistic mixed model predicting choice from framing, with random intercepts per participant."
+  topic: "decision framing"
+
+- id: gratitude_wellbeing
+  osf_frag: "g5h6i"
+  aspredicted_frag: "rt9"
+  view_only_token: "9d4a7c2e1b6f3a8d5c0e9b1d2f3a4c5e"
+  hypotheses: "A daily gratitude journaling intervention raises subjective wellbeing."
+  design: "Two-arm randomized controlled trial (gratitude journaling vs neutral writing)."
+  sample_size: "A final sample of 320 participants (160 per arm)."
+  analysis_plan: "ANCOVA on post-intervention wellbeing controlling for baseline, alpha .05."
+  topic: "gratitude and wellbeing"
+
+- id: caffeine_attention
+  osf_frag: "j7k8l"
+  aspredicted_frag: "vb4"
+  view_only_token: "4f1c8b3d2a7e5c9f0b6d1a2e3c4b5d6f"
+  hypotheses: "Caffeine improves sustained attention on a vigilance task."
+  design: "Double-blind, placebo-controlled within-subjects crossover."
+  sample_size: "48 adults completing both sessions."
+  analysis_plan: "Paired-samples t-test on mean reaction time, with Holm correction across measures."
+  topic: "caffeine and attention"
+
+- id: social_conformity
+  osf_frag: "m9n0o"
+  aspredicted_frag: "wc6"
+  view_only_token: "6a3d0f5c8b1e4a7d2c9f0b3e1d2a4c5b"
+  hypotheses: "Public response settings increase conformity to a confederate majority."
+  design: "2 (public vs private) x 2 (unanimous vs split majority) between-subjects factorial."
+  sample_size: "240 participants, 60 per cell."
+  analysis_plan: "Two-way ANOVA on conformity rate, two-tailed, with planned simple-effects contrasts."
+  topic: "social conformity"
+
+- id: exercise_mood
+  osf_frag: "p1q2r"
+  aspredicted_frag: "xd8"
+  view_only_token: "1e7b4c9a0d3f6b2e5c8a1d0f3b4e2a5c"
+  hypotheses: "A single bout of aerobic exercise improves self-reported mood."
+  design: "Pre-post within-subjects design with one exercise session."
+  sample_size: "75 community volunteers."
+  analysis_plan: "Repeated-measures t-test on mood change scores, two-tailed at alpha .05."
+  topic: "exercise and mood"

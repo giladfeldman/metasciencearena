@@ -1,0 +1,30 @@
+id: meta-analysis-publication-bias
+name: Meta-analysis small-study / publication bias
+lifecycle_stage: 14-replication-robustness
+order: 30
+description: |
+  Given a META-ANALYTIC dataset (a SET of studies, each with an effect-size estimate
+  yi and its standard error sei), decide whether the set shows small-study /
+  publication bias — funnel-plot asymmetry, the signature of selective reporting where
+  small (high-sei) studies that found small or wrong-signed effects are missing.
+  Mirrors the standard meta-analysis diagnostics in the metafor R package: Egger's
+  regression test (regtest) for funnel asymmetry and trim-and-fill (trimfill) for the
+  count of imputed missing studies. Synthetic ground truth: each set is constructed
+  from a known regime (a symmetric funnel with no censoring vs. an explicit
+  small-study coupling plus censored small-N under-shooters), so the bias label is the
+  controlled generating process, not a tool output. Datasets are built far from the
+  Egger decision boundary so the deterministic tool cross-validates the gold.
+input_artifact: meta_analytic_dataset
+output_to_judge: publication_bias_verdict
+existing_solutions:
+  - {id: metafor, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Set-level (not per-study) bias classification over a meta-analytic dataset. Distinct
+  from zcurve-evidential-value (which classifies a set of SIGNIFICANT z-scores for
+  evidential value) — this leaf judges funnel asymmetry over effect/SE pairs and is
+  the classic publication-bias diagnostic. Arena: publication-bias-v1.

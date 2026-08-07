@@ -1,0 +1,42 @@
+arena_id: p-curve-v1
+taxonomy_leaf_id: p-curve-evidential-value
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: significant_findings_set
+output_to_judge: p_curve_evidential_verdict
+difficulty_axes:
+  - {id: tier, min: 1, max: 6, description: "1 small-k evidential vs true-null (t) · 2 controls (clearly-evidential F vs clearly-flat null z) · 3 p-hacked left-skew trap (z) · 4 chi2(1) evidential vs null · 5 correlations r, evidential vs p-hacked · 6 largest-k evidential vs null (t)"}
+  - {id: k,    min: 5,  max: 30, description: "Number of significant findings entering the p-curve (>=5 so the right-skew test is meaningful)."}
+task_set_versions:
+  - {version: v1, n_tasks: 12, released_on: "2026-06-08"}
+benchmark_splits:
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file        # task_sets/v1/.private_seed (gitignored)
+    real_holdout_dir: task_sets/v1/_held_out   # hand-curated real significant-findings sets (future)
+  parity:
+    match_axes: [tier]              # k, label and mechanism are deterministic functions of tier
+    match_categories: true          # both constructed labels (evidential/no-evidential) appear in both splits
+    count_tolerance: 0.2
+error_categories:
+  - id: evidential_missed
+    description: A set drawn from a real, well-powered effect (strongly right-skewed p-curve, right_skew_p far below .05) was judged to lack evidential value (false negative).
+    severity: major
+  - id: evidential_false_alarm
+    description: A set with NO evidential value (a flat true-null curve or a left-skewed p-hacked curve) was claimed to show evidential value (false positive).
+    severity: major
+display_columns:
+  - {id: primary,     source: score.primary,             label: Score,        description: "The headline score (higher is better) for judging whether a set of significant findings has EVIDENTIAL VALUE by the p-curve method — whether the significant p-values are right-skewed (clustering near 0, the signature of real well-powered effects) rather than flat (false positives) or left-skewed (p-hacked). It is mostly about getting the verdict right (85%) plus a bit for honest confidence (15%); a correct, confident player scores 1.0.", direction: higher, format: f3, primary: true}
+  - {id: correct,     source: score.breakdown.correct,   label: Correct,      description: "Whether the player's evidential-value verdict matched the true label for the set (1.0 = right, 0.0 = wrong).", direction: higher, format: f2, primary: false}
+  - {id: calibration, source: score.breakdown.calibration, label: Calibration, description: "How honest the player's confidence is — how closely its stated certainty matches whether it was actually right. It rewards confidence aligned with being correct.", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "0.85 × correct + 0.15 × calibration"
+  values:
+    - {value: 1, label: T1, sub: smallk-evidential-vs-null}
+    - {value: 2, label: T2, sub: controls}
+    - {value: 3, label: T3, sub: phacked-leftskew}
+    - {value: 4, label: T4, sub: chi2-evidential-vs-null}
+    - {value: 5, label: T5, sub: correlations-evidential-vs-phacked}
+    - {value: 6, label: T6, sub: largest-k}

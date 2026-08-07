@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "reference-integrity-v1 player output",
+  "description": "Per-reference integrity judgements. One record per reference (and per dangling in-text marker the player believes has no matching reference).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["records"],
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reference_id", "flagged", "confidence"],
+        "properties": {
+          "reference_id": {"type": "string", "description": "Reference id from input.references (or an in_text_marker_id with no matching reference, for a dangling-missing flag)."},
+          "issue_kind": {
+            "type": ["string", "null"],
+            "description": "The integrity issue kind when flagged=true; null otherwise. One of: retracted, metadata_mismatch, dangling_uncited, dangling_missing, replication_uncited, miscitation, invalid_doi, predatory_source, tortured_phrase.",
+            "enum": ["retracted", "metadata_mismatch", "dangling_uncited", "dangling_missing", "replication_uncited", "miscitation", "invalid_doi", "predatory_source", "tortured_phrase", null]
+          },
+          "flagged": {"type": "boolean", "description": "True if this reference has an integrity problem."},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the flagged judgement."}
+        }
+      }
+    }
+  }
+}

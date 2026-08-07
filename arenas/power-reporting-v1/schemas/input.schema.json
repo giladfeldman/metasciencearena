@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "power-reporting-v1 task input",
+  "description": "A plain-text methods/power excerpt. The player must detect whether it reports a power analysis, classify its kind, and extract the structured fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {"type": "string", "description": "The methods/power section excerpt to analyse."}
+  }
+}

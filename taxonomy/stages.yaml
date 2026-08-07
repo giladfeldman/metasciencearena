@@ -1,0 +1,60 @@
+- id: 01-ideation
+  name: Ideation & literature scoping
+  order: 1
+  blurb: Researcher decides what to study, scans prior work.
+- id: 02-preregistration
+  name: Preregistration & design
+  order: 2
+  blurb: Hypotheses, design, analysis plan committed before data.
+- id: 03-data-collection
+  name: Data collection & provenance
+  order: 3
+  blurb: Subjects/samples/measurements gathered.
+- id: 04-data-sharing
+  name: Data sharing & documentation
+  order: 4
+  blurb: Data deposited, codebooks, licensing.
+- id: 05-analysis-code
+  name: Analysis & code
+  order: 5
+  blurb: Statistical analysis, reproducible code.
+- id: 06-results-reporting
+  name: Results reporting
+  order: 6
+  blurb: Numbers, tables, figures in the paper.
+- id: 07-writing-claims
+  name: Writing & claims
+  order: 7
+  blurb: Narrative, abstract, discussion.
+- id: 08-citations
+  name: Citations & references
+  order: 8
+  blurb: What's cited, how, and whether correctly.
+- id: 09-submission-artifacts
+  name: Submission & artifact handling
+  order: 9
+  blurb: Manuscript + supplements + data packaged for venue.
+- id: 10-peer-review
+  name: Peer review
+  order: 10
+  blurb: Reviews, responses, editorial decisions.
+- id: 11-publication-indexing
+  name: Publication & indexing
+  order: 11
+  blurb: Final version, DOI, metadata in indexes.
+- id: 12-corrections
+  name: Post-publication corrections
+  order: 12
+  blurb: Errata, retractions, expressions of concern.
+- id: 13-citation-reuse
+  name: Citation & reuse downstream
+  order: 13
+  blurb: How the paper is used by others.
+- id: 14-replication-robustness
+  name: Replication & robustness
+  order: 14
+  blurb: Direct + conceptual replications, multiverse, robustness checks.
+- id: 15-synthesis
+  name: Synthesis
+  order: 15
+  blurb: Meta-analysis, systematic review, living reviews.

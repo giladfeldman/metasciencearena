@@ -1,0 +1,143 @@
+# Sentence catalog for transparency-statements-v1.
+#
+# A manuscript transparency section is assembled from six fields:
+#   coi, funding, data, code, materials, prereg.
+# Each field can be rendered in one of several MODES; the mode determines both
+# the sentence text and the gold field map. Modes:
+#   present_clean : a real, well-formed statement (real COI/funding text, real
+#                   repository URL for the open-practices fields).
+#   paraphrase    : the SAME real statement, reworded (T2 false-alarm trap). Gold
+#                   is identical to present_clean — rewording is NOT a mistake.
+#   missing       : the statement is omitted (used by missing_coi / missing_funding).
+#   on_request    : "available on request" with no real repository link. For the
+#                   open-practices fields this is the data_on_request_not_real
+#                   mistake: available is FALSE, on_request is TRUE, url is null.
+#                   For FUNDING this is the funding_on_request mistake: a funding
+#                   line that defers disclosure ("details available on request")
+#                   instead of naming the source, so gold marks present=FALSE.
+#   placeholder_url : a fake/broken URL presented as a real repository. available
+#                   is reported by the manuscript but the link is NOT a real repo,
+#                   so gold marks available=False with a non-null (broken) url.
+#   bare_open       : an open-practices field that ASSERTS openness ("All data are
+#                   openly available.") but quotes NO link at all — the
+#                   false_open_claim mistake. Gold: available=False, on_request=False,
+#                   url=null (the assertion is not a verifiable real repository).
+#   bare_prereg     : a prereg field that claims "this study was preregistered" but
+#                   gives NO registry link or ID — the false_prereg_claim mistake.
+#                   Gold: available=False, url=null.
+#   no_funding      : a genuine "no external funding" declaration — a CLEAN CONTROL
+#                   (present=True), the confusable look-alike for funding_on_request:
+#                   it also lacks a grant/agency but IS a complete disclosure, so it
+#                   must NOT be flagged as missing.
+#
+# Injected-mistake kinds (cycled deterministically by the generator):
+#   missing_coi, missing_funding, data_on_request_not_real, placeholder_url,
+#   false_open_claim, false_prereg_claim, funding_on_request.
+
+coi:
+  field: coi
+  real_options:
+    - "The authors declare no competing interests."
+    - "The authors report no conflicts of interest."
+    - "We have no financial or non-financial competing interests to disclose."
+  paraphrase_options:
+    - "No competing interests are declared by the authors."
+    - "The authors state that there are no conflicts of interest to report."
+    - "There are no financial or non-financial competing interests to disclose."
+
+funding:
+  field: funding
+  real_options:
+    - "This work was supported by grant {grant} from the {agency}."
+    - "Funding was provided by the {agency} under award {grant}."
+    - "This research received support from the {agency} (grant {grant})."
+  paraphrase_options:
+    - "The {agency} supported this work through grant {grant}."
+    - "Award {grant} from the {agency} funded this research."
+    - "Support for this study came from the {agency}, grant {grant}."
+  # CLEAN CONTROL (present=True): a genuine no-external-funding declaration. The
+  # confusable look-alike for the funding_on_request mistake — it has no grant or
+  # agency yet is a complete, honest disclosure and must NOT be flagged absent.
+  no_funding_options:
+    - "This research received no external funding."
+    - "The authors received no specific grant for this research from any funding agency."
+    - "No funding was received for conducting this study."
+  # MISTAKE (funding_on_request, present=False): the funding line defers disclosure
+  # behind a request rather than naming the source — not an actual funding statement.
+  on_request_options:
+    - "Funding details are available from the corresponding author on request."
+    - "Information on funding sources can be provided by the authors upon request."
+  grants: ["DEB-1145011", "R01-MH112020", "ERC-2019-COG-864",  "BB/T008733/1"]
+  agencies:
+    - "National Science Foundation"
+    - "National Institutes of Health"
+    - "European Research Council"
+    - "Wellcome Trust"
+
+# Open-practices fields share a structure: a real repository URL when available,
+# an "available on request" hedge, or a placeholder/broken URL.
+open_practices:
+  data:
+    field: data
+    label: "data"
+    real_url_options:
+      - "https://osf.io/ab3cd/"
+      - "https://doi.org/10.5281/zenodo.7654321"
+      - "https://github.com/openlab/study-data"
+    placeholder_url_options:
+      - "http://data-repository.example.com/our-data"
+      - "https://repository.tbd/placeholder"
+      - "https://osf.io/PROJECT_ID_HERE/"
+    present_template: "All data are openly available at {url}."
+    paraphrase_template: "The data underlying this article can be accessed at {url}."
+    placeholder_template: "Data are available in our public repository ({url})."
+    on_request_template: "Data are available from the corresponding author on reasonable request."
+    bare_open_template: "All data are openly available in a public repository."
+  code:
+    field: code
+    label: "analysis code"
+    real_url_options:
+      - "https://github.com/openlab/study-code"
+      - "https://osf.io/cd5ef/"
+      - "https://doi.org/10.5281/zenodo.7654399"
+    placeholder_url_options:
+      - "http://code.example.org/repo"
+      - "https://github.com/USERNAME/REPO"
+      - "https://gitlab.tbd/placeholder"
+    present_template: "All analysis code is openly available at {url}."
+    paraphrase_template: "Scripts used for the analyses are deposited at {url}."
+    placeholder_template: "Analysis code is hosted in our repository ({url})."
+    on_request_template: "Analysis code is available from the authors upon request."
+    bare_open_template: "All analysis code is publicly available in an online repository."
+  materials:
+    field: materials
+    label: "study materials"
+    real_url_options:
+      - "https://osf.io/ef7gh/"
+      - "https://github.com/openlab/study-materials"
+      - "https://doi.org/10.17605/OSF.IO/EF7GH"
+    placeholder_url_options:
+      - "http://materials.example.net/files"
+      - "https://osf.io/XXXXXX/"
+      - "https://materials.tbd/here"
+    present_template: "All study materials are openly available at {url}."
+    paraphrase_template: "The materials for this study are posted at {url}."
+    placeholder_template: "Study materials are shared in our repository ({url})."
+    on_request_template: "Study materials are available on request."
+    bare_open_template: "All study materials are openly available in a public repository."
+  prereg:
+    field: prereg
+    label: "preregistration"
+    real_url_options:
+      - "https://osf.io/gh9ij/"
+      - "https://aspredicted.org/blind.php?x=ab3cd2"
+      - "https://doi.org/10.17605/OSF.IO/GH9IJ"
+    placeholder_url_options:
+      - "http://prereg.example.com/plan"
+      - "https://osf.io/PREREG_ID/"
+      - "https://aspredicted.org/PENDING"
+    present_template: "This study was preregistered at {url}."
+    paraphrase_template: "A preregistration for this study is available at {url}."
+    placeholder_template: "The preregistration is posted in our repository ({url})."
+    on_request_template: "The preregistration is available from the authors on request."
+    bare_prereg_template: "This study was preregistered prior to data collection."

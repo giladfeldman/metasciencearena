@@ -1,0 +1,50 @@
+arena_id: power-reporting-v1
+taxonomy_leaf_id: power-analysis-reporting
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: plain_text_section
+output_to_judge: structured_field_map
+difficulty_axes:
+  - {id: tier,     min: 1, max: 6, description: "1 clean/simple labelled analyses · 2 false-alarm trap (suspicious but clean) · 3 single injected mistake · 4 subtle (post-hoc-as-a-priori trap) · 5 multiple injected mistakes · 6 full composition"}
+  - {id: n_fields, min: 0, max: 6, description: "How many of the six structured fields the excerpt actually reports (0 when no power analysis)."}
+task_set_versions:
+  - {version: v1, n_tasks: 21, released_on: "2026-06-06"}
+benchmark_splits:
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file        # task_sets/v1/.private_seed (gitignored)
+    real_holdout_dir: task_sets/v1/_held_out   # hand-coded real power-section excerpts (future)
+  parity:
+    match_axes: [tier]              # n_fields is a deterministic function of tier/kind
+    match_categories: true          # every injected mistake_kind must appear in both splits
+    count_tolerance: 0.2            # deterministic kind assignment => matched counts
+error_categories:
+  - id: power_missed
+    description: A power analysis was present in the excerpt but the player reported none (false negative on detection).
+    severity: major
+  - id: power_false_alarm
+    description: The excerpt reported NO power analysis but the player flagged one (false positive — the T2 trap).
+    severity: major
+  - id: kind_mislabel
+    description: A correctly-detected power analysis was classified with the wrong kind (e.g. post-hoc dressed as a-priori).
+    severity: major
+  - id: field_wrong
+    description: An extracted structured field was wrong, missing, or hallucinated relative to gold.
+    severity: minor
+display_columns:
+  - {id: composite,   source: score.primary,             label: Composite,    description: "The headline score (higher is better) for reading a power analysis out of a methods section. It averages three skills — noticing a power analysis is present, classifying it correctly, and pulling out its details — then multiplies by calibration so confidently-wrong calls are penalised (formula: mean(detection, kind, field_f1) × calibration).", direction: higher, format: f3, primary: true}
+  - {id: detection,   source: score.breakdown.detection, label: Detection,    description: "Whether the player correctly judged if the excerpt contains a power analysis at all (1.0 = right). Some excerpts mention power without doing one, which trips up trigger-happy players.", direction: higher, format: f2, primary: false}
+  - {id: kind,        source: score.breakdown.kind,      label: Kind acc.,    description: "When a power analysis is present, whether the player named the right kind — a-priori (planned before the study), post-hoc (computed after), or sensitivity.", direction: higher, format: f2, primary: false}
+  - {id: field_f1,    source: score.breakdown.field_f1,  label: Field F1,     description: "How accurately the player extracted the analysis details — the statistical test, sample size, alpha, target power, effect size, and software — balancing right values against wrong or missing ones.", direction: higher, format: f2, primary: false}
+  - {id: calibration, source: score.breakdown.calibration, label: Calibration, description: "How honest the player's confidence is — a well-calibrated player that says it is 90% sure is right about 90% of the time. It punishes confidently-wrong calls.", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "mean(detection, kind, field_f1) × calibration"
+  values:
+    - {value: 1, label: T1, sub: clean-labelled}
+    - {value: 2, label: T2, sub: false-alarm-trap}
+    - {value: 3, label: T3, sub: single-mistake}
+    - {value: 4, label: T4, sub: posthoc-as-apriori}
+    - {value: 5, label: T5, sub: multiple-mistakes}
+    - {value: 6, label: T6, sub: full-composition}

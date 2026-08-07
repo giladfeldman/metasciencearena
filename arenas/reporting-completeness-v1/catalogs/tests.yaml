@@ -1,0 +1,260 @@
+# The closed set of statistical-test "report templates" used to build results
+# sections. Each template renders ONE reported statistical test as a sentence.
+#
+# We do NOT recompute the statistic (that is statcheck / stats-extraction-v1).
+# We grade reporting COMPLETENESS / precision. Every template provides:
+#   id            : stable template id
+#   test_label    : human label (for prose only)
+#   value_options : interchangeable concrete renderings of the stat + df + p +
+#                   effect size + CI. Each option is a dict of the renderable
+#                   pieces so a defect can knock out exactly one piece while the
+#                   rest stay complete. rng picks which option -> revealed vs
+#                   private wording differs, defect placement stays deterministic.
+#
+# Each value option supplies these named pieces (all already formatted):
+#   stat   : the test statistic incl. parenthesised df, e.g. "t(48) = 2.43"
+#   stat_nodf : same statistic WITHOUT df, e.g. "t = 2.43"  (for missing_df)
+#   p_exact: an exact, precise p-value, e.g. "p = .018"
+#   p_vague: an imprecise p-value when an exact one is knowable, e.g. "p < .05"
+#   p_zero : the impossible zero p-value, e.g. "p = .000"
+#   p_nonsig_exact : an exact non-significant p, e.g. "p = .214"
+#   es     : a complete effect-size clause, e.g. "d = 0.41"
+#   ci     : a complete CI clause, e.g. "95% CI [0.06, 0.76]"
+#   claim_supported : prose framing a SIGNIFICANT result as supporting H (clean)
+#   claim_nonsig_honest : prose honestly noting a non-significant result
+#   claim_nonsig_as_support : prose WRONGLY framing a non-sig result as support
+#                             (the nonsig_as_support defect)
+#
+# Pieces added for the broadened defect kinds (each with a matched clean control):
+#   count_clause_good : a descriptive "<count> of <N> (<pct>%)" clause where the
+#                       percentage is ARITHMETICALLY CONSISTENT with count/N (clean).
+#   count_clause_bad  : the same clause where the reported % does NOT match count/N
+#                       (the percent_count_mismatch defect). The %, count and N are
+#                       all present; only the % is internally inconsistent.
+#   n_tests_clause    : prose naming HOW MANY comparisons were run (e.g. "Across the
+#                       18 pairwise comparisons"); prefixes a many-comparisons report.
+#   claim_uncorrected : closing prose that interprets that many-comparisons report at
+#                       p < .05 with NO multiplicity correction mentioned
+#                       (the no_correction defect).
+#   claim_corrected   : closing prose that DOES report a multiplicity correction
+#                       (Bonferroni/Holm/Tukey/FDR) over those comparisons (clean
+#                       look-alike for no_correction). The unspecified_test defect
+#                       reuses the existing pieces but OMITS `stat` entirely (a
+#                       significance claim with a p-value but no test statistic); its
+#                       clean look-alike is the ordinary complete sentence WITH stat.
+
+- id: ttest_memory
+  test_label: independent-samples t-test
+  value_options:
+    - stat: "t(48) = 2.43"
+      stat_nodf: "t = 2.43"
+      p_exact: "p = .019"
+      p_vague: "p < .05"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .214"
+      es: "d = 0.41"
+      ci: "95% CI [0.06, 0.76]"
+      claim_supported: "supporting our prediction that the trained group recalled more"
+      claim_nonsig_honest: "so we found no reliable recall advantage for training"
+      claim_nonsig_as_support: "consistent with our prediction that training improves recall"
+      count_clause_good: "Of the 80 participants, 36 (45.0%) recalled all target items"
+      count_clause_bad: "Of the 80 participants, 36 (28.0%) recalled all target items"
+      n_tests_clause: "Across the 18 pairwise group comparisons we ran"
+      claim_corrected: "which remained significant after Holm-Bonferroni correction across the 18 comparisons"
+      claim_uncorrected: "and we report each of the 18 comparisons at p < .05"
+    - stat: "t(102) = 3.18"
+      stat_nodf: "t = 3.18"
+      p_exact: "p = .002"
+      p_vague: "p < .01"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .331"
+      es: "d = 0.55"
+      ci: "95% CI [0.21, 0.89]"
+      claim_supported: "confirming the predicted recall benefit"
+      claim_nonsig_honest: "indicating no recall benefit of the manipulation"
+      claim_nonsig_as_support: "which we take as evidence for the predicted recall benefit"
+      count_clause_good: "Of the 104 participants, 52 (50.0%) reached criterion"
+      count_clause_bad: "Of the 104 participants, 52 (42.0%) reached criterion"
+      n_tests_clause: "Among the 24 follow-up t-tests"
+      claim_corrected: "and this survived a Bonferroni correction for the 24 follow-up tests"
+      claim_uncorrected: "with all 24 follow-up tests evaluated at the conventional p < .05"
+
+- id: corr_wellbeing
+  test_label: Pearson correlation
+  value_options:
+    - stat: "r(98) = .27"
+      stat_nodf: "r = .27"
+      p_exact: "p = .007"
+      p_vague: "p < .05"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .180"
+      es: "r^2 = .07"
+      ci: "95% CI [.08, .44]"
+      claim_supported: "supporting a positive sleep-wellbeing association"
+      claim_nonsig_honest: "so sleep and wellbeing were not reliably associated"
+      claim_nonsig_as_support: "in line with our hypothesised sleep-wellbeing link"
+      count_clause_good: "Of the 100 respondents, 25 (25.0%) reported poor sleep"
+      count_clause_bad: "Of the 100 respondents, 25 (15.0%) reported poor sleep"
+      n_tests_clause: "Across the 28 inter-scale correlations in the matrix"
+      claim_corrected: "and it stayed reliable after an FDR correction over the 28 correlations"
+      claim_uncorrected: "with all 28 correlations in the matrix tested at p < .05"
+    - stat: "r(148) = .21"
+      stat_nodf: "r = .21"
+      p_exact: "p = .010"
+      p_vague: "p < .05"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .241"
+      es: "r^2 = .04"
+      ci: "95% CI [.05, .36]"
+      claim_supported: "consistent with the predicted positive association"
+      claim_nonsig_honest: "indicating no reliable association"
+      claim_nonsig_as_support: "which supports the predicted positive association"
+      count_clause_good: "Of the 150 respondents, 60 (40.0%) were classified as short sleepers"
+      count_clause_bad: "Of the 150 respondents, 60 (32.0%) were classified as short sleepers"
+      n_tests_clause: "Among the 15 bivariate correlations examined"
+      claim_corrected: "which held after Holm correction across the 15 correlations"
+      claim_uncorrected: "and we screened all 15 correlations at p < .05"
+
+- id: anova_framing
+  test_label: one-way ANOVA
+  value_options:
+    - stat: "F(2, 87) = 4.10"
+      stat_nodf: "F = 4.10"
+      p_exact: "p = .020"
+      p_vague: "p < .05"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .150"
+      es: "eta_p^2 = .09"
+      ci: "90% CI [.01, .18]"
+      claim_supported: "confirming an effect of framing condition"
+      claim_nonsig_honest: "so framing condition had no detectable effect"
+      claim_nonsig_as_support: "consistent with our claim that framing matters"
+      count_clause_good: "Of the 90 participants, 18 (20.0%) were excluded for inattention"
+      count_clause_bad: "Of the 90 participants, 18 (12.0%) were excluded for inattention"
+      n_tests_clause: "Across the 12 post-hoc cell contrasts"
+      claim_corrected: "and the contrast survived Tukey HSD correction across the 12 comparisons"
+      claim_uncorrected: "and we report all 12 post-hoc contrasts at p < .05"
+    - stat: "F(3, 156) = 5.62"
+      stat_nodf: "F = 5.62"
+      p_exact: "p = .001"
+      p_vague: "p < .01"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .264"
+      es: "eta_p^2 = .10"
+      ci: "90% CI [.03, .17]"
+      claim_supported: "supporting a reliable effect of condition"
+      claim_nonsig_honest: "indicating no reliable effect of condition"
+      claim_nonsig_as_support: "which we read as support for an effect of condition"
+      count_clause_good: "Of the 160 participants, 40 (25.0%) chose the default option"
+      count_clause_bad: "Of the 160 participants, 40 (18.0%) chose the default option"
+      n_tests_clause: "Among the 20 pairwise condition comparisons"
+      claim_corrected: "which remained significant after a Bonferroni correction over the 20 comparisons"
+      claim_uncorrected: "with each of the 20 comparisons judged at p < .05"
+
+- id: regression_beta
+  test_label: regression coefficient
+  value_options:
+    - stat: "b = 0.34, t(196) = 2.71"
+      stat_nodf: "b = 0.34, t = 2.71"
+      p_exact: "p = .007"
+      p_vague: "p < .05"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .205"
+      es: "beta = .19"
+      ci: "95% CI [0.09, 0.59]"
+      claim_supported: "supporting framing as a positive predictor"
+      claim_nonsig_honest: "so framing did not predict the outcome"
+      claim_nonsig_as_support: "consistent with framing predicting the outcome"
+      count_clause_good: "Of the 198 cases, 99 (50.0%) fell above the median"
+      count_clause_bad: "Of the 198 cases, 99 (38.0%) fell above the median"
+      n_tests_clause: "Across the 16 predictors entered into the model"
+      claim_corrected: "and this coefficient survived an FDR correction across the 16 predictors"
+      claim_uncorrected: "and we flag every one of the 16 predictors at p < .05"
+    - stat: "b = 0.52, t(243) = 3.04"
+      stat_nodf: "b = 0.52, t = 3.04"
+      p_exact: "p = .003"
+      p_vague: "p < .01"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .288"
+      es: "beta = .22"
+      ci: "95% CI [0.18, 0.86]"
+      claim_supported: "confirming the predictor's positive contribution"
+      claim_nonsig_honest: "indicating no predictive contribution"
+      claim_nonsig_as_support: "which supports a positive contribution of the predictor"
+      count_clause_good: "Of the 245 cases, 49 (20.0%) were repeat responders"
+      count_clause_bad: "Of the 245 cases, 49 (14.0%) were repeat responders"
+      n_tests_clause: "Among the 25 coefficients in the full model"
+      claim_corrected: "which held after a Holm correction across the 25 coefficients"
+      claim_uncorrected: "with all 25 coefficients interpreted at p < .05"
+
+- id: chisq_choice
+  test_label: chi-square test of independence
+  value_options:
+    - stat: "chi^2(1, N = 200) = 6.40"
+      stat_nodf: "chi^2 = 6.40"
+      p_exact: "p = .011"
+      p_vague: "p < .05"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .190"
+      es: "phi = .18"
+      ci: "95% CI [.04, .31]"
+      claim_supported: "supporting an association between condition and choice"
+      claim_nonsig_honest: "so condition and choice were independent"
+      claim_nonsig_as_support: "consistent with an association between condition and choice"
+      count_clause_good: "In the treatment arm, 64 of 200 (32.0%) switched their choice"
+      count_clause_bad: "In the treatment arm, 64 of 200 (24.0%) switched their choice"
+      n_tests_clause: "Across the 10 contingency tables we examined"
+      claim_corrected: "and the association held after a Bonferroni correction across the 10 tables"
+      claim_uncorrected: "and we report each of the 10 tables at p < .05"
+    - stat: "chi^2(2, N = 320) = 9.85"
+      stat_nodf: "chi^2 = 9.85"
+      p_exact: "p = .007"
+      p_vague: "p < .05"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .233"
+      es: "Cramers V = .17"
+      ci: "95% CI [.05, .29]"
+      claim_supported: "confirming the predicted association"
+      claim_nonsig_honest: "indicating no association"
+      claim_nonsig_as_support: "which we take as support for the predicted association"
+      count_clause_good: "In the exposed group, 96 of 320 (30.0%) endorsed the item"
+      count_clause_bad: "In the exposed group, 96 of 320 (22.0%) endorsed the item"
+      n_tests_clause: "Among the 14 cross-tabulations tested"
+      claim_corrected: "which survived an FDR correction over the 14 cross-tabulations"
+      claim_uncorrected: "with all 14 cross-tabulations evaluated at p < .05"
+
+- id: ttest_rt
+  test_label: paired-samples t-test
+  value_options:
+    - stat: "t(59) = 2.05"
+      stat_nodf: "t = 2.05"
+      p_exact: "p = .045"
+      p_vague: "p < .05"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .220"
+      es: "d_z = 0.27"
+      ci: "95% CI [0.01, 0.52]"
+      claim_supported: "supporting faster responses after training"
+      claim_nonsig_honest: "so response times did not change reliably"
+      claim_nonsig_as_support: "in line with our prediction of faster responses"
+      count_clause_good: "Of the 60 participants, 45 (75.0%) sped up after training"
+      count_clause_bad: "Of the 60 participants, 45 (60.0%) sped up after training"
+      n_tests_clause: "Across the 22 within-subject comparisons"
+      claim_corrected: "and the speed-up held after a Holm-Bonferroni correction across the 22 comparisons"
+      claim_uncorrected: "and all 22 within-subject comparisons are reported at p < .05"
+    - stat: "t(74) = 2.88"
+      stat_nodf: "t = 2.88"
+      p_exact: "p = .005"
+      p_vague: "p < .01"
+      p_zero: "p = .000"
+      p_nonsig_exact: "p = .301"
+      es: "d_z = 0.33"
+      ci: "95% CI [0.10, 0.56]"
+      claim_supported: "confirming the predicted speed-up"
+      claim_nonsig_honest: "indicating no reliable change in response time"
+      claim_nonsig_as_support: "which supports the predicted speed-up"
+      count_clause_good: "Of the 75 participants, 30 (40.0%) improved beyond the threshold"
+      count_clause_bad: "Of the 75 participants, 30 (28.0%) improved beyond the threshold"
+      n_tests_clause: "Among the 30 paired comparisons across blocks"
+      claim_corrected: "which survived a Bonferroni correction over the 30 paired comparisons"
+      claim_uncorrected: "with each of the 30 paired comparisons taken at p < .05"

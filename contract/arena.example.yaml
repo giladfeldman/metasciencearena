@@ -1,0 +1,33 @@
+# Annotated example arena manifest. Conforms to contract/schemas/arena_manifest.schema.json.
+# Future arena directories (arenas/<arena-id>/arena.yaml) follow this shape.
+
+arena_id: escimate-effect-size-extraction-v1   # globally unique; usually leaf id + version suffix
+taxonomy_leaf_id: escimate-effect-size-extraction
+version: 0.1.0                                  # arena code semver
+owner: gilad
+license: MIT
+
+# These two MUST match the corresponding fields on the taxonomy leaf.
+input_artifact: pdf_or_docx_manuscript
+output_to_judge: list_of_effect_size_records
+
+# Declared difficulty axes. Each task in a task set carries a value per axis.
+difficulty_axes:
+  - id: noise_level
+    min: 0
+    max: 5
+    description: Amount of OCR/extraction noise injected into the source document.
+  - id: injection_count
+    min: 0
+    max: 10
+    description: Number of effect-size statements present in the document.
+  - id: artifact_complexity
+    min: 1
+    max: 5
+    description: Document layout complexity (1 = simple single-column, 5 = multi-column with tables and equations).
+
+# Released task-set versions. Each is immutable once listed.
+task_set_versions:
+  - version: v1
+    n_tasks: 200
+    released_on: "2026-05-15"

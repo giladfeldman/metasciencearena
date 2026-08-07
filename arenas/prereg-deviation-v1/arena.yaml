@@ -1,0 +1,52 @@
+arena_id: prereg-deviation-v1
+taxonomy_leaf_id: prereg-vs-paper-deviation-detection
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: structured_prereg
+output_to_judge: list_of_deviation_records
+difficulty_axes:
+  - {id: tier,          min: 1, max: 6, description: "1 verbatim-consistent · 2 paraphrase-consistent (false-alarm trap) · 3 single clear deviation · 4 subtle deviation · 5 multiple deviations · 6 full composition"}
+  - {id: n_deviations,  min: 0, max: 16, description: "How many dimensions actually deviate in this pair"}
+task_set_versions:
+  - {version: v1, n_tasks: 46, released_on: "2026-06-06"}
+benchmark_splits:
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file        # task_sets/v1/.private_seed (gitignored)
+    real_holdout_dir: task_sets/v1/_held_out   # hand-coded real prereg/paper pairs (future)
+  parity:
+    match_axes: [tier]              # n_deviations is a deterministic function of tier
+    match_categories: true          # every deviation_kind must appear in both splits
+    count_tolerance: 0.0            # deterministic deviation assignment => exact counts
+error_categories:
+  - id: deviation_missed
+    description: A dimension that truly deviates was not flagged by the player (false negative).
+    severity: major
+  - id: deviation_false_alarm
+    description: A consistent dimension (often a paraphrase) was flagged as a deviation (false positive).
+    severity: major
+  - id: kind_mislabel
+    description: A correctly-flagged deviation was given the wrong deviation_kind.
+    severity: minor
+  - id: dimension_missed
+    description: A gold dimension was absent from the player's output entirely.
+    severity: minor
+  - id: unknown_dimension
+    description: The player reported a dimension that is not part of the gold dimension set.
+    severity: minor
+display_columns:
+  - {id: composite,     source: score.primary,                 label: Composite,     description: "The headline score (higher is better) for spotting where a published paper departs from what its authors preregistered. It multiplies three things — how well it catches the real deviations, whether it labels them correctly, and whether its confidence is honest — so weakness in any one drags it down (formula: detection_f1 × kind_accuracy × calibration).", direction: higher, format: f3, primary: true}
+  - {id: detection_f1,  source: score.breakdown.detection_f1,  label: Detection F1,  description: "How well the player told genuinely-deviating aspects apart from consistent ones — balancing catching real deviations against false alarms. Harmless rewordings are designed to tempt false alarms here.", direction: higher, format: f2, primary: false}
+  - {id: kind_accuracy, source: score.breakdown.kind_accuracy, label: Kind acc.,     description: "Of the deviations it correctly flagged, the fraction it labelled with the right type of departure.", direction: higher, format: f2, primary: false}
+  - {id: calibration,   source: score.breakdown.calibration,   label: Calibration,   description: "How honest the player's confidence is — a well-calibrated player that says it is 90% sure is right about 90% of the time. It punishes confidently-wrong calls.", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "detection_f1 × kind_accuracy × calibration"
+  values:
+    - {value: 1, label: T1, sub: verbatim-consistent}
+    - {value: 2, label: T2, sub: paraphrase-trap}
+    - {value: 3, label: T3, sub: single-deviation}
+    - {value: 4, label: T4, sub: subtle-deviation}
+    - {value: 5, label: T5, sub: multi-deviation}
+    - {value: 6, label: T6, sub: full-composition}

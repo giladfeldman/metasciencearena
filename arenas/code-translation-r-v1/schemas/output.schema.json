@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "code-translation-r-v1 player output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["r_code"],
+  "properties": {
+    "r_code": {
+      "type": "string",
+      "description": "The R script that reproduces the source analysis. It must read the dataset from Sys.getenv(\"ARENA_DATA\") and print a single JSON object containing every name in required_statistics. It is EXECUTED to score it, so it must be runnable as-is."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "The player's confidence that its translation is faithful. Optional; deterministic tools report 1.0."
+    }
+  }
+}

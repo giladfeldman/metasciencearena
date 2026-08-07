@@ -1,0 +1,31 @@
+# Allowed values for leaf.input_artifact.
+# Each entry is what a player receives for a task in this challenge.
+# Add new entries with care — they become a coupling point for player adapters.
+- id: pdf_manuscript
+  description: A scientific paper as PDF (born-digital or scanned).
+- id: docx_manuscript
+  description: A scientific paper as a Microsoft Word .docx file.
+- id: pdf_or_docx_manuscript
+  description: Either pdf_manuscript or docx_manuscript; arena chooses per task.
+- id: plain_text_section
+  description: Plain text excerpt of one section of a manuscript (e.g. results).
+- id: structured_prereg
+  description: A preregistration document in a known platform schema (OSF, AsPredicted, …).
+- id: paper_metadata_record
+  description: Bibliographic metadata only (title, authors, abstract, DOI, venue).
+- id: doi_or_identifier
+  description: A bare DOI, arXiv id, PubMed id, or canonical URL.
+- id: dataset_with_codebook
+  description: A tabular dataset plus its codebook/data dictionary.
+- id: peer_review_text
+  description: One or more peer-review comment blocks.
+- id: citation_context_window
+  description: A citing paper's text window around a citation marker.
+- id: replication_doi_query
+  description: A DOI plus a direction (targets | replications) requesting bidirectional replication↔original lookup.
+- id: reference_list
+  description: A paper's reference list (structured reference records, optionally with DOIs) plus its in-text citation markers.
+- id: repo_file_listing
+  description: A listing of files in a referenced data/code repository (name, type, size, and optional contents) — e.g. an OSF/GitHub/Zenodo snapshot.
+- id: statistical_syntax_script
+  description: An analysis script in a non-R statistical language (SPSS .sps syntax, Stata .do), together with the codebook of the dataset it runs against, to be translated into equivalent R.

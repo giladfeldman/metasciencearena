@@ -1,0 +1,179 @@
+# Catalog for open-practices-repro-v1 (metacheck-style repo/code reproducibility).
+#
+# A mocked repository is a small set of files. Each code FILE can be rendered in
+# one of several MODES; the mode decides whether the file carries an injected
+# reproducibility defect and which issue_kind it is.
+#
+# Issue kinds (= mistake_kinds, cycled deterministically by the generator):
+#   absolute_path           : code with a hard-coded absolute path (C:/Users/... or /home/...)
+#   uncommented_code        : a code file with NO comments at all
+#   missing_file_load       : code that load()s / read_csv()s a file NOT present in files[]
+#   broken_link             : repo_url is a placeholder / 404-style link (a repo-level defect)
+#   dead_data_link          : an availability statement claims open data/code at a DEAD/placeholder URL
+#   available_upon_request  : an availability statement offers data "upon request" (NOT an open practice)
+#   materials_claim_no_link : an availability statement claims materials exist but gives NO link AND none are present
+#
+# The last three are OPEN-PRACTICES-REPORTING defects: they live in a data/code/
+# materials AVAILABILITY STATEMENT file (a doc), not in code. Each has a matched
+# CLEAN look-alike statement (a working data/code link; a genuine OSF/Zenodo DOI;
+# a real materials repository with the materials file actually present) that a
+# good player must NOT flag — that is what makes the discrimination realistic.
+#
+# Each code-file template supplies:
+#   id          : stable file stem (the generator appends nothing; name is the id)
+#   name        : the file name shown in the listing
+#   type        : file type label (code / data / doc)
+#   data_file   : the (relative) data file this script logically loads
+#   reader      : the load call used (read_csv / load / read_table ...)
+#   clean       : a COMMENTED script with a RELATIVE path loading {data_file}      -> no defect
+#   no_comment  : same logic, RELATIVE path, but with NO comment lines              -> uncommented_code
+#   abs_path    : COMMENTED script, but the path to {data_file} is ABSOLUTE         -> absolute_path
+#   missing     : COMMENTED script with a RELATIVE path to {missing_file} (absent)  -> missing_file_load
+# Placeholders: {data_file}, {missing_file}, {abs_dir}.
+#
+# Two templates so multi-defect tiers can hit several files; deterministic cycling
+# over abs_dir / data_file / missing_file keeps content seed-varied yet covered.
+
+abs_dirs:
+  - "C:/Users/researcher/Desktop/project/data"
+  - "/home/labuser/analysis/study1/data"
+  - "C:/Users/filin/Dropbox/thesis/raw"
+  - "/Users/grad/Documents/replication/data"
+
+scripts:
+  - id: analysis.R
+    name: analysis.R
+    type: code
+    data_file: data/trials.csv
+    missing_file: data/raw_trials.csv
+    reader: read.csv
+    clean: |
+      # analysis.R — main analysis for Study 1
+      # Load the cleaned trial-level data (relative to repo root).
+      df <- read.csv("{data_file}")
+      summary(df)   # quick sanity check
+    no_comment: |
+      df <- read.csv("{data_file}")
+      m <- lm(rt ~ condition, data = df)
+      summary(m)
+    abs_path: |
+      # analysis.R — main analysis for Study 1
+      # NOTE: path points at the author's own machine.
+      df <- read.csv("{abs_dir}/trials.csv")
+      summary(df)
+    missing: |
+      # analysis.R — main analysis for Study 1
+      # Load the trial-level data (relative to repo root).
+      df <- read.csv("{missing_file}")
+      summary(df)
+
+  - id: clean.py
+    name: clean.py
+    type: code
+    data_file: data/survey.csv
+    missing_file: data/survey_raw.csv
+    reader: read_csv
+    clean: |
+      # clean.py — preprocessing for the survey data
+      import pandas as pd
+      # Read the survey responses (relative path inside the repo).
+      df = pd.read_csv("{data_file}")
+      df = df.dropna()
+    no_comment: |
+      import pandas as pd
+      df = pd.read_csv("{data_file}")
+      df = df.dropna()
+      df.to_csv("clean.csv", index=False)
+    abs_path: |
+      # clean.py — preprocessing for the survey data
+      import pandas as pd
+      # FIXME: absolute path baked in from the author's laptop.
+      df = pd.read_csv("{abs_dir}/survey.csv")
+      df = df.dropna()
+    missing: |
+      # clean.py — preprocessing for the survey data
+      import pandas as pd
+      # Read the raw survey responses.
+      df = pd.read_csv("{missing_file}")
+      df = df.dropna()
+
+# Repo-url options. The broken_link issue is a repo-LEVEL defect; its target is
+# the repo_url string, not a file.
+repo_urls:
+  good:
+    - "https://github.com/openlab/study1-analysis"
+    - "https://osf.io/ab12c/"
+    - "https://github.com/repro-collective/framing-replication"
+    - "https://gitlab.com/cogsci/sleep-memory"
+  broken:
+    - "https://github.com/example/your-repo-here"
+    - "https://osf.io/XXXXX/"
+    - "https://github.com/USERNAME/REPO"
+    - "http://localhost:8000/repo"
+
+# --- Availability-statement defects (open-practices reporting) ----------------
+# These render an availability-statement DOC file. The defect is in the WORDING /
+# the claim-vs-reality mismatch, not in code. Each kind below provides:
+#   file        : the statement file name (the gold target)
+#   bad         : the DEFECTIVE statement text (the injected mistake)
+#   clean       : the matched CLEAN look-alike (the legitimate version, must NOT flag)
+# Placeholders: {good_doi} (a genuine resolvable DOI), {dead_url} (a placeholder /
+# 404-style link), {good_repo} (a real public repository), {materials_file} (the
+# materials artifact present in the repo for the clean materials control).
+#
+# Genuine, resolvable DOIs / repositories for the CLEAN controls (real-world shape:
+# a registered DOI or a concrete repo path — NOT a bare placeholder).
+good_dois:
+  - "https://doi.org/10.17605/OSF.IO/AB12C"
+  - "https://doi.org/10.5281/zenodo.7654321"
+  - "https://doi.org/10.17605/OSF.IO/K8M2P"
+  - "https://doi.org/10.6084/m9.figshare.19133887"
+good_repos:
+  - "https://github.com/openlab/study1-materials"
+  - "https://osf.io/ab12c/files/"
+  - "https://github.com/repro-collective/framing-materials"
+  - "https://gitlab.com/cogsci/sleep-memory-materials"
+# Dead / placeholder availability links (the SAME 404-style shapes as repo_urls.broken,
+# but cited INSIDE an availability statement that claims the data are "available").
+dead_links:
+  - "https://osf.io/XXXXX/"
+  - "https://github.com/USERNAME/REPO"
+  - "https://example.com/data-coming-soon"
+  - "http://localhost:8000/data"
+# The materials artifact that a CLEAN materials statement points to (and that is
+# actually present in files[] for the clean control).
+materials_files:
+  - {name: "materials/survey.qsf", content: "[Qualtrics survey export]\n"}
+  - {name: "materials/protocol.pdf", content: "%PDF-1.4 study protocol\n"}
+
+availability_statements:
+  dead_data_link:
+    file: DATA_AVAILABILITY.md
+    bad: |
+      # Data Availability
+      All data supporting the findings of this study are openly available at
+      {dead_url}. No restrictions apply.
+    clean: |
+      # Data Availability
+      All data supporting the findings of this study are openly available at
+      {good_doi}. No restrictions apply.
+  available_upon_request:
+    file: DATA_AVAILABILITY.md
+    bad: |
+      # Data Availability
+      The data that support the findings of this study are available from the
+      corresponding author upon reasonable request.
+    clean: |
+      # Data Availability
+      The data that support the findings of this study are openly available,
+      without restriction, at {good_doi}.
+  materials_claim_no_link:
+    file: MATERIALS.md
+    bad: |
+      # Materials
+      All study materials, including the full survey instrument and stimuli, are
+      available. Please see the project repository for details.
+    clean: |
+      # Materials
+      All study materials, including the full survey instrument and stimuli, are
+      available at {good_repo} (see materials/ in this repository).

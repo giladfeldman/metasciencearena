@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "p-curve-v1 player output",
+  "description": "A single verdict per task: whether the set of significant findings has evidential value by p-curve (right-skew test), with a confidence and optional supporting statistics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["evidential_value", "confidence"],
+  "properties": {
+    "evidential_value": {"type": "boolean", "description": "True if the set shows evidential value (the p-curve is right-skewed: full-curve right_skew_p < .05); false if the curve is flat (null/false-positive) or left-skewed (p-hacked)."},
+    "right_skew_p": {"type": "number", "minimum": 0, "maximum": 1, "description": "Optional. The full-curve right-skew p-value (Stouffer's combination of the pp-value z-scores) the player computed, if any. Omit (do not send null) when not computed."},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the evidential_value verdict."},
+    "flatness_p": {"type": "number", "minimum": 0, "maximum": 1, "description": "Optional. The flatness (inadequate-evidence vs 33% power) p-value, if computed. Omit when not computed."}
+  }
+}

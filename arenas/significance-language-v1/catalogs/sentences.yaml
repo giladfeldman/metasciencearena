@@ -1,0 +1,203 @@
+# Sentence catalog for significance-language-v1.
+#
+# A task's input `text` is a manuscript excerpt assembled from sentences. Each
+# sentence is rendered from a TEMPLATE that contains exactly one {span} slot.
+# The {span} is the phrase a player is supposed to flag (or, for a clean control,
+# a phrase that LOOKS suspicious but is legitimate and must NOT be flagged).
+#
+# Three mistake kinds (== the injected categories cycled deterministically):
+#   marginal_significance : "marginally significant" / "trend toward" /
+#                           "approaching significance" for p in (.05, .10).
+#   spin_overclaim        : a strong claim not supported by the reported result
+#                           (e.g. a null/weak result described as "demonstrates").
+#   causal_overclaim      : causal language ("causes", "leads to") with no
+#                           randomised design.
+#
+# CLEAN controls (the T2 false-alarm trap) come in matched flavours:
+#   clean_hedge   : legitimate hedging ("did not reach significance", a true p>.10
+#                   trend honestly described as non-significant).
+#   clean_exact   : an exact, correctly-qualified significant claim.
+#   clean_causal  : a causal claim that DOES cite a randomised / experimental design.
+#
+# Each entry supplies:
+#   kind     : the mistake_kind (or a clean_* control flavour)
+#   category : the scorer/arena error-style category for a genuine mistake
+#              (marginal_significance | spin_overclaim | causal_overclaim);
+#              omitted/None for clean controls.
+#   template : sentence text with a single "{span}" placeholder.
+#   span_options : phrases substituted into {span}; the FLAGGED span for mistakes,
+#                  or the innocuous-but-suspicious phrase for clean controls.
+
+marginal_significance:
+  - kind: marginal_significance
+    category: marginal_significance
+    template: "The effect of the manipulation on recall was {span} (p = .067)."
+    span_options:
+      - "marginally significant"
+      - "approaching significance"
+      - "trending toward significance"
+  - kind: marginal_significance
+    category: marginal_significance
+    template: "Wellbeing scores showed a {span}, p = .081."
+    span_options:
+      - "trend toward significance"
+      - "marginally reliable difference"
+      - "near-significant effect"
+  - kind: marginal_significance
+    category: marginal_significance
+    template: "The interaction was {span}, p = .074, suggesting a real pattern."
+    span_options:
+      - "marginally significant"
+      - "approaching conventional significance"
+      - "on the cusp of significance"
+
+spin_overclaim:
+  - kind: spin_overclaim
+    category: spin_overclaim
+    template: "Although the difference was not significant (p = .21), our intervention {span} the targeted outcome."
+    span_options:
+      - "clearly improved"
+      - "substantially boosted"
+      - "demonstrably enhanced"
+  - kind: spin_overclaim
+    category: spin_overclaim
+    template: "The null result for the primary endpoint notwithstanding, the treatment {span} patient recovery."
+    span_options:
+      - "was highly effective at accelerating"
+      - "produced a robust improvement in"
+      - "dramatically sped up"
+  - kind: spin_overclaim
+    category: spin_overclaim
+    template: "With a small and non-significant effect (d = 0.08), the program {span} learning gains."
+    span_options:
+      - "delivered remarkable"
+      - "drove strong"
+      - "yielded impressive"
+
+causal_overclaim:
+  - kind: causal_overclaim
+    category: causal_overclaim
+    template: "In this cross-sectional survey, higher social-media use {span} lower self-esteem."
+    span_options:
+      - "caused"
+      - "led to"
+      - "brought about"
+  - kind: causal_overclaim
+    category: causal_overclaim
+    template: "Among the observational cohort, the supplement {span} a reduction in symptoms."
+    span_options:
+      - "produced"
+      - "resulted in"
+      - "was responsible for"
+  - kind: causal_overclaim
+    category: causal_overclaim
+    template: "Based on these correlational data, sleep duration {span} memory consolidation."
+    span_options:
+      - "improves"
+      - "drives"
+      - "enhances"
+
+one_sided_unjustified:
+  - kind: one_sided_unjustified
+    category: one_sided_unjustified
+    template: "Because the two-tailed test fell short, we report the {span}, p = .047."
+    span_options:
+      - "one-tailed p-value as our primary result"
+      - "directional test instead"
+      - "one-sided alternative we now prefer"
+  - kind: one_sided_unjustified
+    category: one_sided_unjustified
+    template: "The effect was significant once we {span} (one-tailed p = .039)."
+    span_options:
+      - "switched to a one-sided test"
+      - "adopted a directional hypothesis post hoc"
+      - "halved the p-value"
+  - kind: one_sided_unjustified
+    category: one_sided_unjustified
+    template: "After inspecting the data, a {span} yielded p = .044."
+    span_options:
+      - "one-tailed test we had not planned"
+      - "directional reanalysis"
+      - "post-hoc one-sided comparison"
+
+p_just_over_threshold_spin:
+  - kind: p_just_over_threshold_spin
+    category: p_just_over_threshold_spin
+    template: "The treatment {span} the outcome (p = .053)."
+    span_options:
+      - "significantly improved"
+      - "had a significant effect on"
+      - "reliably increased"
+  - kind: p_just_over_threshold_spin
+    category: p_just_over_threshold_spin
+    template: "We found that the manipulation {span}, p = .058."
+    span_options:
+      - "significantly shifted responses"
+      - "produced a significant change"
+      - "had a clear significant impact"
+  - kind: p_just_over_threshold_spin
+    category: p_just_over_threshold_spin
+    template: "Participants in the treatment arm {span} (p = .061)."
+    span_options:
+      - "performed significantly better"
+      - "showed a significant advantage"
+      - "were significantly faster"
+
+# ---- Clean controls (the T2 false-alarm trap) ----
+clean_hedge:
+  - kind: clean_hedge
+    template: "The difference between conditions {span} (p = .19) and we draw no conclusion from it."
+    span_options:
+      - "did not reach significance"
+      - "was not statistically significant"
+      - "fell short of significance"
+  - kind: clean_hedge
+    template: "Although numerically larger, the effect {span}, p = .34."
+    span_options:
+      - "was non-significant"
+      - "did not differ reliably"
+      - "showed no reliable difference"
+
+clean_exact:
+  - kind: clean_exact
+    template: "The manipulation reliably increased accuracy, {span} (p = .003)."
+    span_options:
+      - "a statistically significant effect"
+      - "a significant improvement"
+      - "significant at the .01 level"
+  - kind: clean_exact
+    template: "Recall was significantly higher in the treatment group, {span}, p < .001."
+    span_options:
+      - "a clear significant difference"
+      - "a robust significant effect"
+      - "significant by a wide margin"
+
+clean_causal:
+  - kind: clean_causal
+    template: "In this randomised controlled trial, the drug {span} a decrease in blood pressure."
+    span_options:
+      - "caused"
+      - "led to"
+      - "produced"
+  - kind: clean_causal
+    template: "Because participants were randomly assigned to conditions, the manipulation {span} the observed change."
+    span_options:
+      - "caused"
+      - "brought about"
+      - "drove"
+
+# Legitimate one-sided test: PRE-REGISTERED directional hypothesis (must NOT be flagged
+# as one_sided_unjustified). The look-alike control for one_sided_unjustified.
+clean_prereg_onesided:
+  - kind: clean_prereg_onesided
+    template: "As specified in our pre-registration, we used a {span} (one-tailed p = .031)."
+    span_options:
+      - "directional test for the predicted effect"
+      - "one-sided test of our a-priori hypothesis"
+      - "planned one-tailed comparison"
+  - kind: clean_prereg_onesided
+    template: "Our pre-registered analysis plan stated a directional hypothesis, so the {span} was used, p = .028."
+    span_options:
+      - "one-sided test"
+      - "directional comparison"
+      - "pre-planned one-tailed test"

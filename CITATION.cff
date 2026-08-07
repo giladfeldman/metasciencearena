@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: "If you use Meta Science Arena or cite a score from it, please cite this software."
+title: "Meta Science Arena"
+abstract: >-
+  Reproducible benchmark arenas for meta-science tools. Each arena is a focused
+  task family with known ground truth — extracting statistics from a paper,
+  detecting a preregistration deviation, checking GRIM consistency — on which
+  tools, platforms and language models are scored against the same tasks. Task
+  generation is seed-deterministic, scoring is contamination-controlled, and
+  every published score traces back to a raw run record.
+type: software
+authors:
+  - family-names: Feldman
+    given-names: Gilad
+    affiliation: "University of Innsbruck"
+repository-code: "https://github.com/giladfeldman/metasciencearena"
+url: "https://metasciencearena.app"
+license: MIT
+version: 0.3.0
+date-released: "2026-08-07"
+keywords:
+  - meta-science
+  - benchmark
+  - research integrity
+  - reproducibility
+  - open science

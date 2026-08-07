@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciencearena.local/contract/task_envelope.json",
+  "title": "Task envelope handed to a player",
+  "description": "The framework wraps every per-task input in this envelope. The 'input' field's inner schema is defined per arena in arenas/<arena-id>/schemas/input.schema.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "arena_id", "task_set_version", "difficulty", "input"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "arena_id": {"type": "string"},
+    "task_set_version": {"type": "string", "pattern": "^v[0-9]+$"},
+    "difficulty": {
+      "type": "object",
+      "description": "Map from difficulty-axis id to value. Keys must match difficulty_axes in arena.yaml."
+    },
+    "visibility": {
+      "type": "string",
+      "enum": ["public", "held_out"],
+      "description": "Optional. Whether this task's input/gold may appear in tool reports as a public drilldown. Defaults to 'held_out' (fail-safe) when absent. Generators are responsible for tagging tasks based on whether the source content is committed to the public repo. Derived from `split`: revealed -> public, private -> held_out."
+    },
+    "split": {
+      "type": "string",
+      "enum": ["revealed", "private"],
+      "description": "Optional. Which benchmark suite this task belongs to. 'revealed' = the published Open Benchmark (gold committed, full per-task results disclosed). 'private' = the contamination-protected official leaderboard suite (gold gitignored, findings redacted). Both splits are produced from the same generator + injected-mistake catalog over the same difficulty x mistake matrix, so they are parity-matched by construction. Defaults to 'revealed' when absent (a bare envelope with no split is, by definition, exposed). See arena.yaml#benchmark_splits and framework/parity.py."
+    },
+    "input": {"description": "Arena-specific payload."}
+  }
+}

@@ -1,0 +1,215 @@
+# The closed set of prereg<->paper comparison dimensions, mirroring regcheck's
+# general-preregistration dimensions plus a few clinical-trial extensions.
+# Each dimension supplies:
+#   deviation_kind  : the injected-mistake label used for gold + parity coverage
+#   planned_options : phrases the preregistration may commit to
+#   actual_options  : DIFFERENT phrases the paper may report (a genuine deviation)
+#   prereg          : template for the preregistration sentence (uses {planned})
+#   consistent      : paper sentence, no deviation, near-verbatim (uses {planned})
+#   paraphrase      : paper sentence, no deviation, reworded (uses {planned}) -- T2 trap
+#   subtle          : paper sentence, a borderline/partial deviation (uses {planned},{actual})
+#   deviated        : paper sentence, a clear deviation (uses {actual})
+
+- id: sample_size
+  name: Sample size
+  deviation_kind: sample_size_change
+  planned_options: ["200 participants", "150 participants", "a sample of 320 participants"]
+  actual_options: ["112 participants", "98 participants", "a final sample of 240 participants"]
+  prereg: "Sample size: we will recruit {planned}."
+  consistent: "We recruited {planned}."
+  paraphrase: "In total, {planned} provided usable data."
+  subtle: "We aimed for {planned} but analysed {actual} after attrition."
+  deviated: "We recruited {actual}."
+
+- id: data_source
+  name: Data source
+  deviation_kind: data_source_change
+  planned_options: ["an undergraduate subject pool", "Prolific", "a community sample via flyers"]
+  actual_options: ["Amazon Mechanical Turk", "a hospital outpatient clinic", "a convenience sample of colleagues"]
+  prereg: "Data will be collected from {planned}."
+  consistent: "Data were collected from {planned}."
+  paraphrase: "Participants were drawn from {planned}."
+  subtle: "Most data came from {planned}, supplemented by {actual}."
+  deviated: "Data were collected from {actual}."
+
+- id: inclusion_criteria
+  name: Inclusion criteria
+  deviation_kind: inclusion_criteria_change
+  planned_options: ["adults aged 18-65", "native English speakers", "participants with no prior diagnosis"]
+  actual_options: ["adults aged 18-40", "fluent but non-native speakers as well", "participants regardless of diagnosis"]
+  prereg: "Inclusion: {planned}."
+  consistent: "We included {planned}."
+  paraphrase: "Eligible participants were {planned}."
+  subtle: "We included {planned}; the age ceiling was relaxed to {actual} mid-study."
+  deviated: "We included {actual}."
+
+- id: exclusion_criteria
+  name: Exclusion criteria
+  deviation_kind: exclusion_criteria_change
+  planned_options: ["responses faster than 300 ms", "participants failing two attention checks", "incomplete sessions"]
+  actual_options: ["responses faster than 500 ms", "participants failing one attention check", "any participant below the median accuracy"]
+  prereg: "We will exclude {planned}."
+  consistent: "We excluded {planned}."
+  paraphrase: "Data were removed for {planned}."
+  subtle: "We excluded {planned}, and additionally {actual}."
+  deviated: "We excluded {actual}."
+
+- id: missing_data
+  name: Incomplete and missing data
+  deviation_kind: missing_data_handling_change
+  planned_options: ["listwise deletion", "multiple imputation", "last-observation-carried-forward"]
+  actual_options: ["mean imputation", "pairwise deletion", "no handling (complete cases only)"]
+  prereg: "Missing data will be handled with {planned}."
+  consistent: "Missing data were handled with {planned}."
+  paraphrase: "For missing values we used {planned}."
+  subtle: "We planned {planned} but used {actual} for one variable."
+  deviated: "Missing data were handled with {actual}."
+
+- id: hypotheses
+  name: Hypotheses
+  deviation_kind: hypothesis_change
+  planned_options: ["a positive effect of sleep on memory", "no difference between conditions", "a main effect of framing"]
+  actual_options: ["a negative effect of sleep on memory", "an interaction we had not predicted", "a main effect of gender"]
+  prereg: "We hypothesise {planned}."
+  consistent: "We hypothesised {planned}."
+  paraphrase: "Our prediction was {planned}."
+  subtle: "We focused on {planned} and, post hoc, examined {actual}."
+  deviated: "We hypothesised {actual}."
+
+- id: manipulated_variables
+  name: Manipulated variables
+  deviation_kind: manipulated_variable_change
+  planned_options: ["a 2-level framing manipulation", "three reward magnitudes", "a within-subject time-pressure factor"]
+  actual_options: ["a 3-level framing manipulation", "two reward magnitudes", "a between-subject time-pressure factor"]
+  prereg: "We will manipulate {planned}."
+  consistent: "We manipulated {planned}."
+  paraphrase: "The manipulation was {planned}."
+  subtle: "We manipulated {planned}, collapsing to {actual} in analysis."
+  deviated: "We manipulated {actual}."
+
+- id: measured_variables
+  name: Measured variables (outcomes)
+  deviation_kind: outcome_switch
+  planned_options: ["recall accuracy as the primary outcome", "self-reported wellbeing", "reaction time"]
+  actual_options: ["recognition d-prime as the primary outcome", "a mood composite", "accuracy instead of reaction time"]
+  prereg: "Our primary measured variable is {planned}."
+  consistent: "Our primary outcome was {planned}."
+  paraphrase: "We measured, as the main outcome, {planned}."
+  subtle: "We report {planned}, but emphasise {actual} in the abstract."
+  deviated: "Our primary outcome was {actual}."
+
+- id: transformations
+  name: Transformations
+  deviation_kind: transformation_change
+  planned_options: ["log-transforming reaction times", "z-scoring predictors", "no transformation"]
+  actual_options: ["winsorising reaction times", "median-centering predictors", "a square-root transform"]
+  prereg: "We will apply {planned}."
+  consistent: "We applied {planned}."
+  paraphrase: "Variables were processed by {planned}."
+  subtle: "We applied {planned}, switching to {actual} for skewed items."
+  deviated: "We applied {actual}."
+
+- id: statistical_model
+  name: Statistical models
+  deviation_kind: statistical_model_change
+  planned_options: ["a 2x2 mixed ANOVA, two-tailed at alpha .05", "a linear mixed model with random intercepts", "a hierarchical regression, two-tailed"]
+  actual_options: ["a one-tailed t-test at alpha .10", "an ANOVA without the random effects", "a regression with an added covariate, one-tailed"]
+  prereg: "We will analyse the data with {planned}."
+  consistent: "We analysed the data with {planned}."
+  paraphrase: "The analysis used {planned}."
+  subtle: "We used {planned}, reporting a {actual} for the key contrast."
+  deviated: "We analysed the data with {actual}."
+
+- id: randomization
+  name: Randomisation and allocation
+  deviation_kind: randomization_method_change
+  planned_options: ["computer-generated 1:1 randomisation with allocation concealment", "block randomisation, block size 4", "stratified randomisation by site"]
+  actual_options: ["alternation by enrolment order", "2:1 allocation", "no concealment of allocation"]
+  prereg: "Allocation: {planned}."
+  consistent: "Participants were allocated using {planned}."
+  paraphrase: "Group assignment followed {planned}."
+  subtle: "We used {planned}; concealment lapsed for {actual}."
+  deviated: "Participants were allocated using {actual}."
+
+- id: primary_outcome_timepoint
+  name: Primary outcome timepoint
+  deviation_kind: primary_outcome_switch
+  planned_options: ["the 12-week assessment", "day 30", "the end-of-treatment visit"]
+  actual_options: ["the 6-week assessment", "day 90", "the final follow-up visit"]
+  prereg: "The primary outcome is assessed at {planned}."
+  consistent: "The primary outcome was assessed at {planned}."
+  paraphrase: "Our primary endpoint was taken at {planned}."
+  subtle: "We pre-specified {planned} but highlight {actual}."
+  deviated: "The primary outcome was assessed at {actual}."
+
+# --- AbusingPreReg taxonomy extensions (modules 2, 5, 6, 9) -----------------
+# These broaden the arena beyond the "planned X vs reported Y" value-swap family
+# into procedural-integrity failures the AbusingPreReg detectors actually flag.
+# For each, the clean controls (consistent/paraphrase) are written to look like
+# the abuse without BEING it, so flagging them is a false alarm (T2/T4 trap).
+
+# Module 2 (Temporal Anomaly): results-language leakage. A *plan* should state a
+# PREDICTED direction without claiming it was already observed. The deviation is
+# the paper retconning the prereg into already-confirmed results language
+# (AbusingPreReg RESULTS_LEAKAGE_PHRASES: "as expected", "confirmed our
+# prediction", "consistent with our hypothesis"). Clean look-alike: a plainly
+# predicted direction ("we predict a positive association"), which is NOT leakage.
+- id: results_leakage
+  name: Results-language leakage in the plan
+  deviation_kind: posthoc_results_leak
+  planned_options: ["a positive association between sleep and recall", "higher accuracy under the incentive condition", "a reduction in symptoms after the intervention"]
+  actual_options: ["the predicted association", "the incentive advantage", "the symptom reduction"]
+  prereg: "We predict {planned}; the confirmatory test is specified in advance."
+  consistent: "We predicted {planned} and report the pre-specified confirmatory test."
+  paraphrase: "Our a priori prediction was {planned}, tested as planned."
+  subtle: "As anticipated, we examined {planned} using the pre-specified test."
+  deviated: "As expected, the analysis confirmed {actual}, consistent with our hypothesis."
+
+# Module 5 (Unresolved Contingencies): an "if X then Y" whose TRIGGER or ACTION
+# is vague. A resolved contingency names a numeric/operationalized trigger
+# (p < .05, Levene) AND a specific action (Mann-Whitney, log-transform). The
+# deviation leaves both vague ("if assumptions are violated, an appropriate
+# alternative will be used"). Clean look-alike: a fully-resolved conditional,
+# which reads conditional but is NOT a defect.
+- id: analysis_contingency
+  name: Analysis contingency resolution
+  deviation_kind: unresolved_contingency
+  planned_options: ["if Levene's test is significant at p < .05 we report Welch's t-test", "if residuals fail Shapiro-Wilk (p < .05) we apply a log-transform", "if VIF > 5 we drop the collinear predictor"]
+  actual_options: ["if assumptions are violated we will use an appropriate alternative", "if the data look non-normal we will adjust the analysis as needed", "if multicollinearity is a problem we will handle it appropriately"]
+  prereg: "Contingency for the primary analysis: {planned}."
+  consistent: "For the primary analysis, {planned}, exactly as pre-specified."
+  paraphrase: "Our pre-specified fallback for the main test was: {planned}."
+  subtle: "We pre-specified that {planned}, but in practice chose the alternative analysis case by case."
+  deviated: "For the primary analysis, {actual}."
+
+# Module 6 (Hypothesis Quality): a non-directional / exploratory aim reported as
+# if it had been a confirmatory directional prediction. A genuine directional
+# hypothesis ("we predict X will be HIGHER than Y") is clean; the deviation is an
+# exploratory "we will examine whether" aim later dressed up as confirmatory.
+# Clean look-alike: an honestly-labelled exploratory aim that STAYS exploratory.
+- id: hypothesis_directionality
+  name: Hypothesis directionality
+  deviation_kind: nondirectional_as_confirmatory
+  planned_options: ["framing will increase risk-taking relative to the control", "the treatment group will score higher than the control", "reward magnitude will speed responses"]
+  actual_options: ["the relationship between framing and risk-taking", "whether the treatment and control groups differ", "the association between reward and response time"]
+  prereg: "Confirmatory hypothesis (directional): {planned}."
+  consistent: "Our directional confirmatory hypothesis was that {planned}."
+  paraphrase: "We predicted, directionally and a priori, that {planned}."
+  subtle: "We tested {actual} as a confirmatory hypothesis (the direction emerged in analysis)."
+  deviated: "Our confirmatory hypothesis concerned {actual}, which the data supported directionally."
+
+# Module 9 (Reg-Pub Deviation, refinement): main-effect -> interaction reframing.
+# The prereg commits to a MAIN EFFECT as the focal test; the paper reframes the
+# headline around an INTERACTION that was not the pre-specified primary. Clean
+# look-alike: a paper that reports the planned main effect and merely mentions an
+# interaction as exploratory/secondary (disclosed, not a switch).
+- id: focal_effect
+  name: Focal effect (main vs interaction)
+  deviation_kind: maineffect_to_interaction
+  planned_options: ["the main effect of framing on choice", "the main effect of dosage on recovery", "the main effect of incentive on effort"]
+  actual_options: ["the framing x time-pressure interaction", "the dosage x age interaction", "the incentive x personality interaction"]
+  prereg: "The primary confirmatory test is {planned}."
+  consistent: "The primary confirmatory test was {planned}, as pre-registered."
+  paraphrase: "Our focal, pre-specified test concerned {planned}."
+  subtle: "Although {planned} was pre-specified as primary, we foreground {actual} as the key result."
+  deviated: "The headline finding is {actual}, which became our primary focus."

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciencearena.local/contract/findings.json",
+  "title": "Findings array on a per-task score",
+  "description": "Optional structured failure-mode annotations emitted by scorer.score() and stored on RunRecord.score.findings. Each finding's category MUST match an id declared in the arena's manifest under error_categories. The runner redacts content-bearing fields (anchor, evidence, correct_value, examples) on held-out tasks before persisting the record — see contract/README.md.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["category"],
+    "properties": {
+      "category": {
+        "type": "string",
+        "description": "Must match an id in arena.yaml#error_categories."
+      },
+      "anchor": {
+        "description": "Arena-defined locator into the player's output or the gold (e.g., {page, char_start, char_end}). Stripped on held-out tasks.",
+        "type": ["object", "null"]
+      },
+      "evidence": {
+        "type": "string",
+        "description": "Short string showing what the player produced wrongly. Stripped on held-out tasks."
+      },
+      "correct_value": {
+        "description": "What the gold said at the same locator. Stripped on held-out tasks. Preserved on public tasks so tool authors can self-train.",
+        "type": ["string", "number", "boolean", "object", "array", "null"]
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "If a finding represents N occurrences (e.g. 12 dropped Greek letters), set count and use examples for representative cases."
+      },
+      "examples": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Short example strings when count > 1. Stripped on held-out tasks."
+      }
+    }
+  }
+}
