@@ -313,3 +313,108 @@ def test_any_module_reaching_the_gold_path_is_refused():
         f"a module importing framework.gold was not refused: {reasons}"
     )
     assert not fake.exists()  # sanity: the test invented nothing in the real tree
+
+
+def test_the_committed_published_arenas_file_is_not_stale():
+    """`contract/published_arenas.json` must match what the rule computes.
+
+    The Next.js app reads this file to decide whether an arena may be
+    deep-linked into the public mirror. It cannot compute the answer itself:
+    publishability turns on `.private_seed`, which is gitignored and therefore
+    absent from the Vercel build.
+
+    When it drifted, the site deep-linked all 20 registered arenas into the
+    public repo and the private ones 404'd the moment REPO_URL was switched on
+    (measured live, 2026-08-07: 4 broken links). A link the site cannot back is
+    exactly the defect this stream exists to remove — so a stale file fails here
+    rather than in someone's browser.
+
+    Regenerate with:
+        python -c "import json;from pathlib import Path;from framework import publish;\
+        p=Path('contract/published_arenas.json');d=json.loads(p.read_text());\
+        d['arenas']=publish.published_arena_ids(Path('arenas'));\
+        p.write_text(json.dumps(d,indent=2)+chr(10))"
+    """
+    import json
+
+    path = REPO / publish.PUBLISHED_ARENAS_FILE
+    assert path.is_file(), f"{publish.PUBLISHED_ARENAS_FILE} is missing"
+    committed = json.loads(path.read_text(encoding="utf-8"))["arenas"]
+    computed = publish.published_arena_ids(ARENAS)
+    assert committed == computed, (
+        f"{publish.PUBLISHED_ARENAS_FILE} is stale.\n"
+        f"  committed: {committed}\n"
+        f"  computed:  {computed}\n"
+        f"Regenerate it (see this test's docstring) — otherwise the site links to "
+        f"arena directories that do not exist in the public mirror."
+    )
+    assert committed, "no published arenas — the app would link nothing"
+
+
+def test_every_published_arena_is_actually_in_the_manifest():
+    """Non-vacuity: the committed list must agree with the files mirrored."""
+    import json
+
+    committed = json.loads(
+        (REPO / publish.PUBLISHED_ARENAS_FILE).read_text(encoding="utf-8")
+    )["arenas"]
+    posix = {p.as_posix() for p in publish.public_manifest(REPO)}
+    for arena_id in committed:
+        assert any(p.startswith(f"arenas/{arena_id}/") for p in posix), (
+            f"{arena_id} is listed as published but no file of its own is mirrored, "
+            f"so the site would deep-link to a directory that does not exist"
+        )
+
+
+def test_no_mirrored_file_imports_a_package_the_mirror_does_not_ship():
+    """A published file that cannot import is a broken public repo.
+
+    Three `framework/tests/*` files imported `players.adapters.*` and turned CI
+    red on the public repo within minutes of the first release (2026-08-07).
+    Not a leak — a breakage — but a public repo with a failing badge is its own
+    kind of claim the project cannot back.
+
+    They are integration tests for adapters the package does not ship, so they
+    belong with the private repo.
+    """
+    offenders = [
+        f"{p.as_posix()} imports {publish.imports_a_private_package(REPO / p)}"
+        for p in publish.public_manifest(REPO)
+        if p.suffix == ".py" and publish.imports_a_private_package(REPO / p)
+    ]
+    assert offenders == [], (
+        "these files are in the public manifest but import a private package:\n  "
+        + "\n  ".join(offenders)
+    )
+
+
+def test_the_private_import_check_ignores_GUARDED_imports():
+    """Non-vacuity in the other direction: it must not exclude the runner.
+
+    `framework/runner.py` imports `players.adapters` inside a
+    `try: ... except ImportError:` so the in-repo adapters load in a checkout and
+    are simply absent from an install. That is deliberate, and excluding the
+    runner would gut the package.
+    """
+    posix = {p.as_posix() for p in publish.public_manifest(REPO)}
+    for essential in ("framework/runner.py", "framework/player_adapter.py"):
+        assert essential in posix, (
+            f"{essential} was excluded — the private-import check is matching "
+            f"GUARDED or function-scope imports, which are legitimate"
+        )
+
+
+def test_the_private_import_check_actually_detects_one(tmp_path):
+    """Prove the detector fires, rather than trusting that it would."""
+    mod = tmp_path / "t.py"
+    mod.write_text("from players.adapters.x import Y\n", encoding="utf-8")
+    assert publish.imports_a_private_package(mod) == "players"
+
+    guarded = tmp_path / "g.py"
+    guarded.write_text(
+        "try:\n    import players.adapters\nexcept ImportError:\n    pass\n", encoding="utf-8"
+    )
+    assert publish.imports_a_private_package(guarded) is None, (
+        "a guarded import was flagged — that is how framework/runner.py loads "
+        "in-repo adapters, and excluding it would gut the package"
+    )

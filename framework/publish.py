@@ -51,6 +51,7 @@ function's docstring for exactly what it does and does not catch.
 """
 from __future__ import annotations
 
+import ast
 import hashlib
 import io
 import re
@@ -61,13 +62,17 @@ from pathlib import Path
 __all__ = [
     "ArenaPublishability",
     "PRIVATE_GOLD_MARKERS",
+    "PRIVATE_PACKAGES",
+    "imports_a_private_package",
     "PUBLIC_ARENA_GLOBS",
     "PUBLIC_TOP_LEVEL",
     "classify_arenas",
     "code_only",
     "MIRROR_RENAMES",
     "held_out_shingles",
+    "PUBLISHED_ARENAS_FILE",
     "public_manifest",
+    "published_arena_ids",
     "scan_for_leaks",
 ]
 
@@ -96,6 +101,7 @@ PUBLIC_TOP_LEVEL = (
     "CITATION.cff",
     "DATA_HANDLING.md",
     "publish_templates/*.yml",
+    "contract/published_arenas.json",
 )
 
 #: Paths that land under a DIFFERENT name in the mirror.
@@ -135,6 +141,17 @@ PUBLIC_ARENA_GLOBS = (
 #: `article-finder` skill to resolve real papers. Publishing it would publish
 #: the route to the answer key even for an arena whose tasks are seed-generated.
 PRIVATE_ARENA_PATHS = ("tools/build_gold.py",)
+
+#: Packages that exist only in the PRIVATE repo. A mirrored file with an
+#: unguarded module-level import of one of these cannot run for anybody who
+#: installs the package — not a leak, a breakage, but a public repo with a red X
+#: is its own kind of unbacked claim.
+#:
+#: Three `framework/tests/*` files imported `players.adapters.*` and broke CI on
+#: the public repo within minutes of the first release (2026-08-07). They are
+#: integration tests for adapters the package does not ship, so they belong with
+#: the private repo.
+PRIVATE_PACKAGES = frozenset({"players"})
 
 #: Files that contain the marker strings as VOCABULARY rather than as a
 #: dependency: this module declares them, and its test exercises them. Without
@@ -336,6 +353,47 @@ def classify_arenas(arenas_root: Path) -> list[ArenaPublishability]:
     return out
 
 
+#: Committed list of arenas that exist in the public mirror.
+#:
+#: The Next.js app needs this and CANNOT compute it: publishability turns on
+#: `.private_seed`, which is gitignored and therefore absent from the Vercel
+#: build. Without it the site deep-linked every arena into the public repo, and
+#: the six private ones 404'd the moment REPO_URL was switched on — a link the
+#: site could not back, which is the exact defect this whole stream exists to
+#: remove. `test_publish.py` fails if this file drifts from the computed set.
+PUBLISHED_ARENAS_FILE = "contract/published_arenas.json"
+
+
+def published_arena_ids(arenas_root: Path) -> list[str]:
+    """Sorted ids of arenas that appear in the public mirror."""
+    return sorted(a.arena_id for a in classify_arenas(arenas_root) if a.publishable)
+
+
+def imports_a_private_package(path: Path) -> str | None:
+    """Name of the private package a file imports at module scope, else None.
+
+    MODULE-LEVEL AND UNGUARDED ONLY. An import inside a function, or inside a
+    `try: ... except ImportError:`, is a deliberate optional dependency —
+    `framework/runner.py` imports `players.adapters` exactly that way so the
+    in-repo adapters load in a checkout and are simply absent from an install.
+    Flagging those would exclude the runner itself.
+    """
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+    except (SyntaxError, OSError):
+        return None
+    for node in tree.body:  # tree.BODY: top level only, so no try/except or def
+        names: list[str] = []
+        if isinstance(node, ast.Import):
+            names = [a.name.split(".")[0] for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            names = [node.module.split(".")[0]]
+        for name in names:
+            if name in PRIVATE_PACKAGES:
+                return name
+    return None
+
+
 def public_manifest(repo_root: Path) -> list[Path]:
     """Repo-relative paths that make up the public mirror, sorted."""
     picked: set[Path] = set()
@@ -362,7 +420,12 @@ def public_manifest(repo_root: Path) -> list[Path]:
                         continue
                     picked.add(p.relative_to(repo_root))
 
-    kept = [p for p in picked if not NEVER_PUBLISH.search(p.as_posix())]
+    kept = [
+        p for p in picked
+        if not NEVER_PUBLISH.search(p.as_posix())
+        # A file that cannot import in the published package must not ship.
+        and not (p.suffix == ".py" and imports_a_private_package(repo_root / p))
+    ]
     return sorted(kept)
 
 
