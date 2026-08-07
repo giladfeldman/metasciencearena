@@ -63,6 +63,7 @@ __all__ = [
     "ArenaPublishability",
     "PRIVATE_GOLD_MARKERS",
     "PRIVATE_PACKAGES",
+    "PRIVATE_TEST_FILES",
     "imports_a_private_package",
     "PUBLIC_ARENA_GLOBS",
     "PUBLIC_TOP_LEVEL",
@@ -90,6 +91,12 @@ PRIVATE_GOLD_MARKERS = (
 PUBLIC_TOP_LEVEL = (
     "framework/**/*.py",
     "framework/contract/schemas/*.json",
+    # Test FIXTURES.  never matched these, so the mirrored
+    # tests referenced fake arenas and registries that were not shipped.
+    "framework/tests/fixtures/**/*.yaml",
+    "framework/tests/fixtures/**/*.yml",
+    "framework/tests/fixtures/**/*.json",
+    "framework/tests/fixtures/**/*.jsonl",
     "contract/README.md",
     "contract/arena.example.yaml",
     "taxonomy/**/*.yaml",
@@ -128,8 +135,12 @@ PUBLIC_ARENA_GLOBS = (
     "README.md",
     "CHANGELOG.md",
     "difficulty.yaml",
-    "generator.py",
-    "scorer.py",
+    # Every module at the arena root, not just generator/scorer: arenas have
+    # sibling helpers (r_runner.py, _normalize.py, make_dataset.py) that the
+    # scorer imports. Naming only the two entry points shipped a scorer whose
+    # import failed. Per-file rules still apply — a helper that reaches the gold
+    # path or a private package is dropped by the checks below.
+    "*.py",
     "catalogs/**/*.yaml",
     "schemas/*.json",
     "tests/**/*.py",
@@ -152,6 +163,57 @@ PRIVATE_ARENA_PATHS = ("tools/build_gold.py",)
 #: integration tests for adapters the package does not ship, so they belong with
 #: the private repo.
 PRIVATE_PACKAGES = frozenset({"players"})
+
+#: Test files that are bound to PRIVATE data and cannot run in the mirror.
+#:
+#: Determined empirically by running the mirrored suite (not guessed), then
+#: encoded here with the reason. Every one reads something the package does not
+#: ship — `players/prompts/*.txt`, `players/registry.yaml`, a private arena's
+#: modules, or the private side of the publish boundary itself.
+#:
+#: This exists because the first release turned the public repo's CI red: the
+#: mirror was shipping the private repo's INTEGRATION tests, which reference
+#: assets only a checkout has. A public repo with a failing badge is its own kind
+#: of claim the project cannot back — it was the first thing anyone following the
+#: funder link would have seen.
+#:
+#: `scripts/build_public_mirror.py --verify-tests` RUNS the mirrored suite, so
+#: this list cannot quietly go stale.
+PRIVATE_TEST_FILES = frozenset({
+    # Assert a prompt in players/prompts/ documents every deception kind.
+    "arenas/grim-consistency-v1/tests/test_generator.py",
+    "arenas/open-practices-repro-v1/tests/test_generator.py",
+    "arenas/prereg-extraction-v1/tests/test_generator.py",
+    "arenas/reference-integrity-v1/tests/test_generator.py",
+    "arenas/reporting-completeness-v1/tests/test_generator.py",
+    "arenas/significance-language-v1/tests/test_generator.py",
+    "arenas/stats-extraction-v1/tests/test_generator.py",
+    "arenas/transparency-statements-v1/tests/test_generator.py",
+    "arenas/stats-extraction-v1/tests/test_coverage.py",
+    # Read players/registry.yaml, private arenas, or run the private side of the
+    # publish boundary (whose answer differs by construction inside the mirror).
+    "framework/tests/test_publish.py",
+    "framework/tests/test_parity.py",
+    "framework/tests/test_registry_attribution.py",
+    "framework/tests/test_retry_failed.py",
+    "framework/tests/test_runner_provenance.py",
+    "framework/tests/test_scoring_text.py",
+    "framework/tests/test_stale_input_audit.py",
+    # Asserts PRIVATE-repo layout invariants: the 19-arena module-name collision,
+    # the pyproject collection config, and that every arena with a scorer has
+    # tests. The mirror has 16 arenas and deliberately omits some tests, so the
+    # invariant is legitimately false there.
+    "framework/tests/test_test_collection_integrity.py",
+    # code-translation-r-v1 builds gold by EXECUTING R over
+    # `source_scripts/` — which contains `source_scripts/gold/*.json`. Whether
+    # that (revealed) gold should be published is a deliberate disclosure
+    # decision for the project owner, not something to infer: under-publishing
+    # is reversible, over-publishing is not. Until it is decided, the arena's
+    # generator and scorer ship (so the LOGIC is auditable) but these two tests,
+    # which need the source scripts to run, do not. See TODO.md.
+    "arenas/code-translation-r-v1/tests/test_generator.py",
+    "arenas/code-translation-r-v1/tests/test_scorer.py",
+})
 
 #: Files that contain the marker strings as VOCABULARY rather than as a
 #: dependency: this module declares them, and its test exercises them. Without
@@ -425,6 +487,7 @@ def public_manifest(repo_root: Path) -> list[Path]:
         if not NEVER_PUBLISH.search(p.as_posix())
         # A file that cannot import in the published package must not ship.
         and not (p.suffix == ".py" and imports_a_private_package(repo_root / p))
+        and p.as_posix() not in PRIVATE_TEST_FILES
     ]
     return sorted(kept)
 

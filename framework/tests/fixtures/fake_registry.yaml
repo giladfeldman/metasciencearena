@@ -1,0 +1,13 @@
+- player_id: stub-pass
+  player_type: tool
+  player_version: "0.0.1"
+  adapter_class: StubPassAdapter
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: stub-fail
+  player_type: tool
+  player_version: "0.0.1"
+  adapter_class: StubFailAdapter
+  confidence_strategy: implicit-1.0
+  deterministic: true
