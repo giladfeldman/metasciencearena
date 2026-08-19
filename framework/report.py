@@ -282,7 +282,11 @@ def _summary(focal_records: list[dict], all_records: list[dict], focal_key: tupl
         # full tool set and could read the answer key. `worst`, not the majority
         # state: a player with mixed records is not a hermetic player, and
         # reporting the majority would launder the uncontrolled half.
-        "containment": hermetic.summarise_containment(all_records),
+        # FOCAL records, not the arena's: this field describes THIS player, and
+        # summarising `all_records` let one CLI competitor label every R tool and
+        # HTTP player in the same arena `uncontrolled` (123 of 130 published
+        # reports said so, against the manifests' correct 58).
+        "containment": hermetic.summarise_containment(focal_records),
         # How many of this player's scores are 0.0 because it produced nothing
         # scoreable, rather than because the scorer computed a zero. Published so
         # a reader can tell "answered badly" from "could not follow the output

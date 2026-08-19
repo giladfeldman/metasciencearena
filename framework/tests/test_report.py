@@ -495,3 +495,38 @@ def test_cost_usd_mean_stays_none_for_subscription_players(tmp_path):
     summary = json.loads((bundle / "tool_report.json").read_text(encoding="utf-8"))["summary"]
     assert summary["cost_usd_mean"] is None
     assert summary["tokens_total"] == 1500, "tokens must still be reported for unpriced players"
+
+
+def test_containment_describes_the_focal_player_not_the_arena(tmp_path):
+    """Regression, 2026-08-19: `containment` was summarised over ALL arena records.
+
+    `_summary` was passed `all_records` rather than `focal_records`, so a single
+    agentic-CLI competitor labelled every other player in the arena
+    ``uncontrolled`` — including R tools and HTTP players that have no ambient
+    environment to inherit. Caught by counting the published artifacts: the arena
+    manifests reported 58 of 130 result sets uncontrolled while the reports built
+    from the same records reported 123. The manifests were right.
+    """
+    arena = _make_arena_dir(tmp_path)
+    records = [
+        _record(player_id="rtool", task_id="t1", score={"primary": 0.9, "breakdown": {}},
+                provenance={"adapter_class": "RScriptAdapter"}),
+        _record(player_id="rtool", task_id="t2", score={"primary": 0.8, "breakdown": {}},
+                provenance={"adapter_class": "RScriptAdapter"}),
+        _record(player_id="cliplayer", task_id="t1", score={"primary": 0.5, "breakdown": {}},
+                provenance={"adapter_class": "SubprocessCliAdapter"}),
+        _record(player_id="cliplayer", task_id="t2", score={"primary": 0.4, "breakdown": {}},
+                provenance={"adapter_class": "SubprocessCliAdapter"}),
+    ]
+    _write_jsonl(arena / "runs" / "v1" / "main.jsonl", records)
+
+    bundle = generate_report(arena_dir=arena, task_set_version="v1",
+                             player_id="rtool", player_version="0.1.0")
+    report = json.loads((bundle / "tool_report.json").read_text(encoding="utf-8"))
+    assert report["summary"]["containment"]["worst"] == "not-applicable"
+    assert "uncontrolled" not in report["summary"]["containment"]["states"]
+
+    bundle = generate_report(arena_dir=arena, task_set_version="v1",
+                             player_id="cliplayer", player_version="0.1.0")
+    report = json.loads((bundle / "tool_report.json").read_text(encoding="utf-8"))
+    assert report["summary"]["containment"]["worst"] == "uncontrolled"
