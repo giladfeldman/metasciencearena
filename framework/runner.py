@@ -607,13 +607,29 @@ def _prompt_template_sha(path: str) -> str | None:
     `task_id` pins the TASK; it does not pin the instructions wrapped around it,
     and those get edited. Two records with the same task_id and different template
     hashes are not comparable, and today nothing would show that.
+
+    LINE ENDINGS ARE NORMALISED before hashing, and that is not cosmetic. Until
+    2026-08-19 this hashed the raw working-tree bytes, so on Windows (autocrlf)
+    it recorded the CRLF hash while the committed blob - what CI, the public
+    mirror and every other reader checks out - is LF. Measured on
+    `power_reporting.txt`: published records claim `c02b588da306ed86`, the file
+    in git hashes to `3d89484f4959b236`, and CI reported every published value as
+    naming a template that does not exist.
+
+    A provenance hash that only reproduces on the machine that wrote it is not
+    provenance. Normalising makes the value identify the template's CONTENT,
+    which is what the field is supposed to pin, on any platform.
     """
     try:
-        return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+        raw = Path(path).read_bytes()
     except Exception:
         return None
+    return hashlib.sha256(normalise_newlines(raw)).hexdigest()[:16]
 
 
+def normalise_newlines(raw: bytes) -> bytes:
+    """CRLF -> LF, so a hash of file content is identical on every platform."""
+    return raw.replace(b"\r\n", b"\n")
 def _build_response_meta(adapter, entry: dict, visibility: str) -> dict | None:
     """Provider metadata that says whether a score can be TRUSTED.
 

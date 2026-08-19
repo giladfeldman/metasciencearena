@@ -70,6 +70,31 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # helpers
 # --------------------------------------------------------------------------
 
+@pytest.fixture(autouse=True)
+def _fake_cli_on_path(monkeypatch):
+    """Resolve `claude` without needing it installed.
+
+    These are SEAM tests: they assert the argv, cwd and env the adapter hands to
+    the OS, which is exactly as meaningful with a stubbed binary path. Requiring
+    the real CLI made them pass locally and fail in CI with
+    `RuntimeError: CLI binary not found on PATH: claude` — a guard that only runs
+    on one machine is not a guard. The live nonce probe below is the part that
+    genuinely needs the binary, and it is opt-in.
+    """
+    import shutil
+    real_which = shutil.which
+
+    def fake_which(cmd, *a, **kw):
+        found = real_which(cmd, *a, **kw)
+        if found is not None:
+            return found
+        if hermetic.normalise_binary(cmd) in hermetic.HERMETIC_PROFILES:
+            return f"/usr/bin/{cmd}"
+        return None
+
+    monkeypatch.setattr(shutil, "which", fake_which)
+
+
 def _capture_spawn(monkeypatch, module=subprocess) -> list[dict]:
     """Replace ``subprocess.run`` with a recorder that returns valid JSON.
 

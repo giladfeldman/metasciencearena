@@ -16,6 +16,8 @@ Each is asserted here against the real repo, not against a fixture.
 from __future__ import annotations
 
 import hashlib
+
+from framework.runner import normalise_newlines
 import json
 import re
 from collections import defaultdict
@@ -108,11 +110,50 @@ _NO_RUNS_REASON = (
 requires_run_records = pytest.mark.skipif(not _HAS_RUNS, reason=_NO_RUNS_REASON)
 
 
+def _template_hash_variants(raw: bytes) -> set[str]:
+    """Every sha16 this template could legitimately be recorded under.
+
+    Three forms, because the working tree differs by platform and BOTH the
+    producer and this check read the working tree:
+      * LF-normalised  - what `runner._prompt_template_sha` stamps from 2026-08-19
+      * CRLF           - what it stamped on Windows before that (autocrlf)
+      * raw as on disk - belt and braces for a mixed-ending file
+
+    The CRLF form must be COMPUTED, not merely read: on a Linux checkout the
+    file is LF, so the legacy hash cannot be reproduced from the bytes present.
+    A shim that only hashed what it found passed on Windows and failed in CI -
+    which is the same platform-dependence it exists to absorb.
+
+    Delete the legacy forms once no published record predates the fix.
+    """
+    lf = normalise_newlines(raw)
+    crlf = lf.replace(b"\n", b"\r\n")
+    return {hashlib.sha256(b).hexdigest()[:16] for b in (lf, crlf, raw)}
+
+
 def _prompt_hashes() -> dict[str, Path]:
-    """sha256[:16] -> file, over live AND archived templates."""
+    """sha256[:16] -> file, over live AND archived templates.
+
+    BOTH the normalised hash and the raw-bytes hash are indexed, and the second
+    one is a compatibility shim with a stated end condition.
+
+    Until 2026-08-19 `runner._prompt_template_sha` hashed raw working-tree bytes,
+    so every record produced on Windows (autocrlf) stamped the CRLF hash while
+    the committed blob — what CI, the public mirror and every other reader checks
+    out — is LF. Measured on `power_reporting.txt`: records claim
+    `c02b588da306ed86`; the file in git hashes to `3d89484f4959b236`. This test
+    is exactly where that surfaced: CI reported 11 arenas' published hashes as
+    naming templates that do not exist, while the same test passed on the machine
+    that wrote them.
+
+    New records stamp the normalised hash. The raw entry exists only so
+    already-published records still resolve; it can be dropped once no run record
+    predates the fix.
+    """
     out: dict[str, Path] = {}
     for p in list(PROMPT_DIR.glob("*.txt")) + list(ARCHIVE_DIR.glob("*.txt")):
-        out[hashlib.sha256(p.read_bytes()).hexdigest()[:16]] = p
+        for sha in _template_hash_variants(p.read_bytes()):
+            out.setdefault(sha, p)
     return out
 
 
@@ -230,9 +271,13 @@ def test_published_records_were_measured_with_the_CURRENT_template():
     `prereg_deviation.txt` and finishing the re-run — deliberately, and this test
     is what said so. It stayed red until all four affected players were re-run.
     """
-    live = {p: hashlib.sha256(p.read_bytes()).hexdigest()[:16] for p in PROMPT_DIR.glob("*.txt")}
+    live = {p: hashlib.sha256(normalise_newlines(p.read_bytes())).hexdigest()[:16]
+            for p in PROMPT_DIR.glob("*.txt")}
     assert live, "no live templates found — check would be vacuous"
-    live_hashes = set(live.values())
+    # Accept the pre-2026-08-19 raw-bytes hash too; see _prompt_hashes().
+    live_hashes = set()
+    for f in PROMPT_DIR.glob("*.txt"):
+        live_hashes |= _template_hash_variants(f.read_bytes())
 
     stale: list[str] = []
     for (arena, version), by_sha in sorted(_record_prompt_hashes().items()):
