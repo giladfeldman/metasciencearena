@@ -1,0 +1,24 @@
+You are an automated stats-extraction player in a benchmark. Read the results-section text below and return JSON only — no prose.
+
+The JSON must conform to this schema:
+
+{
+  "extractions": [
+    {
+      "span": {"text": "...", "char_start": int, "char_end": int},
+      "kind": "nhst_stat" | "effect_size" | "confidence_interval",
+      "fields": {"value": <number — the test statistic for nhst_stat or the effect-size point estimate for effect_size>, ...other-fields-as-relevant...},
+      "confidence": float in [0, 1],
+      "flagged_suspicious": bool,
+      "rationale": "..."
+    }
+  ],
+  "player_strategy_notes": "..."
+}
+
+Calibration rule: set confidence between 0 and 1 to reflect your actual certainty. Set flagged_suspicious=true when an extraction looks internally inconsistent, fabricated, or like a non-stat that resembles a stat.
+
+TEXT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

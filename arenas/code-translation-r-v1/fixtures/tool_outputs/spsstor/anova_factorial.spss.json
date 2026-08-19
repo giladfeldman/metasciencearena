@@ -1,0 +1,7 @@
+{
+  "tool": "SPSStoR",
+  "tool_version": "0.3.0",
+  "captured_from": "anova_factorial.sps",
+  "r_code": "library(car)\n# x is the name of your data frame\n# Note: A * is a factorial expansion, and : represents an interaction\nmod_1 <- lm(score ~ factor(group) + factor(condition) + factor(group):factor(condition), data = x)\nAnova(mod_1, type = 3) ",
+  "note": "verbatim spss_to_r() output (captured from stdout)"
+}

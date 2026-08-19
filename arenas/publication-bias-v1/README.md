@@ -5,7 +5,7 @@ effect-size estimate `yi` and its standard error `sei` — judge whether the set
 whole shows **small-study / publication bias** (funnel-plot asymmetry). One verdict
 per task: `bias_detected` (boolean) + a confidence.
 
-This arena is built on ScienceArena's revealed/private dual-benchmark framework
+This arena is built on Meta Science Arena's revealed/private dual-benchmark framework
 (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## The statistics

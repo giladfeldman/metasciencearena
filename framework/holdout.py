@@ -1,6 +1,6 @@
 """The single, class-level contamination boundary for held-out tasks.
 
-ScienceArena's headline integrity guarantee is that a held-out task's *gold
+Meta Science Arena's headline integrity guarantee is that a held-out task's *gold
 answer* and the *player output* that reconstructs it never leak — not into a
 tracked source file, not into the published static bundle. Historically that
 redaction lived in three separate, divergent code paths (the per-arena
@@ -38,6 +38,10 @@ HELD_OUT = "held_out"
 # dropping the key (which would break schema validation) or to an empty string
 # (less self-documenting in a leaked file).
 REDACTED_INPUT_HASH = "<redacted>"
+#: Replaces `provenance.seed` on a held-out record. The private seed regenerates the
+#: entire held-out split (tasks AND gold), so it must never reach a tracked or
+#: published artifact.
+REDACTED_SEED = "<redacted>"
 
 # A ground_truth field is "gold" — the answer key — iff its name starts with
 # this prefix. Every PDF arena follows the convention (gold_sections,
@@ -158,6 +162,9 @@ def redact_held_out_record(record: dict) -> dict:
       * ``score.breakdown`` -> ``{}`` UNLESS it carries an ``error`` marker
         (which is operational, not gold — e.g. ``{"error": "TimeoutError: ..."}``);
         ``score.primary`` is preserved so aggregate ranking still works.
+      * ``usage`` -> dropped. ``prompt_tokens`` is a near-exact proxy for the
+        length of the held-out input document, so publishing it hands out a
+        continuous measurement of a corpus we do not distribute.
 
     Findings are already redacted to ``{category, count}`` at write time by the
     runner; this closes the remaining channels. Non-mutating.
@@ -177,6 +184,12 @@ def redact_held_out_record(record: dict) -> dict:
     # redaction is self-healing — a record whose hash was previously dropped
     # gets the sentinel back rather than staying schema-invalid.
     out["input_hash"] = REDACTED_INPUT_HASH
+    # Token counts are a length oracle. `prompt_tokens` tracks the input document
+    # almost linearly, so a published held-out row would quantify a PDF we
+    # deliberately do not ship. The run-record schema has promised this redaction
+    # since 2026-08-13; nothing performed it until 2026-08-14, which was harmless
+    # only because no record carried `usage` yet.
+    out.pop("usage", None)
     score = out.get("score")
     if isinstance(score, dict):
         score = dict(score)
@@ -188,6 +201,20 @@ def redact_held_out_record(record: dict) -> dict:
         elif "breakdown" in score:
             score["breakdown"] = {}
         out["score"] = score
+    # provenance.seed IS the secret. Arena tasks and their gold are a deterministic
+    # function of it, so a committed private record carrying it verbatim lets anyone
+    # with repo access regenerate the whole held-out split and score perfectly. This
+    # is the second half of the original stats-extraction-v1 exposure — the first
+    # (the seed embedded in task_id strings) was closed by task set v2's hashed
+    # discriminator, and the very first v2 private run promptly republished the
+    # freshly-rotated seed through this channel. Nothing legitimately reads the raw
+    # seed back out of a record: reproducing a private run needs `.private_seed`
+    # regardless. The key stays so the record shape does not change for consumers.
+    provenance = out.get("provenance")
+    if isinstance(provenance, dict) and "seed" in provenance:
+        provenance = dict(provenance)
+        provenance["seed"] = REDACTED_SEED
+        out["provenance"] = provenance
     return out
 
 
@@ -227,6 +254,13 @@ def held_out_leak_reasons(entry_or_record: dict, *, kind: str) -> list[str]:
         ih = entry_or_record.get("input_hash")
         if ih and ih != REDACTED_INPUT_HASH:
             reasons.append("input_hash present (membership oracle)")
+        if entry_or_record.get("usage"):
+            # prompt_tokens ≈ input document length. A per-task length readout
+            # over a corpus we do not publish is a leak, not metadata.
+            reasons.append(
+                f"usage present (token counts are a length oracle): "
+                f"{sorted(entry_or_record['usage'])}"
+            )
         breakdown = (entry_or_record.get("score") or {}).get("breakdown")
         if isinstance(breakdown, dict) and breakdown:
             err = breakdown.get("error")
@@ -247,3 +281,72 @@ def held_out_leak_reasons(entry_or_record: dict, *, kind: str) -> list[str]:
                     )
         return reasons
     raise ValueError(f"unknown kind {kind!r} (expected 'ground_truth' or 'record')")
+
+
+# ---------------------------------------------------------------------------
+# Corpus presence — "missing" must never read as "empty"
+# ---------------------------------------------------------------------------
+# The held-out corpora are gitignored: they live in the working tree only, and
+# they hold the task INPUT (the PDFs players are scored on), not just the gold.
+# Every PDF arena's real-paper generator opened with the same three lines:
+#
+#     if not HELD_OUT_PMC_DIR.exists():
+#         return
+#
+# which turns "the corpus is gone" into "this arena has no real-paper tasks" —
+# reported as a successful, merely smaller, benchmark. On 2026-08-08 a
+# `git stash --all` removed all 123 gitignored corpus files and every one of the
+# six PDF arenas silently dropped to synthetic-only. Nothing failed; 137 tests
+# skipped; the run would have published.
+#
+# That is the same false-green class as a suite quietly collecting 1023 of 1143
+# tests, and the same one `scan_for_leaks` already refuses to commit: a check
+# that cannot see its subject must not certify it.
+#
+# So absence now RAISES — unless the caller has DECLARED that it wants a
+# synthetic-only task set, which makes the reduced benchmark a stated choice
+# rather than an accident.
+
+#: Set to "1" to declare that a synthetic-only task set is intended.
+SYNTHETIC_ONLY_ENV = "SCIENCEARENA_SYNTHETIC_ONLY"
+
+
+class HeldOutCorpusMissing(RuntimeError):
+    """A generator's held-out corpus is absent and no synthetic-only opt-in was declared."""
+
+
+def require_corpus(path, *, arena_id: str, kind: str):
+    """Return `path` if the corpus is present; otherwise fail loudly.
+
+    Returns ``None`` (after a stderr warning) only when the caller has declared
+    a synthetic-only run via ``SCIENCEARENA_SYNTHETIC_ONLY=1``. Callers should
+    treat ``None`` as "emit no real-paper tasks".
+    """
+    import os
+    import sys
+    from pathlib import Path
+
+    path = Path(path)
+    if path.exists():
+        return path
+
+    if os.environ.get(SYNTHETIC_ONLY_ENV) == "1":
+        print(
+            f"[holdout] {arena_id}: {kind} corpus absent at {path} — emitting a "
+            f"SYNTHETIC-ONLY task set because {SYNTHETIC_ONLY_ENV}=1 was set. "
+            "Scores from this run are not comparable with a full run.",
+            file=sys.stderr,
+        )
+        return None
+
+    raise HeldOutCorpusMissing(
+        f"{arena_id}: the {kind} held-out corpus is missing at {path}.\n"
+        "These files are GITIGNORED — they exist only in the working tree, and "
+        "`git stash -a`, a branch switch, or a manual tidy-up all remove them "
+        "without git noticing.\n"
+        "Generating anyway would silently produce a SMALLER benchmark and report "
+        "it as a success, so this raises instead.\n"
+        "Fix: restore the corpus (see TODO.md P0-0), or set "
+        f"{SYNTHETIC_ONLY_ENV}=1 to declare that a synthetic-only task set is "
+        "what you actually want."
+    )

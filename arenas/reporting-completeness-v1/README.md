@@ -7,7 +7,7 @@ arena grades whether each reported test is reported *completely* and *precisely*
 Mirrors metacheck's `stat_effect_size`, `stat_p_exact`, `all_p_values`, and
 `stat_p_nonsig` modules.
 
-This arena is built on ScienceArena's revealed/private dual-benchmark framework
+This arena is built on Meta Science Arena's revealed/private dual-benchmark framework
 (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

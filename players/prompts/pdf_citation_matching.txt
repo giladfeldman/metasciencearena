@@ -1,0 +1,49 @@
+You are matching in-text citations to the reference list of a scientific PDF.
+
+PDF path: {{PDF_PATH}}
+Pages: {{N_PAGES}}
+
+Read the PDF. Do two things:
+
+1. Find EVERY in-text citation marker — the bracketed numbers, superscript
+   numbers, or author-year callouts in the running text (e.g. "[12]", "(3)",
+   "Smith & Doe, 2020"). For each marker, link it to the reference it points
+   to in the reference list.
+
+2. Build a consistency report over the citation-reference linkage.
+
+For each in-text citation marker provide:
+- marker_text: the literal marker string exactly as printed (e.g. "[12]").
+- char_start, char_end: integer character offsets of the marker within the
+  body text, or null if you cannot determine them.
+- reference_id: the id / label of the reference list entry this marker points
+  to (the in-text number or label the reference list uses, e.g. "12" or
+  "Smith2020"). Use null if the marker points to no reference list entry.
+
+The consistency report has exactly three fields:
+- orphan_markers: a list of marker_text strings whose marker points to no
+  reference list entry.
+- uncited_reference_ids: a list of reference ids that appear in the reference
+  list but are never cited by any in-text marker.
+- duplicate_reference_groups: a list of groups (each group a list of reference
+  ids) where the same work is listed more than once in the reference list.
+
+Do not invent markers or references that do not appear in the PDF.
+
+Output ONLY a JSON object, no prose, no markdown fences. Schema:
+
+{
+  "markers": [
+    {
+      "marker_text": "[12]",
+      "char_start": 1043,
+      "char_end": 1047,
+      "reference_id": "12"
+    }
+  ],
+  "consistency": {
+    "orphan_markers": ["[99]"],
+    "uncited_reference_ids": ["7"],
+    "duplicate_reference_groups": [["3", "21"]]
+  }
+}

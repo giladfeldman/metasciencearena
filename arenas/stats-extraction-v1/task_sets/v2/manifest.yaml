@@ -1,0 +1,22 @@
+version: v2
+seed: 0
+released_on: "2026-08-09"
+n_tasks: 36       # 6 tiers x 3 densities x 2 = 36 (revealed, seed 0), same matrix as v1.
+generator_signature: |
+  task_set_version=v2, seed=0, n_per_cell=2, densities=[1,2,3], tiers=[1..6]
+notes: |
+  Task set v2 exists for ONE reason: to rotate the private seed.
+
+  v1's private seed is embedded in the task_ids of 36 tracked run records
+  (`t-tier1-d1-0-s<seed>` in runs/v1/escimate__private__v0_6_13.jsonl), so it is
+  recoverable by anyone with repo access and its "held-out" split was private in
+  name only. It could not be swapped in place: build-data.mjs, the task-detail
+  route, compare-task-diff and player-report all key off task_id, so rewriting
+  them would orphan every stored record and link. v1's private results are kept
+  as labelled history instead.
+
+  The REVEALED split is unchanged — seed 0, the same 36-task matrix — because it
+  is public by construction and nothing about it was compromised. Only the
+  private seed is new.
+
+  Tasks are generated on-the-fly from the seed; nothing is materialized here.

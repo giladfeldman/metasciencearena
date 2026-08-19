@@ -22,3 +22,16 @@ rapidfuzz==3.14.5
 reportlab==4.5.0
 requests==2.33.1
 scipy==1.17.1
+
+# --- optional extra: pdf-docling -------------------------------------------
+# Not installed by a bare `pip install -r requirements.lock` consumer unless they
+# want the Docling players. Pinned as a STACK, not one package: Docling swapped
+# its default layout model between releases (+23.5% mAP on DocLayNet), so the
+# `docling` version alone does not identify the instrument a score came from.
+# torch is the CPU build -- install with
+#   --extra-index-url https://download.pytorch.org/whl/cpu
+# docling==2.120.3
+# docling-core==2.92.0
+# docling-ibm-models==3.14.0
+# docling-parse==7.14.0
+# torch==2.13.0+cpu

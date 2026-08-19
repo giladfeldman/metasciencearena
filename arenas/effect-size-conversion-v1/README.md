@@ -4,7 +4,7 @@
 closed set **{d, r, OR, eta2, f}**. One conversion per task: input
 `{value, from, to, context?}`, output `{converted, confidence}`.
 
-This arena is built on ScienceArena's revealed/private dual-benchmark framework
+This arena is built on Meta Science Arena's revealed/private dual-benchmark framework
 (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Why this is a good arena

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import random
+import re
 from pathlib import Path
 
 import yaml
@@ -167,18 +168,73 @@ def _render_stat_str(fields: dict) -> str:
     return f"{label} = {val}"
 
 
-def _build_nhst_fields(rng: random.Random, nhst_catalog: list[dict]) -> dict:
-    spec = rng.choice(nhst_catalog)
+def _pins_labels(task_set_version: str) -> bool:
+    """Whether item D (statistic drawn to match the template's label) applies.
+
+    v1 is FROZEN. The generator is shared across task sets, so pinning the
+    statistic for every version silently rewrote history: skipping the old
+    `rng.choice(nhst_catalog)` draw shifts the entire downstream RNG stream, and
+    only 7 of 36 v1 tasks still matched `task_sets/v1/_ground_truth.json` —
+    `t-tier1-d1-0-s0` went from `r(28) = 48.7` (gold `test_type: Q`) to
+    `t(13) = -0.09`. v1's gold is a committed artifact and its records are kept as
+    labelled history; anyone reproducing a published v1 score must get the text
+    that score was computed against, impossible-looking correlations included.
+
+    Same gate, same reason, as `_seed_tag`. Found by a Codex review pass on
+    2026-08-09 and reproduced before acting.
+    """
+    return task_set_version != "v1"
+
+
+def _template_stat_id(tmpl: str, nhst_catalog: list[dict] | None = None) -> str | None:
+    """The statistic a template HARDCODES, or None when it renders `{stat_str}`.
+
+    Tier 1-4 templates spell the notation out — ``t({df1})``, ``F({df1}, {df2})``,
+    ``r({df1})``, ``chi2({df1})`` — while the statistic was drawn independently
+    from the catalog. That is TODO item D: a Cochran Q (range 0.1-50) rendered as
+    ``r(28) = 48.7``, a correlation outside [-1, 1], with gold recording ``Q`` for
+    text that says ``r``.
+
+    Matched on the LABEL AS A TOKEN followed by ``(`` (or ``=`` for df-less
+    labels), tolerating the italic markers tier 2 adds (``*t*(``) — never a bare
+    substring search. Longest label first, because ``BF10`` contains ``F`` and a
+    shortest-first scan would render every Bayes factor as an F-test.
+    """
+    catalog = nhst_catalog if nhst_catalog is not None else _load_yaml(CATALOGS_DIR / "nhst_stats.yaml")
+    for spec in sorted(catalog, key=lambda s: len(s["label_pattern"]), reverse=True):
+        label = re.escape(spec["label_pattern"])
+        # `\*?` for tier 2's *t*(...); the lookbehind stops `t` matching inside a word.
+        if re.search(rf"(?<![A-Za-z0-9_])\*?{label}\*?\s*[(=]", tmpl):
+            return spec["id"]
+    return None
+
+
+def _build_nhst_fields(rng: random.Random, nhst_catalog: list[dict],
+                       stat_id: str | None = None) -> dict:
+    """Draw a truthful NHST result.
+
+    ``stat_id`` pins which statistic to draw so it matches the template that will
+    render it (see :func:`_template_stat_id`). Callers pass it for every template
+    that hardcodes its notation; without it the draw is free, which is correct only
+    for templates rendering a pre-built ``{stat_str}``.
+
+    An unknown ``stat_id`` falls back to a free draw rather than raising: a new
+    template with unrecognised notation should degrade to the old behaviour, not
+    break generation. The label-coherence tests would catch it.
+    """
+    spec = None
+    if stat_id is not None:
+        spec = next((s for s in nhst_catalog if s["id"] == stat_id), None)
+    if spec is None:
+        spec = rng.choice(nhst_catalog)
     df1 = rng.randint(8, 200)
     df2 = rng.randint(2, 12)
     val = round(rng.uniform(*spec["range"]), 2)
-    # NOTE: p here is independent of the statistic. The tier 1-4 templates render a
-    # FIXED label (e.g. "t(...)") that does not always match `spec`, so a p
-    # recomputed from (spec, val) would not be consistent with the *rendered*
-    # statistic anyway (the label<->stat mismatch is the staged "TODO item D").
-    # The recompute-consistent clean control for nhst_inconsistent is instead the
-    # dedicated, fully-coherent `nhst_consistent` truthful item (see
-    # _build_nhst_consistent_fields), where label, value and p are built together.
+    # NOTE: p remains independent of the statistic here, deliberately. These are the
+    # generic tier 1-4 items; the recompute-consistent clean control is the dedicated
+    # `nhst_consistent` item (see _build_nhst_consistent_fields), where label, value
+    # and p are built together. Item D fixed the label<->statistic mismatch; it did
+    # not make every truthful item p-consistent, which is a separate property.
     p = round(rng.uniform(0.0001, 0.5), 3)
     return {
         "stat_id": spec["id"], "label": spec["label_pattern"],
@@ -400,7 +456,7 @@ def _assign_spans(text: str, items: list[dict]) -> None:
 
 
 def _build_task(task_id: str, rng: random.Random, tier: int, density: int,
-                nhst_catalog, es_catalog) -> tuple[dict, dict]:
+                nhst_catalog, es_catalog, *, pin_labels: bool = True) -> tuple[dict, dict]:
     """Generate one task envelope + its ground truth."""
     templates_path = TEMPLATES_DIR / f"tier{tier}_{ {1:'baseline',2:'notation',3:'formatting'}[tier] }.yaml"
     templates = _load_yaml(templates_path)
@@ -411,8 +467,19 @@ def _build_task(task_id: str, rng: random.Random, tier: int, density: int,
     for _ in range(n_stats):
         kind = rng.choice(["nhst", "effect_size"]) if templates.get("effect_size") else "nhst"
         if kind == "nhst":
-            fields = _build_nhst_fields(rng, nhst_catalog)
-            tmpl = rng.choice(templates["nhst"])
+            # Template FIRST, then draw the statistic it hardcodes (item D). Drawing
+            # them independently is what rendered a Cochran Q as `r(28) = 48.7`.
+            #
+            # v1 keeps the ORIGINAL order (fields, then template). The reorder alone
+            # shifts the RNG stream — 23/36 v1 tasks drifted from their committed gold
+            # even with the statistic left unpinned — and v1 is frozen history.
+            if pin_labels:
+                tmpl = rng.choice(templates["nhst"])
+                fields = _build_nhst_fields(
+                    rng, nhst_catalog, _template_stat_id(tmpl, nhst_catalog))
+            else:
+                fields = _build_nhst_fields(rng, nhst_catalog)
+                tmpl = rng.choice(templates["nhst"])
             sentence = _instantiate_template(tmpl, fields)
             items.append({
                 "kind": "nhst_stat",
@@ -481,14 +548,24 @@ def _build_task(task_id: str, rng: random.Random, tier: int, density: int,
     return envelope, {"items": items}
 
 
-def _build_tier4_task(task_id, rng, density, nhst, es):
+def _build_tier4_task(task_id, rng, density, nhst, es, *, pin_labels: bool = True):
     templates = _load_yaml(TEMPLATES_DIR / "tier4_density.yaml")
     parts, items = [], []
     for _ in range(density):
-        f1 = _build_nhst_fields(rng, nhst)
-        f2 = _build_nhst_fields(rng, nhst)
+        # Template first (item D). `{value2}` is rendered inside the SAME hardcoded
+        # notation as `{value}` in the two-stat tier-4 templates, so f2 is drawn for
+        # that statistic too — otherwise the second number in the sentence is out of
+        # range for the label printed beside it.
+        if pin_labels:
+            tmpl = rng.choice(templates["nhst"])
+            stat_id = _template_stat_id(tmpl, nhst)
+            f1 = _build_nhst_fields(rng, nhst, stat_id)
+            f2 = _build_nhst_fields(rng, nhst, stat_id)
+        else:  # v1 order, frozen
+            f1 = _build_nhst_fields(rng, nhst)
+            f2 = _build_nhst_fields(rng, nhst)
+            tmpl = rng.choice(templates["nhst"])
         f1["value2"] = f2["value"]; f1["p2"] = f2["p"]
-        tmpl = rng.choice(templates["nhst"])
         parts.append(_instantiate_template(tmpl, f1))
         items.append({"kind": "nhst_stat",
                       "fields": {"test_type": f1["stat_id"], "df1": f1["df1"], "df2": f1["df2"],
@@ -512,7 +589,7 @@ def _build_tier4_task(task_id, rng, density, nhst, es):
             "input": {"text": text, "tier": 4, "format_hint": "plain_text"}}, {"items": items}
 
 
-def _build_tier5_task(task_id, rng, density, nhst, es, deception_kinds_yaml, kind_offset=0):
+def _build_tier5_task(task_id, rng, density, nhst, es, deception_kinds_yaml, kind_offset=0, *, pin_labels: bool = True):
     """Build one deception task.
 
     Deception KINDS are assigned deterministically by cycling through every
@@ -558,7 +635,14 @@ def _build_tier5_task(task_id, rng, density, nhst, es, deception_kinds_yaml, kin
             sentence = _instantiate_template(tmpl, f)
             anchor_value = f["es_reported"]
         else:
-            f = _build_nhst_fields(rng, nhst)
+            # Item D applies to the kinds whose LABEL is meant to be right — the
+            # planted error is a wrong p / a wrong value / a missing df, not a wrong
+            # test name. `swapped_test_label` is the deliberate exception: its whole
+            # deception is rendering the statistic under the wrong notation, so it
+            # keeps drawing freely and must never be coerced to match its template.
+            stat_id = (None if (kind == "swapped_test_label" or not pin_labels)
+                       else _template_stat_id(tmpl, nhst))
+            f = _build_nhst_fields(rng, nhst, stat_id)
             f["wrong_p"] = round(min(0.99, f["p"] + 0.4), 3)
             f["wrong_value"] = round(f["value"] + 1.0, 2)
             ef = _build_es_fields(rng, es)
@@ -595,7 +679,7 @@ def _build_tier5_task(task_id, rng, density, nhst, es, deception_kinds_yaml, kin
             "input": {"text": text, "tier": 5, "format_hint": "plain_text"}}, {"items": items}
 
 
-def _build_tier6_task(task_id, rng, density, nhst, es, deception_kinds_yaml):
+def _build_tier6_task(task_id, rng, density, nhst, es, deception_kinds_yaml, *, pin_labels: bool = True):
     """Compose a multi-section results section out of tier 1-5 paragraphs."""
     composition = _load_yaml(TEMPLATES_DIR / "tier6_results_section.yaml")
     titles = composition["section_titles"]
@@ -612,11 +696,12 @@ def _build_tier6_task(task_id, rng, density, nhst, es, deception_kinds_yaml):
             # Deterministic kind offset (seed-independent) so tier-6 deception
             # coverage is identical across splits too.
             env, gt = _build_tier5_task(f"{task_id}-sub{i}", rng, density, nhst, es,
-                                        deception_kinds_yaml, kind_offset=i)
+                                        deception_kinds_yaml, kind_offset=i,
+                                        pin_labels=pin_labels)
         elif sub_tier == 4:
-            env, gt = _build_tier4_task(f"{task_id}-sub{i}", rng, density, nhst, es)
+            env, gt = _build_tier4_task(f"{task_id}-sub{i}", rng, density, nhst, es, pin_labels=pin_labels)
         else:
-            env, gt = _build_task(f"{task_id}-sub{i}", rng, sub_tier, density, nhst, es)
+            env, gt = _build_task(f"{task_id}-sub{i}", rng, sub_tier, density, nhst, es, pin_labels=pin_labels)
         body = env["input"]["text"]
         if i > 0:
             body = body + " " + rng.choice(crossrefs) + "."
@@ -633,6 +718,41 @@ def _build_tier6_task(task_id, rng, density, nhst, es, deception_kinds_yaml):
             "input": {"text": full_text, "tier": 6, "format_hint": "plain_text"}}, {"items": items_all}
 
 
+def _require_scipy() -> None:
+    """Refuse to generate anything when scipy is unavailable.
+
+    The module-level guard above exists so that IMPORTING this file on a
+    scipy-less box degrades instead of crashing — reading `ground_truth()` or a
+    pure helper is harmless. GENERATING is not: without scipy,
+    `_decisive_sig_stat` falls back to `rng.uniform(*spec["range"])`, a draw with
+    no significance property, and the nhst_consistent control — the one item in
+    the arena whose entire purpose is to be internally coherent — starts emitting
+    text like "the test was significant, chi2(158) = 3.09, p = 0.057".
+
+    That is not degraded output, it is WRONG output, and it is silent. On
+    2026-08-10 a corrupted numpy in the local venv (`numpy/_core/_dtype.py`
+    missing) tripped exactly this: two tests went red in a way that read as a
+    regression in frozen v1 history, while `pip check` reported "No broken
+    requirements found" because it never imports what it checks. Had gold been
+    regenerated on that box instead, text and gold would have drifted TOGETHER
+    and every test would have passed — publishing incoherent statistics as
+    ground truth with nothing to catch it.
+
+    scipy is a declared, locked dependency (pyproject `scipy>=1.11`,
+    requirements.lock `scipy==1.17.1`). Its absence is a broken environment, and
+    the correct response to a broken environment is to stop.
+    """
+    if _HAVE_SCIPY:
+        return
+    raise RuntimeError(
+        "stats-extraction-v1 cannot generate tasks: scipy failed to import, so "
+        "significance values would be drawn at random and the coherent controls "
+        "would contradict their own prose. Repair the environment "
+        "(`pip install --force-reinstall numpy scipy`) and re-run — do not "
+        "regenerate gold until `from scipy import stats` succeeds."
+    )
+
+
 def generate(task_set_version: str, seed: int, split: str = "revealed"):
     """Yield the task envelopes for one benchmark `split`.
 
@@ -642,7 +762,10 @@ def generate(task_set_version: str, seed: int, split: str = "revealed"):
     suites parity-matched by construction (see framework/parity.py). This arena
     is synthetic-only, so the private split has no real-world holdout to append.
     """
+    _require_scipy()
     visibility = "public" if split == "revealed" else "held_out"
+    # Item D applies to v2+ only; v1 is frozen history. See _pins_labels.
+    pin_labels = _pins_labels(task_set_version)
     nhst = _load_yaml(CATALOGS_DIR / "nhst_stats.yaml")
     es = _load_yaml(CATALOGS_DIR / "effect_sizes.yaml")
     deception_kinds = _load_yaml(CATALOGS_DIR / "deception_kinds.yaml")
@@ -652,20 +775,25 @@ def generate(task_set_version: str, seed: int, split: str = "revealed"):
     for tier in (1, 2, 3, 4, 5, 6):
         for density in densities:
             for k in range(n_per_cell):
-                tid = f"t-tier{tier}-d{density}-{k}-s{seed}"
+                tid = f"t-tier{tier}-d{density}-{k}-s{_seed_tag(task_set_version, seed)}"
                 rng = random.Random(_seed_int(task_set_version, seed, tier, density, k))
                 if tier in (1, 2, 3):
-                    env, gt = _build_task(tid, rng, tier, density, nhst, es)
+                    env, gt = _build_task(tid, rng, tier, density, nhst, es, pin_labels=pin_labels)
                 elif tier == 4:
-                    env, gt = _build_tier4_task(tid, rng, density, nhst, es)
+                    env, gt = _build_tier4_task(tid, rng, density, nhst, es, pin_labels=pin_labels)
                 elif tier == 5:
-                    env, gt = _build_tier5_task(tid, rng, density, nhst, es, deception_kinds,
+                    env, gt = _build_tier5_task(tid, rng, density, nhst, es, deception_kinds, pin_labels=pin_labels,
                                                 kind_offset=t5_offset)
                     t5_offset += density
                 else:
-                    env, gt = _build_tier6_task(tid, rng, density, nhst, es, deception_kinds)
+                    env, gt = _build_tier6_task(tid, rng, density, nhst, es, deception_kinds, pin_labels=pin_labels)
                 env["split"] = split
                 env["visibility"] = visibility
+                # The four _build_* helpers hardcode "v1" in the envelope literal.
+                # Stamp the version actually being generated, the same way split and
+                # visibility are stamped above — otherwise every v2 envelope, and
+                # every run record written from it, announces itself as v1.
+                env["task_set_version"] = task_set_version
                 _GROUND_TRUTH_CACHE[tid] = gt
                 yield env
 
@@ -693,3 +821,24 @@ def ground_truth(task_id: str) -> dict:
 def _seed_int(*parts) -> int:
     h = hashlib.sha256("|".join(str(p) for p in parts).encode("utf-8")).hexdigest()
     return int(h[:16], 16)
+
+
+def _seed_tag(task_set_version: str, seed: int) -> str:
+    """The seed discriminator that goes INTO a `task_id`.
+
+    v1 emitted the raw seed (`…-s<the 9-digit secret>`; the value is deliberately
+    not quoted here). Private run records are committed, so
+    `runs/v1/escimate__private__v0_6_13.jsonl` publishes the "secret" private seed
+    in 36 task_ids — the exposure task-set v2 exists to rotate. Rotating the value
+    alone would have re-leaked it after one tournament, so v2+ publishes a
+    truncated SHA-256 instead: deterministic and stable, but not invertible.
+
+    v1 keeps the legacy format deliberately. Its 36 stored records key off those
+    ids, as do build-data.mjs, the task-detail route, compare-task-diff and
+    player-report; changing them would orphan every stored record and link. v1's
+    seed stays in `KNOWN_EXPOSED` — the debt is closed by v2 superseding it, not
+    by rewriting history.
+    """
+    if task_set_version == "v1":
+        return str(seed)
+    return hashlib.sha256(str(seed).encode("utf-8")).hexdigest()[:8]

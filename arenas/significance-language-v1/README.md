@@ -7,7 +7,7 @@ design. Modeled on
 [metacheck](https://github.com/JamieCummins/metacheck)'s `marginal` and
 `causal_claims` modules.
 
-Built on ScienceArena's revealed/private dual-benchmark framework (see
+Built on Meta Science Arena's revealed/private dual-benchmark framework (see
 `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

@@ -1,0 +1,41 @@
+You are an automated stats-extraction player in a benchmark. Read the results-section text below and return JSON only — no prose.
+
+Your job: extract every reported test statistic, effect size, and confidence interval, give your honest confidence in each, and flag the ones that are internally inconsistent, fabricated, mislabelled, or not really a statistic. A well-written result must NOT be flagged — false alarms are penalised as heavily as misses.
+
+The JSON must conform to this schema:
+
+{
+  "extractions": [
+    {
+      "span": {"text": "<verbatim substring copied from the text>", "char_start": <int offset into text, counting from 0>, "char_end": <int, exclusive>},
+      "kind": "nhst_stat" | "effect_size" | "confidence_interval",
+      "fields": {"value": <number — the test statistic for nhst_stat, or the effect-size point estimate for effect_size>, "...other fields as relevant (df1, df2, p, ci_low, ci_high, effect_size_type, test_type) ..."},
+      "confidence": <float in [0, 1] — your actual certainty>,
+      "flagged_suspicious": <bool>,
+      "rationale": "<one short clause; optional>"
+    }
+  ],
+  "player_strategy_notes": "..."
+}
+
+Calibration rule: set confidence to reflect your real certainty (a value you are 90% sure of gets ~0.9). Set flagged_suspicious=true ONLY for the problems below; leave it false for correct results reported in unusual-but-valid notation.
+
+DECEPTION MODES to detect (set flagged_suspicious=true and keep confidence honest):
+- internal_inconsistency / nhst_inconsistent: the reported test statistic and its p-value disagree. Recompute the two-sided p implied by the statistic and its df (t / r / z are two-sided; F and chi-squared are one-sided by construction). A decisively significant statistic (e.g. t(80) = 7.7) reported with a non-significant p (e.g. p = .21) — or the reverse — is inconsistent. Flag it.
+- wrong_df: for a one-way ANOVA stated with N participants in k groups, the correct df are F(k-1, N-k). If the reported denominator df is inconsistent with the stated N and group count, flag it.
+- swapped_test_label: the test label does not match the df arity actually given (e.g. "F(48) = 2.31" — F reports TWO df; a t reported with two df; etc.). Flag it.
+- missing_info_impostor: a statistic presented as complete but missing a critical field (e.g. a t or F reported with NO df at all). Flag it.
+- statistic_impostor: a stat-shaped string that is not a statistic — a section number ("Section 3.2"), a price, an index, or "Cohen's d = 0.5" pasted where the surrounding claim shows it is not the effect being discussed. Flag it.
+- fabricated_value: a statistic in the text contradicted by a later claim (e.g. "t(40) = 3.1 ... this contradicts the table where the value is 5.2"). Flag it.
+- effect_size_rounding: an effect-size point estimate that is inconsistent with its OWN reported confidence interval — the CI midpoint ((ci_low + ci_high) / 2) does not match the stated estimate (e.g. "d = 0.5, 95% CI [0.62, 0.94]", midpoint 0.78 ≠ 0.5, the estimate was re-rounded so the number changed). Recompute the CI midpoint; if it disagrees with the stated estimate by a visible margin, flag it.
+
+What must NOT be flagged (the confusable clean controls):
+- A statistic reported with a p that AGREES with the recomputed value — correct, even if non-significant. Do not flag a result merely for being non-significant.
+- A one-way ANOVA whose F(df1, df2) IS consistent with the stated N and group count.
+- An effect size whose point estimate EQUALS its CI midpoint — correct, do not flag.
+- Valid-but-unusual notation: comma decimals ("0,003"), a dropped leading zero (".72"), italic markers, OCR-style glyphs. These are formatting, not errors.
+
+TEXT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

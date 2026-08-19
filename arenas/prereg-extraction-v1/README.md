@@ -4,7 +4,7 @@
 AsPredicted) and extract the registration into a structured field-map. This is a
 FIELD-MAP arena: the player both *detects* a prereg and *recovers its content*.
 
-Built on ScienceArena's revealed/private dual-benchmark framework (see
+Built on Meta Science Arena's revealed/private dual-benchmark framework (see
 `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

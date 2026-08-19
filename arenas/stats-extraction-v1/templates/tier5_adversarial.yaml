@@ -1,0 +1,33 @@
+# Tier 5: adversarial / inconsistent. Each template embeds one deception kind.
+internal_inconsistency:
+  - "The result was significant, t({df1}) = {value}, p = {wrong_p}."   # value implies one p, reported wrong_p
+swapped_test_label:
+  - "F({df1}) = {value}, p = {p}."                                     # F has two dfs, only one given
+statistic_impostor:
+  - "Section {df1}.{df2} discusses Cohen's d = {es} more carefully."   # not a stat, looks like one
+missing_info_impostor:
+  - "We confirmed the effect, t = {value}, p = {p}."                   # missing df entirely
+fabricated_value:
+  - "We found t({df1}) = {value}, p = {p}; this contradicts the table where the value is {wrong_value}."
+# nhst_inconsistent: {stat_str} is a DECISIVELY significant statistic, correctly
+# labelled with the right df-arity (true two-sided p < .01), but the reported
+# {wrong_p} is non-significant — a statcheck decision error. The ONLY defect is
+# the p. Clean control: the nhst_consistent truthful item (tier 1), where the same
+# coherent stat is reported with its recomputed two-sided p.
+nhst_inconsistent:
+  - "The difference was not significant, {stat_str}, p = {wrong_p}."
+  - "Contrary to predictions, {stat_str}, p = {wrong_p}, so H1 was not supported."
+# wrong_df: F is correctly labelled with two dfs, but the denominator df
+# ({df2_wrong}) is inconsistent with the stated N and group count (should be
+# N - k = {df2}). Clean control: the truthful ANOVA template reporting {df2}.
+wrong_df:
+  - "With N = {n_total} participants across {k_groups} groups, F({df1}, {df2_wrong}) = {value}, p = {p}."
+  - "A one-way ANOVA on the {n_total} participants ({k_groups} conditions) was significant, F({df1}, {df2_wrong}) = {value}, p = {p}."
+# effect_size_rounding: the reported effect-size estimate ({es_reported}) was
+# rounded to fewer decimals and no longer matches its own CI — the CI midpoint
+# ((ci_lo+ci_hi)/2) disagrees with the stated estimate by a visible margin. Only
+# the estimate is corrupted; the CI is the true one. Clean control: clean_es
+# (tier 1), where the estimate equals the CI midpoint.
+effect_size_rounding:
+  - "The effect was moderate, {es_label} = {es_reported}, 95% CI [{ci_lo}, {ci_hi}]."
+  - "We observed {es_label} = {es_reported} (95% CI [{ci_lo}, {ci_hi}]), a robust effect."

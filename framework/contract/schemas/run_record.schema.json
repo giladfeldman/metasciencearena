@@ -6,62 +6,367 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "run_id", "arena_id", "task_set_version", "task_id",
-    "player_id", "player_version", "player_type",
-    "input_hash", "output", "score", "timestamp_utc"
+    "run_id",
+    "arena_id",
+    "task_set_version",
+    "task_id",
+    "player_id",
+    "player_version",
+    "player_type",
+    "input_hash",
+    "output",
+    "score",
+    "timestamp_utc"
   ],
   "properties": {
-    "run_id": {"type": "string"},
-    "arena_id": {"type": "string"},
-    "task_set_version": {"type": "string", "pattern": "^v[0-9]+$"},
-    "task_id": {"type": "string"},
-    "player_id": {"type": "string"},
-    "player_version": {"type": "string"},
-    "resolved_tool_version": {"type": ["string", "null"], "description": "Optional. The actual installed version of the underlying tool, detected at runtime by the adapter (e.g. 'docpluck-2.4.84'). null when no underlying tool is detectable (e.g. an LLM, whose version is the model id in player_version). Lets the leaderboard rank on the version a score was produced with rather than the static registry label."},
-    "player_type": {"type": "string", "enum": ["platform", "tool", "human-baseline", "ai-model"]},
-    "input_hash": {"type": "string", "description": "SHA-256 of the canonicalized task envelope."},
-    "output": {"description": "Player's response, conforming to the arena's output schema."},
+    "run_id": {
+      "type": "string"
+    },
+    "arena_id": {
+      "type": "string"
+    },
+    "task_set_version": {
+      "type": "string",
+      "pattern": "^v[0-9]+$"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "player_id": {
+      "type": "string"
+    },
+    "player_version": {
+      "type": "string"
+    },
+    "resolved_tool_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional. The actual installed version of the underlying tool, detected at runtime by the adapter (e.g. 'docpluck-2.4.84'). null when no underlying tool is detectable (e.g. an LLM, whose version is the model id in player_version). Lets the leaderboard rank on the version a score was produced with rather than the static registry label."
+    },
+    "player_type": {
+      "type": "string",
+      "enum": [
+        "platform",
+        "tool",
+        "human-baseline",
+        "ai-model"
+      ]
+    },
+    "input_hash": {
+      "type": "string",
+      "description": "SHA-256 of the canonicalized task envelope."
+    },
+    "output": {
+      "description": "Player's response, conforming to the arena's output schema."
+    },
     "score": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["primary"],
+      "required": [
+        "primary"
+      ],
       "properties": {
-        "primary": {"type": ["number", "null"], "minimum": 0, "maximum": 1, "description": "null = task excluded from scoring (e.g., unverifiable ground truth)."},
-        "breakdown": {"type": "object"},
+        "primary": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "null = task excluded from scoring (e.g., unverifiable ground truth)."
+        },
+        "breakdown": {
+          "type": "object"
+        },
         "findings": {
           "type": "array",
           "description": "Optional. Structured failure-mode annotations. See contract/schemas/findings.schema.json for the per-item shape. Held-out task findings are redacted by the runner before persistence — only category + count survive.",
-          "items": {"type": "object"}
+          "items": {
+            "type": "object"
+          }
         }
       }
     },
     "task_visibility": {
       "type": "string",
-      "enum": ["public", "held_out"],
+      "enum": [
+        "public",
+        "held_out"
+      ],
       "description": "Optional. Copied from the task envelope by the runner. Defaults to 'held_out' (fail-safe) when the envelope did not declare visibility. Drives report-engine redaction logic."
     },
     "split": {
       "type": "string",
-      "enum": ["revealed", "private"],
+      "enum": [
+        "revealed",
+        "private"
+      ],
       "description": "Optional. Copied from the task envelope by the runner. 'revealed' records are published un-redacted in the Open Benchmark; 'private' records keep findings redaction. Mirrors task_visibility (revealed<->public, private<->held_out) but names the benchmark suite explicitly for leaderboard partitioning."
     },
-    "timestamp_utc": {"type": "string", "format": "date-time"},
-    "cost_usd": {"type": "number", "minimum": 0},
-    "latency_ms": {"type": "integer", "minimum": 0},
+    "timestamp_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
     "provenance": {
       "type": "object",
       "additionalProperties": false,
       "description": "Optional. How/when/with-what this record was produced. Populated by the runner. Command is sanitized of any secrets before write.",
       "properties": {
-        "tested_at_utc": {"type": "string", "format": "date-time"},
-        "host": {"type": "string"},
-        "adapter_class": {"type": "string"},
-        "command": {"type": "string"},
-        "tool_version_detail": {"type": "string"},
-        "resolved_tool_version": {"type": ["string", "null"]},
-        "trials": {"type": "integer", "minimum": 1},
-        "seed": {"type": ["integer", "string"]},
-        "split": {"type": "string", "enum": ["revealed", "private"]}
+        "tested_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "host": {
+          "type": "string"
+        },
+        "adapter_class": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        },
+        "tool_version_detail": {
+          "type": "string"
+        },
+        "resolved_tool_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trials": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "split": {
+          "type": "string",
+          "enum": [
+            "revealed",
+            "private"
+          ]
+        },
+        "containment": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "description": "How an agentic-CLI player was contained. null for players with no ambient environment to inherit (HTTP/API, R, library). ABSENT on a CLI record means the record predates containment and ran uncontrolled; see framework/hermetic.py::containment_state. Never backfilled.",
+          "properties": {
+            "profile_version": {
+              "type": "integer",
+              "description": "Version of the hermetic profile table. A bump means the containment recipe changed, so records either side are different instruments."
+            },
+            "cli": {
+              "type": "string",
+              "description": "Normalised CLI binary name, e.g. 'claude', 'codex', 'agy'."
+            },
+            "cli_version": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Version the CLI reported at run time. These auto-update underneath us, so it is recorded per record rather than pinned once."
+            },
+            "allow_tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The tool allowlist handed to the CLI. Empty means no tools — the state that closes the answer-key channel."
+            },
+            "verified": {
+              "type": "boolean",
+              "description": "True only when the containment was verified empirically against this CLI (nonce probe), not merely configured."
+            },
+            "flags_insufficient": {
+              "type": "boolean",
+              "description": "True when the CLI's own flags cannot fully close the channel and containment relies on the surrounding environment."
+            },
+            "verified_note": {
+              "type": "string",
+              "description": "Human-readable provenance for the verified/flags_insufficient claims."
+            },
+            "fingerprint": {
+              "type": "string",
+              "description": "Hash over the containment configuration. A change mints a new instrument rather than silently extending an old player's history."
+            }
+          }
+        },
+        "code_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "git SHA of THIS repo when the record was produced. tool_version_detail pins the third-party tool; this pins the framework and scorer that computed the number, so a later scoring fix does not silently make old and new records look alike."
+        },
+        "prompt_template_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Hash of the prompt template actually used. task_id pins the TASK, not the instructions wrapped around it — and those get edited. Differing hashes on the same task_id mean the records are not comparable."
+        },
+        "request_temperature": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Sampling temperature sent, when applicable."
+        },
+        "request_timeout_s": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Per-call timeout sent. Companion to finish_reason and to timeout-classified errors."
+        },
+        "containment": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "How an agentic-CLI player was contained when this record was produced. null for players with no ambient environment to inherit (HTTP/API, R, library calls). ABSENT on a CLI record means the record predates containment entirely (before 2026-08-19), when the player ran inside the repo with its full tool set and could read the answer key — that absence is the ONLY signal distinguishing those records, so they are never backfilled. See framework/hermetic.containment_state.",
+          "properties": {
+            "profile_version": {
+              "type": "string"
+            },
+            "cli": {
+              "type": "string"
+            },
+            "cli_version": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The CLI is part of the instrument and auto-updates."
+            },
+            "allow_tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "verified": {
+              "type": "boolean",
+              "description": "A live nonce probe confirmed containment for this binary."
+            },
+            "flags_insufficient": {
+              "type": "boolean",
+              "description": "Measured reading outside its workspace despite every flag it offers; containable only by an OS-level boundary."
+            },
+            "verified_note": {
+              "type": "string"
+            },
+            "fingerprint": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "profile_version",
+            "cli",
+            "verified"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Token counts reported by a metered API for this task, when the player is one. ABSENT means one of FOUR different things, and they must not be blurred: (a) a local tool player consumed no tokens; (b) a CLI-subscription player is not billed per token; (c) the record is held-out, where prompt_tokens is a near-exact proxy for input document length and is stripped; or (d) the record predates instrumentation on 2026-08-13, when the adapter began reading the `usage` block every provider had been returning all along. Use timestamp_utc and player_type to tell (d) from (a)-(c) — see framework/pricing.py:classify_missing_usage. Absent must never be read as zero. Tokens are persisted rather than a dollar figure because tokens are a measured fact that stays true, while a price is a claim about a list that changes without notice; cost is derived at report time from a dated price table. NOT COMPARABLE ACROSS TRANSPORTS. A CLI-wrapped player (claude --print) is measured at ~46k prompt_tokens for a task an HTTP player does in ~650, because the CLI prepends its own system context and prompt cache. Those tokens are real and really billed on a metered account, but comparing them to a direct API call measures the harness, not the model. Compare tokens only within a transport, and read cross-transport cost with that caveat stated.",
+      "properties": {
+        "prompt_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_read_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Anthropic splits the input side into fresh / cache-read / cache-write. prompt_tokens is their SUM; this is the cache-read part, kept separately because it is billed at a different rate and materially changes cost."
+        },
+        "cache_creation_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Input tokens written to the prompt cache. Billed above the base input rate."
+        }
+      }
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Run-record shape version. Bumped whenever fields are added. Lets a reader distinguish a field's ABSENCE ('this run predates the field') from its omission ('not applicable to this run') — without it, every gap looks the same. v2 (2026-08-13) added usage, response_meta, and the provenance code_version / prompt_template_sha256 / request_* fields. v3 (2026-08-19) added provenance.containment: an agentic CLI player runs with an ambient environment, and until v3 nothing recorded what that environment was."
+    },
+    "response_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Provider-reported metadata about the call that produced this score. Two independent reviews ranked `finish_reason` the single most important field on the record: a completion truncated at the token limit fails JSON parsing, scores 0.0, and is otherwise indistinguishable from genuine incapability — the benchmark would publish OUR configuration as THEIR failure. Absent for local tool players and for runs before schema v2. SURVIVES held-out redaction (nothing here encodes document length), EXCEPT provider_request_id, which is a pointer into provider logs that do retain the source document.",
+      "properties": {
+        "finish_reason": {
+          "type": "string",
+          "description": "'stop' = complete. 'length' = TRUNCATED by the token limit; any score on such a record measures our budget, not the model. 'content_filter' = refused."
+        },
+        "served_model": {
+          "type": "string",
+          "description": "The model the provider says it ACTUALLY ran. Intent lives in player_version; this is evidence. Never merge them."
+        },
+        "served_by": {
+          "type": "string",
+          "description": "The BACKEND that served the call, when the endpoint is a router. OpenRouter fans one model id (openai/gpt-oss-120b) out over CoreWeave, DeepInfra, Novita, Amazon Bedrock and Google, which differ in quantization and serving stack, so served_model alone does not identify what ran. Absent for a direct provider, which is not the same as unknown. Like served_model this is evidence, never intent, and it survives held-out redaction because it encodes nothing about the document."
+        },
+        "model_mismatch": {
+          "type": "boolean",
+          "description": "served_model differs from what we requested — the record is then evidence about a different artifact than its player_id claims."
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "HTTP attempts including retries. >1 means a transient failure was absorbed; a retried call may have hit a different backend replica, so latency and determinism claims weaken."
+        },
+        "system_fingerprint": {
+          "type": "string",
+          "description": "Provider backend build id. Two runs with different fingerprints are not strictly comparable."
+        },
+        "service_tier": {
+          "type": "string",
+          "description": "e.g. on_demand vs flex — affects latency and price."
+        },
+        "provider_seed": {
+          "type": "integer",
+          "description": "The seed the PROVIDER used, which may differ from the one we requested (provenance.seed). Diagnostic only — it is not sufficient to reproduce an output."
+        },
+        "provider_request_id": {
+          "type": "string",
+          "description": "Provider-side id for support and dispute resolution. STRIPPED on held-out records."
+        },
+        "provider_reported_cost_usd": {
+          "type": "number",
+          "description": "A cost figure the provider's own CLI computed. PROVIDER-REPORTED, never money spent: Claude players run on a Claude Max subscription where a task has no per-token marginal cost, so this is an API-EQUIVALENT figure. Useful for comparing against metered players; misleading if read as spend."
+        }
       }
     }
   }

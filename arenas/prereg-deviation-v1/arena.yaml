@@ -1,4 +1,5 @@
 arena_id: prereg-deviation-v1
+title: "Prereg ↔ Paper Deviation"
 taxonomy_leaf_id: prereg-vs-paper-deviation-detection
 version: 0.1.0
 owner: gilad

@@ -1,0 +1,7 @@
+{
+  "tool": "SPSStoR",
+  "tool_version": "0.3.0",
+  "captured_from": "split_file_groups.sps",
+  "r_code": "",
+  "note": "converter error: could not find function \"split_to_r\""
+}

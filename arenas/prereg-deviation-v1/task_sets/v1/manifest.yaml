@@ -1,0 +1,14 @@
+version: v1
+seed: 0
+released_on: "2026-06-06"
+n_tasks: 38       # T1:4 + T2:4 + T3:12 + T4:12 + T5:4 + T6:2 (12 dimensions)
+generator_signature: |
+  task_set_version=v1, revealed_seed=0, dimensions=12, tiers=[1..6]
+notes: |
+  Dual-benchmark arena. The REVEALED split is generated on-the-fly from
+  (task_set_version="v1", seed=0); the PRIVATE split uses the secret seed in
+  task_sets/v1/.private_seed (gitignored) plus any hand-curated real prereg/paper
+  pairs under _held_out/. Gold is regenerated from the seed (no committed answer
+  key, no external registry) — see generator.ground_truth(). Both splits cover the
+  same tier matrix and the full set of deviation kinds; tools/check_parity.py
+  enforces it.

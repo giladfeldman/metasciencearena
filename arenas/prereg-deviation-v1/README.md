@@ -5,7 +5,7 @@ comparison dimension — whether the paper *deviates* from what was preregistere
 and what *kind* of deviation it is. Modeled on
 [regcheck](https://github.com/JamieCummins/regcheck).
 
-This is the flagship arena built on ScienceArena's revealed/private dual-benchmark
+This is the flagship arena built on Meta Science Arena's revealed/private dual-benchmark
 framework (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

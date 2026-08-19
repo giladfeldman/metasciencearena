@@ -1,0 +1,45 @@
+You are extracting the bibliography / reference list of a scientific PDF.
+
+PDF path: {{PDF_PATH}}
+Pages: {{N_PAGES}}
+
+Read the PDF. Find the reference list (usually under a "References" or
+"Bibliography" heading near the end). For EACH cited reference, emit one
+structured entry. Parse the reference string into its components — do not
+guess fields that are not present; leave them null instead.
+
+For each reference provide:
+- reference_id: the in-text label / number if the paper uses one (e.g. "12"
+  or "Smith2020"), otherwise null.
+- authors: a list of {"surname": ..., "given_names": ...} objects, in order.
+- year: the 4-digit publication year as a string, or null.
+- title: the title of the cited work, or null.
+- venue: the journal / book / conference name, or null.
+- volume, issue: as strings, or null.
+- fpage, lpage: first and last page as strings, or null.
+- doi: the DOI (lowercase, no URL prefix), or null.
+- pmid: the PubMed ID as a string, or null.
+- raw_text: the literal reference string exactly as printed in the PDF.
+
+Do not invent references that do not appear in the PDF.
+
+Output ONLY a JSON object, no prose, no markdown fences. Schema:
+
+{
+  "references": [
+    {
+      "reference_id": "12",
+      "authors": [{"surname": "Smith", "given_names": "J A"}],
+      "year": "2020",
+      "title": "A study of things",
+      "venue": "Journal of Things",
+      "volume": "12",
+      "issue": "3",
+      "fpage": "100",
+      "lpage": "110",
+      "doi": "10.1/abc",
+      "pmid": null,
+      "raw_text": "Smith JA. A study of things. J Things. 2020;12(3):100-110."
+    }
+  ]
+}

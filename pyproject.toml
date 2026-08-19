@@ -5,7 +5,7 @@
 # $ids, the `SCIENCEARENA_*` env vars, the NCBI User-Agent and
 # .vercel/project.json, so renaming it would invalidate published artifacts.
 name = "metasciencearena"
-version = "0.3.0"
+version = "0.4.0"
 description = "Reproducible benchmark arenas for meta-science tools: task generation, scoring, contamination control, and leaderboards"
 readme = "PACKAGE_README.md"
 license = { text = "MIT" }
@@ -35,6 +35,18 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
 pdf-liteparse = ["liteparse>=2.0.4"]
+# Docling (pdf-table-extraction-v1, pdf-text-fidelity-v1). Optional because it
+# pulls torch: ~2 GB installed for a player most contributors will not run.
+# Install with the CPU wheel index or pip resolves a multi-GB CUDA build:
+#   pip install --extra-index-url https://download.pytorch.org/whl/cpu #       -e ".[pdf-docling]"
+# Then pre-fetch weights ONCE so no tournament run downloads a model mid-flight:
+#   python -m docling.cli.models download
+pdf-docling = ["docling>=2.120.3,<3"]
+# `framework export-inspect` WRITES an Inspect task without this; running the
+# emitted module — and the round-trip test that proves an Inspect number equals
+# the published one — needs it. Declared so the equivalence claim is testable
+# rather than asserted (Fable 5 cross-review, 2026-08-15).
+inspect = ["inspect-ai>=0.3.250"]
 
 [project.urls]
 Homepage = "https://metasciencearena.app"
@@ -46,14 +58,38 @@ Documentation = "https://metasciencearena.app/how-it-works"
 metasciencearena = "framework.cli:_console_main"
 
 [tool.setuptools.packages.find]
-include = ["framework*"]
+# `players*` joined `framework*` on 2026-08-15: the prompt templates, the player
+# registry and the adapters are the measuring INSTRUMENT, and an installed
+# package that can score answers but cannot reproduce how the answers were
+# requested only lets you re-check our arithmetic, not our measurement.
+# Every third-party tool an adapter drives (R, GROBID, liteparse, a provider
+# SDK) is imported lazily or behind try/except, so the package still installs
+# with nothing but the core dependencies — `scripts/check_clean_install.py`
+# imports every mirrored adapter to keep that true.
+include = ["framework*", "players*"]
 
 [tool.setuptools.package-data]
 # The contract schemas are not documentation — `discovery.py` and `storage.py`
 # validate against them on every load. A wheel without them raises
 # FileNotFoundError on the first `load_arena`, which is exactly what a clean
 # install revealed (2026-08-07). `scripts/check_clean_install.py` pins this.
-"framework.contract" = ["schemas/*.json"]
+# `*.json` also covers pricing.json, the price table framework/pricing.py reads at
+# IMPORT time. A repo-root contract/ dir is NOT a package and is NOT installed;
+# putting the table there made `pip install` produce a package that raised
+# FileNotFoundError on import (clean-install gate, 2026-08-14).
+"framework.contract" = ["schemas/*.json", "*.json"]
+# The instrument is DATA, not modules: a wheel that ships `players/` as Python
+# but drops the .txt templates, registry.yaml and the R adapters installs an
+# engine with no instructions in it. `players.prompts` and `players.adapters`
+# are not import packages, so they are declared against `players` itself.
+"players" = [
+  "registry.yaml",
+  "prompts/*.txt",
+  "prompts/_archive/*.txt",
+  "prompts/_archive/README.md",
+  "adapters/*.R",
+  "regcheck_shim/*.md",
+]
 
 [tool.pytest.ini_options]
 addopts = "--import-mode=importlib"

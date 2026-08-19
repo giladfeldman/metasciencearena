@@ -24,7 +24,13 @@ existing_solutions:
   - {id: scimeto,              type: platform, owner: gilad}
   - {id: claude-haiku-4-5-pdf, type: ai-model, owner: anthropic}
 ground_truth_feasibility: high
-arena_status: live
+# Corrected 2026-08-09: was `live`, but arenas/<id>/ has NO task_sets/ dir, so
+# build-data.mjs cannot build a bundle and demotes it to "design" in index.json
+# every single build. The taxonomy is the source of truth other tools read, and it
+# was the one claiming something the repo cannot back — the same class as the
+# index.json-advertising-dead-arenas trap. Flip back to `live` in the SAME commit
+# that adds a task set and a ground-truth source.
+arena_status: design
 scope_tier: A
 notes: |
   Isolates in-text linkage — SciMeto/CitationGuard's core differentiator.

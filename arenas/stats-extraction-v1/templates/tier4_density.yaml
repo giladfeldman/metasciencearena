@@ -1,0 +1,13 @@
+# Tier 4: density + ambiguity. Multiple stats per sentence; embedded near non-stat numbers.
+nhst:
+  - "Although there was no main effect, t({df1}) = {value}, p = {p}, the simple slope was significant, t({df1}) = {value2}, p = {p2}."
+  - "Section 2.31 reported a similar result: F({df1}, {df2}) = {value}, p = {p}."
+  - "The cost was about $20, but the test still mattered: chi2({df1}) = {value}, p = {p}."
+effect_size:
+  - "Effect sizes were modest, {es_label} = {es} (95% CI [{ci_lo}, {ci_hi}]) and {es_label2} = {es2}."
+# Clean control / matched look-alike for the tier-5 wrong_df deception: a truthful
+# one-way ANOVA whose denominator df IS consistent with the stated N and group
+# count (df2 = N - k). A good player must NOT flag this — only the wrong_df
+# variant (df2 != N - k) is suspicious.
+clean_anova:
+  - "With N = {n_total} participants across {k_groups} groups, F({df1}, {df2}) = {value}, p = {p}."

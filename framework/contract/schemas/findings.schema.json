@@ -18,8 +18,8 @@
         "type": ["object", "null"]
       },
       "evidence": {
-        "type": "string",
-        "description": "Short string showing what the player produced wrongly. Stripped on held-out tasks."
+        "type": ["string", "number", "boolean", "object", "array", "null"],
+        "description": "What the player produced wrongly, at the same locator `correct_value` describes. Mirrors correct_value's type union deliberately: effect-size-conversion-v1 has always emitted a bare number here (e.g. 0.4416), which is the natural representation for a numeric arena, and declaring this string-only made the contract wrong rather than the scorer. Stripped on held-out tasks."
       },
       "correct_value": {
         "description": "What the gold said at the same locator. Stripped on held-out tasks. Preserved on public tasks so tool authors can self-train.",
@@ -29,6 +29,10 @@
         "type": "integer",
         "minimum": 1,
         "description": "If a finding represents N occurrences (e.g. 12 dropped Greek letters), set count and use examples for representative cases."
+      },
+      "detail": {
+        "type": "string",
+        "description": "A pre-written human sentence explaining this defect, when the scorer can say it better than a field pair can (e.g. code-translation-r-v1: \"'n_missing_after' = 0, gold = 21. The code ran but computed a different quantity.\"). Added 2026-08-12: code-translation-r-v1 had been emitting this field since inception and it validated only because nothing ever loaded this schema. Stripped on held-out tasks like every other content-bearing field."
       },
       "examples": {
         "type": "array",

@@ -1,9 +1,11 @@
 """Tournament runner: tasks × players × trials → run records."""
 from __future__ import annotations
 
+import functools
 import hashlib
 import importlib.util
 import inspect
+import ipaddress
 import json
 import logging
 import os
@@ -15,14 +17,17 @@ import uuid
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from jsonschema import Draft202012Validator
 
 from framework.discovery import load_arena
 from framework.holdout import redact_held_out_record
+from framework.paths import schema_path
 from framework.player_adapter import build_adapter, resolve_rscript_binary
 from framework.registry import load_registry
 from framework.storage import RunRecordWriter
+from framework import hermetic
 
 logger = logging.getLogger(__name__)
 
@@ -232,8 +237,11 @@ def run_tournament(
     # an operator can tell a healthy run from a half-failed one at a glance
     # (DR-0015), instead of having to parse the JSONL afterwards.
     outcomes: Counter = Counter()
+    # See framework/cli.py: a private seed must never reach a log line.
     logger.info("Running %s (split=%s, seed=%s) with %d player(s)",
-                arena["arena_id"], split, seed, len(adapters))
+                arena["arena_id"], split,
+                seed if split == "revealed" else "<redacted:private>",
+                len(adapters))
     try:
         with RunRecordWriter(output_path, overwrite=overwrite) as writer:
             for envelope in generator_mod.generate(task_set_version, seed, **gen_kwargs):
@@ -252,6 +260,10 @@ def run_tournament(
                 if max_tasks is not None and tasks_seen >= max_tasks:
                     break
                 tasks_seen += 1
+                # Validate the TASK, not just the player's answer. Until 2026-08-12
+                # only the output was checked, so a generator could hand players a
+                # malformed envelope and every resulting score would look fine.
+                _validate_envelope(envelope, arena["arena_id"])
                 gt = generator_mod.ground_truth(envelope["task_id"])
                 for entry, adapter in adapters:
                     n_trials = 1 if entry["deterministic"] else max(1, trials)
@@ -307,11 +319,70 @@ _EGRESS_ALLOW_ENV = "SCIENCEARENA_ALLOW_HELDOUT_EGRESS"
 # a new adapter is opt-IN to egress rather than silently exempt: anything whose
 # name starts with one of these prefixes counts.
 _CLOUD_ADAPTER_PREFIXES = ("LlmCli", "LlmPdf", "SubprocessCli", "Http",
-                           "RegcheckShim", "WatsonShim", "Scimeto")
+                           "RegcheckShim", "WatsonShim", "Scimeto",
+                           "OpenAIChatCompletions", "AntigravityCli",
+                           "ModelProxy")
+
+# Adapter classes REVIEWED and confirmed to keep the task on this machine when no
+# endpoint is declared. This is an allowlist, not a fallback: any registered class
+# absent from it AND from _CLOUD_ADAPTER_PREFIXES is treated as cloud, so adding an
+# adapter forces a deliberate decision instead of inheriting a silent default.
+# Pinned by test_every_registered_adapter_class_is_explicitly_classified.
+#
+# A declared `endpoint` still outranks this list — the Grobid adapters are here
+# because their no-endpoint default is `http://localhost:8070`, but an entry that
+# points one at a remote host is classified from that endpoint and stays cloud.
+_LOCAL_ADAPTER_CLASSES: frozenset[str] = frozenset({
+    # pure-Python / library parsers
+    "DocpluckLibraryAdapter", "DocpluckSectionsAdapter", "DocpluckTablesAdapter",
+    "LiteparseTextAdapter", "LiteparseSectionsHeuristicAdapter",
+    "LiteparseTablesHeuristicAdapter",
+    # Docling (2026-08-19). REVIEWED, not assumed. Evidence: the adapters declare
+    # no `endpoint`; `_docling_common.build_converter` hard-codes
+    # `enable_remote_services=False` and `do_picture_description=False` and does
+    # not read either from registry.yaml, so the one switch that could reach a
+    # remote API cannot be flipped from config; model weights are local and
+    # pre-fetched. Asserted by players/adapters/tests/test_docling_common.py.
+    # A remote-VLM Docling variant, if ever added, MUST declare an `endpoint:` so
+    # the gate classifies it from the URL (the ModelProxyAdapter precedent) --
+    # it must not reuse these class names.
+    "DoclingTablesAdapter", "DoclingTextAdapter",
+    # local subprocess tools
+    "AnystyleReferencesAdapter", "CermineReferencesAdapter",
+    "PdftotextSubprocessAdapter", "RCliAdapter",
+    # local GROBID server (endpoint, when declared, decides instead)
+    "GrobidTextAdapter", "GrobidSectionsAdapter", "GrobidTablesAdapter",
+    "GrobidReferencesAdapter", "GrobidCitationsAdapter",
+    # no I/O at all
+    "FredFridaOnlyAdapter", "XlatFixtureAdapter",
+    "StubPassAdapter", "StubFailAdapter",
+})
 
 # CLI players that run entirely locally despite using SubprocessCliAdapter.
 # Keep this list short and explicit; when in doubt, treat a player as cloud.
 _LOCAL_SUBPROCESS_PLAYERS: frozenset[str] = frozenset()
+
+
+def _is_loopback_endpoint(endpoint: str) -> bool:
+    """True when `endpoint`'s host is unambiguously this machine.
+
+    Parsed with urlsplit and matched on the HOST ONLY — never a substring test.
+    `http://127.0.0.1.attacker.com/x` and `http://evil.com#127.0.0.1` both contain
+    a loopback-looking string and are both remote; treating either as local would
+    turn this gate into a hole.
+    """
+    try:
+        host = urlsplit(endpoint).hostname
+    except ValueError:
+        return False
+    if not host:
+        return False
+    if host == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
 
 
 def is_cloud_player(entry: dict) -> bool:
@@ -320,11 +391,44 @@ def is_cloud_player(entry: dict) -> bool:
     Deliberately conservative: unknown adapters are treated as cloud, because the
     cost of a false positive is one env var and the cost of a false negative is
     irreversible disclosure.
+
+    A DECLARED ENDPOINT DECIDES, whatever the adapter class is called. The endpoint
+    is direct evidence of where the bytes go; the class name is a naming convention,
+    and this function used to trust the convention alone.
+
+    That cut both ways, and both showed up on 2026-08-09:
+
+    * False positive — `escimate` is an `HttpAdapter` on `http://127.0.0.1:9422`
+      started by a local `start_command`. Nothing leaves the machine, yet the gate
+      refused every private-split run it appeared in, blocking the only
+      non-statcheck player the stats-extraction-v1 private split has ever had.
+    * False NEGATIVE, the dangerous one — every adapter class outside
+      `_CLOUD_ADAPTER_PREFIXES` returned False without the endpoint ever being
+      looked at, flatly contradicting the "unknown adapters are treated as cloud"
+      promise below. The five `Grobid*Adapter`s each take
+      `endpoint: str = "http://localhost:8070"` and match no prefix, so pointing one
+      at a public GROBID server — they exist — would have shipped held-out real
+      papers, including copyrighted APA PDFs, off-machine with no gate and no
+      opt-in. Dormant only because every shipped entry uses the localhost default.
+
+    With no endpoint there is no evidence, so an adapter is cloud unless its class
+    was reviewed onto `_LOCAL_ADAPTER_CLASSES`. That sentence used to be a comment
+    the code contradicted: the fallback was `cls.startswith(_CLOUD_ADAPTER_PREFIXES)`,
+    which makes an UNRECOGNISED class local — egress opt-OUT for anything nobody
+    remembered to classify. `ModelProxyAdapter` was the live instance (2026-08-12):
+    it POSTs every task to the Kaggle proxy, declares no endpoint, matched no
+    prefix, and so bypassed this gate entirely. Dormant only because its registry
+    entries were still commented out.
     """
     if entry.get("player_id") in _LOCAL_SUBPROCESS_PLAYERS:
         return False
+    endpoint = entry.get("endpoint")
+    if endpoint:
+        return not _is_loopback_endpoint(str(endpoint))
     cls = str(entry.get("adapter_class", ""))
-    return cls.startswith(_CLOUD_ADAPTER_PREFIXES)
+    if cls.startswith(_CLOUD_ADAPTER_PREFIXES):
+        return True
+    return cls not in _LOCAL_ADAPTER_CLASSES
 
 
 def assert_heldout_egress_allowed(entries: list[dict], *, will_play_held_out: bool) -> None:
@@ -403,6 +507,149 @@ def _redact_findings_for_held_out(findings):
     return redacted
 
 
+@functools.lru_cache(maxsize=1)
+def _envelope_validator() -> Draft202012Validator:
+    """The task-envelope contract, loaded once.
+
+    Same gap as the findings schema: `task_envelope.schema.json` declares
+    `additionalProperties: false` and five required fields, and until 2026-08-12
+    nothing loaded it — the runner validated only the player's OUTPUT, never the
+    task it handed over. A generator emitting a malformed or misspelled envelope
+    key would have produced records that scored fine and meant nothing.
+
+    All 22 arenas' generated envelopes were verified against it before this was
+    switched on (the PDF arenas need PYTHONPATH=repo root to import at all, which
+    is why an earlier partial check reported a false all-clear on 17 of 22).
+    """
+    return Draft202012Validator(
+        json.loads(schema_path("task_envelope.schema.json").read_text(encoding="utf-8"))
+    )
+
+
+def _validate_envelope(envelope: dict, arena_id: str) -> None:
+    """Fail loudly when a generator emits an envelope that breaks the contract."""
+    errors = sorted(_envelope_validator().iter_errors(envelope), key=lambda e: list(e.path))
+    if errors:
+        detail = "; ".join(f"{list(e.path)}: {e.message}" for e in errors[:3])
+        raise ValueError(
+            f"task_envelope_schema_violation in {arena_id}/"
+            f"{envelope.get('task_id', '<no task_id>')}: {detail}"
+        )
+
+
+@functools.lru_cache(maxsize=1)
+def _findings_validator() -> Draft202012Validator:
+    """The findings contract, loaded once.
+
+    `contract/schemas/findings.schema.json` existed since the contract was written
+    but was named only inside a `description` string on run_record.schema.json,
+    whose `findings.items` is a bare `{"type": "object"}`. So nothing ever loaded
+    it, and it silently became documentation rather than a contract: one arena
+    emitted an undeclared `detail` field (which then became the ONLY field the
+    task page rendered), and another emitted a numeric `evidence` against a
+    string-typed declaration. Both were reconciled 2026-08-12 and all 2599 existing
+    findings arrays validate, so this can now be enforced without a migration.
+    """
+    return Draft202012Validator(
+        json.loads(schema_path("findings.schema.json").read_text(encoding="utf-8"))
+    )
+
+
+def _validate_findings(score: dict, arena_id: str, task_id: str | None) -> None:
+    """Fail loudly when a scorer emits findings that break the contract.
+
+    Raised rather than logged: a malformed finding is a scorer defect, and the
+    whole point of findings is that a reader can trust what they say went wrong.
+    The caller turns this into an errored record with a named cause.
+    """
+    findings = (score or {}).get("findings")
+    if findings is None:
+        return
+    errors = sorted(_findings_validator().iter_errors(findings), key=lambda e: list(e.path))
+    if errors:
+        detail = "; ".join(f"{list(e.path)}: {e.message}" for e in errors[:3])
+        raise ValueError(
+            f"findings_schema_violation in {arena_id}/{task_id}: {detail}"
+        )
+
+
+
+#: Bumped whenever the run-record shape changes. Without it, a reader three years
+#: from now cannot tell a field's ABSENCE ("that run predates the field") from its
+#: omission ("not applicable to that run") — Codex and Sonnet both flagged this
+#: as the first thing a replication attempt would demand.
+RECORD_SCHEMA_VERSION = 3
+
+
+@functools.lru_cache(maxsize=1)
+def _code_version() -> str | None:
+    """git SHA of THIS repo, so a score is attributable to our own code.
+
+    `tool_version_detail` pins the third-party tool; nothing pinned the framework
+    and scorer that produced the number. After a scoring fix lands, an old record
+    is otherwise indistinguishable from a new one.
+    """
+    import subprocess
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                             capture_output=True, text=True, timeout=15,
+                             cwd=Path(__file__).resolve().parents[1])
+        sha = out.stdout.strip()
+        return sha or None
+    except Exception:
+        return None
+
+
+@functools.lru_cache(maxsize=64)
+def _prompt_template_sha(path: str) -> str | None:
+    """Hash the prompt template actually used.
+
+    `task_id` pins the TASK; it does not pin the instructions wrapped around it,
+    and those get edited. Two records with the same task_id and different template
+    hashes are not comparable, and today nothing would show that.
+    """
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()[:16]
+    except Exception:
+        return None
+
+
+def _build_response_meta(adapter, entry: dict, visibility: str) -> dict | None:
+    """Provider metadata that says whether a score can be TRUSTED.
+
+    Both review models independently ranked `finish_reason` first: a completion cut
+    off at the token limit fails JSON parsing, scores 0.0, and is indistinguishable
+    from genuine incapability — publishing OUR max_tokens as THEIR failure. Sonnet
+    rated `served_model` equally or more serious, because a silently rerouted model
+    makes the whole record evidence about the wrong artifact.
+
+    HELD-OUT: everything here is safe to keep EXCEPT `provider_request_id`. It
+    leaks no content itself, but it is a pointer into the provider's own logs,
+    which do retain the full document — so anyone with provider log access could
+    correlate a held-out record to its source paper (Sonnet). Stripped there.
+    """
+    try:
+        meta = adapter.last_response_meta()
+    except Exception:
+        meta = None
+    if not meta:
+        return None
+    meta = dict(meta)
+
+    # Intent vs evidence, never merged: `player_version` is what we ASKED for,
+    # `served_model` is what the provider says it actually ran. This project has
+    # published a version it was not running; a queryable flag makes that drift
+    # visible across every record instead of needing a manual diff.
+    served = meta.get("served_model")
+    asked = (entry.get("openai_model") or entry.get("player_version") or "").strip()
+    if served and asked:
+        meta["model_mismatch"] = served.strip() != asked
+
+    if visibility == "held_out":
+        meta.pop("provider_request_id", None)
+    return meta or None
+
+
 def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validator, timeout_s,
               arena_id, *, trials, seed, split) -> dict:
     started = time.monotonic()
@@ -415,6 +662,7 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
             output_to_store = {}
         else:
             score = scorer_mod.score(output, ground_truth)
+            _validate_findings(score, arena_id, envelope.get("task_id"))
             output_to_store = output
     except Exception as exc:
         score = {"primary": 0.0, "breakdown": {"error": f"{type(exc).__name__}: {exc}"}}
@@ -433,6 +681,21 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
         resolved_tool_version = adapter.resolved_tool_version()
     except Exception:
         resolved_tool_version = None
+
+    # Token usage, when the player is a metered API. Best-effort like the version
+    # probe: telemetry must never fail a task.
+    try:
+        usage = adapter.last_usage()
+    except Exception:
+        usage = None
+    # HELD-OUT: strip it. `prompt_tokens` is a near-exact proxy for the length of
+    # the input document, and the held-out corpus is real (sometimes copyrighted)
+    # papers whose `input_hash` this project already redacts on the same
+    # reasoning. `latency_ms` survives redaction and is also size-correlated, but
+    # it is noisy enough to carry little; a token count is not. Cost for held-out
+    # runs can be recovered in aggregate later if it is ever needed.
+    if visibility == "held_out":
+        usage = None
 
     # Held-out redaction: strip findings content before persistence.
     if visibility == "held_out" and isinstance(score, dict) and "findings" in score:
@@ -455,16 +718,46 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
         "timestamp_utc": _utc_now_iso(),
         "latency_ms": latency_ms,
     }
+    if usage:
+        record["usage"] = usage
+    record["schema_version"] = RECORD_SCHEMA_VERSION
+    response_meta = _build_response_meta(adapter, entry, visibility)
+    if response_meta:
+        record["response_meta"] = response_meta
     record["provenance"] = {
         "tested_at_utc": _utc_now_iso(),
         "host": os.environ.get("SCIENCEARENA_HOST", "win11-local"),
         "adapter_class": entry.get("adapter_class", ""),
         "command": _adapter_command(entry),
         "tool_version_detail": entry["player_version"],
+        # Our OWN code, not just the third party's. A scoring fix makes old and new
+        # records incomparable and nothing recorded which side a number came from.
+        "code_version": _code_version(),
+        "prompt_template_sha256": (
+            _prompt_template_sha(entry["prompt_template_path"])
+            if entry.get("prompt_template_path") else None
+        ),
+        # The direct companion to finish_reason: without the limit we sent, nobody
+        # can confirm whether a truncation was our configuration error.
+        "request_temperature": entry.get("openai_temperature"),
+        "request_timeout_s": timeout_s,
         "resolved_tool_version": resolved_tool_version,
         "trials": trials,
         "seed": seed,
         "split": envelope.get("split", split),
+        # HOW THE PLAYER WAS CONTAINED (CC6). An agentic CLI player is not the
+        # model — it is `<model> via <cli>@<version>`, a different instrument
+        # whose harness auto-updates underneath us. This block records the CLI
+        # version, the tool allowlist and a fingerprint of the containment, so a
+        # score can be attributed to the thing that actually produced it and a
+        # containment change mints a new instrument instead of silently
+        # appending to an old one.
+        #
+        # `None` for non-CLI players (HTTP/API, R, library) — they have no
+        # ambient environment to inherit. Its ABSENCE on a CLI record is the
+        # signal that the record predates containment; see
+        # `hermetic.containment_state`. Records are never backfilled.
+        "containment": hermetic.record_containment(entry.get("cli_command")),
     }
     # Record which benchmark suite this task belongs to (source of truth is the
     # envelope). Omitted for legacy single-suite arenas that don't tag `split`.

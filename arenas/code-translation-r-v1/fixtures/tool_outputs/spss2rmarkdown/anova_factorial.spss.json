@@ -1,0 +1,7 @@
+{
+  "tool": "spss2rmarkdown",
+  "tool_version": "0.1.0",
+  "captured_from": "anova_factorial.sps",
+  "r_code": "library(jmv)\njmv::ANOVA(\n  data = data,\n  dep = \"SCORE\",\n  factors = c('GROUP', 'COND'),\n  effectSize = c(\"eta\", \"partEta\"),\n  homo = TRUE,\n  postHoc = c('GROUP', 'COND'),\n  postHocCorr = c(\"tukey\"),\n  emMeans = ~ GROUP + COND,\n  emmPlots = TRUE\n)",
+  "note": "verbatim convert_all_commands() output"
+}

@@ -17,7 +17,7 @@ SD range-plausibility (variance impossibilities) is covered by the separate
 is never the subject of an injected issue. (A prior attempt to inject GRIMMER here
 shipped a gold bug — see `CHANGELOG.md` → "Fixed".)
 
-This arena is built on ScienceArena's revealed/private dual-benchmark framework
+This arena is built on Meta Science Arena's revealed/private dual-benchmark framework
 (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## The mathematics

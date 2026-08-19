@@ -58,7 +58,68 @@ def _ground_truth_files() -> list[Path]:
 
 
 def _run_record_files() -> list[Path]:
-    return sorted(ARENAS.glob("*/runs/**/*.jsonl"))
+    """Every run-record file that is a durable artifact.
+
+    Excludes `*.retry-r<N>.jsonl`. Those are transient per-round temps written by
+    `framework retry-failed` and merged back into the target file moments later —
+    `framework/cli.py::_recover_orphan_retry_temps` exists precisely because they
+    are expected to come and go. Parametrising over them makes this suite fail
+    with FileNotFoundError whenever a tournament happens to be running, which says
+    nothing about contamination. Their MERGED content is still covered, because
+    the file they merge into is globbed here.
+    """
+    return sorted(
+        p for p in ARENAS.glob("*/runs/**/*.jsonl")
+        if ".retry-r" not in p.name
+    )
+
+
+def _safe_visibility(line: str):
+    try:
+        return json.loads(line).get("task_visibility")
+    except ValueError:
+        return None
+
+
+def _iter_json_lines(path: Path):
+    """Yield parsed records, SKIPPING unparseable lines.
+
+    Torn lines are a real thing — killing a tournament mid-write truncates the
+    record being flushed, and `storage.read_records` documents tolerating one torn
+    trailing line for exactly that reason. They are a data-integrity problem, not a
+    contamination problem, so `test_no_torn_run_record_lines` reports them with a
+    clear message and the redaction assertions below carry on doing their own job
+    rather than dying on a JSONDecodeError from an unrelated fault.
+    """
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            yield json.loads(line)
+        except ValueError:
+            continue
+
+
+def test_no_torn_run_record_lines() -> None:
+    """Every line of every run file must parse.
+
+    A process killed mid-flush leaves a truncated line. `storage.read_records`
+    tolerates ONE at the end of a file; anything mid-file means a record was lost,
+    and a silently short file is a shrinking-evidence failure.
+    """
+    torn = []
+    for path in _run_record_files():
+        lines = [l for l in path.read_text(encoding="utf-8", errors="replace").splitlines() if l.strip()]
+        for i, line in enumerate(lines):
+            try:
+                json.loads(line)
+            except ValueError:
+                torn.append(f"{path.relative_to(REPO_ROOT)} line {i+1}/{len(lines)}")
+    assert not torn, (
+        "truncated JSON line(s) — a run was killed mid-write and a record was lost: "
+        + "; ".join(torn)
+    )
 
 
 def test_some_tracked_artifacts_exist() -> None:
@@ -86,7 +147,7 @@ def test_held_out_artifacts_actually_exist() -> None:
     for path in _run_record_files():
         for line in path.read_text(encoding="utf-8").splitlines():
             line = line.strip()
-            if line and json.loads(line).get("task_visibility") == HELD_OUT:
+            if line and _safe_visibility(line) == HELD_OUT:
                 rec_held_out += 1
 
     assert gt_held_out > 0, (

@@ -1,4 +1,5 @@
 arena_id: code-translation-r-v1
+title: "SPSS / Stata → R Translation"
 taxonomy_leaf_id: statistical-syntax-translation-to-r
 version: 0.1.0
 owner: gilad

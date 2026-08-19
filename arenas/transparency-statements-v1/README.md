@@ -9,7 +9,7 @@ URL* presented as a repo. Mirrors
 [metacheck](https://github.com/quest-bih/metacheck)'s `coi_check`, `funding_check`,
 `open_practices` and `all_urls` modules.
 
-This arena is built on ScienceArena's revealed/private dual-benchmark framework
+This arena is built on Meta Science Arena's revealed/private dual-benchmark framework
 (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

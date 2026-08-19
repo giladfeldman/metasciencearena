@@ -5,7 +5,7 @@ power analysis, (2) classify its *kind* — a-priori / sensitivity / post-hoc �
 and (3) extract its structured fields. A **field-map** arena modeled on
 [metacheck](https://github.com/JamieCummins/metacheck)'s `power` module.
 
-Built on ScienceArena's revealed/private dual-benchmark framework (see
+Built on Meta Science Arena's revealed/private dual-benchmark framework (see
 `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

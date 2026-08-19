@@ -1,0 +1,8 @@
+{
+  "tool": "stata2r-skranz",
+  "tool_version": "0.1.0",
+  "captured_from": "pipeline_select_model.do",
+  "r_code": "NA\nNA\nNA\nNA\ndata = scmd_keep(data = data, r_if_cond = \"s2r_stata_logical(`hours` >= 20)\")\nif (isTRUE(stata2r_env$has_original_order_idx)) { data = dplyr::mutate(data, stata2r_original_order_idx = dplyr::row_number()) }\nNA\nNA",
+  "note": "verbatim do_to_r() output",
+  "tool_gap": false
+}

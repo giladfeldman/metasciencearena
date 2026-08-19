@@ -28,8 +28,10 @@ from typing import Any, Iterable
 
 from packaging.version import InvalidVersion, Version
 
+from framework import pricing
 from framework.discovery import load_arena
 from framework.storage import read_records
+from framework import hermetic
 
 
 _SEMVER_PATTERN = re.compile(r"\d+(?:\.\d+){0,3}")
@@ -108,22 +110,139 @@ def _mean_ci(values: list[float]) -> tuple[float, float]:
     return mean, 1.96 * sd / math.sqrt(n)
 
 
+def collapse_trials(records: list[dict]) -> list[float]:
+    """One observation per TASK: the mean primary across that task's trials.
+
+    `framework/runner.py` writes one record per (task, trial), and `--trials`
+    defaults to 3 for any player declared `deterministic: false`. Feeding those
+    raw records to `_mean_ci` treats three trials of one task as three
+    independent observations: for a deterministic tool the trials are identical,
+    so `sd` is unchanged while `n` triples and the interval comes out sqrt(3)
+    too NARROW. See framework/tests/test_trial_collapse_ci.py.
+
+    The per-task mean is the observation; the interval describes the spread
+    BETWEEN tasks, which is the quantity a reader compares across players.
+
+    Records with no task_id fall back to their own identity so nothing is
+    silently merged — an unkeyed record must not collapse into an unrelated one.
+    """
+    by_task: dict[object, list[float]] = defaultdict(list)
+    for i, r in enumerate(records):
+        key = r.get("task_id") or ("__no_task__", i)
+        by_task[key].append(float(r["score"]["primary"]))
+    return [sum(v) / len(v) for v in by_task.values()]
+
+
+#: Marks a 0.0 this policy assigned, as opposed to a 0.0 the scorer computed.
+#: Without it the two are indistinguishable in a record, and a reader cannot tell
+#: a model that answered wrongly from one that produced nothing usable.
+UNSCOREABLE_ZERO_FLAG = "scored_zero_by_policy"
+
+
+def apply_unscoreable_policy(all_records: list[dict]) -> tuple[list[dict], set[str]]:
+    """Decide what an unscoreable output is worth, using the rest of the field.
+
+    Owner's decision, 2026-08-19 (TODO A5(b)). An output the arena's schema
+    rejects — unparseable, or missing a required field — was previously dropped
+    from the mean entirely, so a model that could not follow the output contract
+    was *excused* rather than penalised, and its published score described only
+    the tasks it happened to format correctly.
+
+    A blanket zero is the obvious fix and it is wrong, for a reason visible in
+    the data: on ``replication-target-lookup-v1`` **all five** players fail the
+    same four tasks. Zeroing there would publish "every model is bad at this"
+    when the honest reading is that those four tasks are broken. The rule that
+    survives both cases uses the field as its control:
+
+      * **at least one other player scored the task** -> the failure is the
+        player's. Score it **0.0** and count it in the mean.
+      * **nobody scored the task** -> the task is the suspect, not the players.
+        Leave every record excluded and return the task id so the report can
+        say so out loud.
+
+    Returns ``(records, tasks_no_player_could_score)``. Input records are never
+    mutated: they are read from disk and shared across engines, and a mutation
+    here would silently change what a later caller sees.
+
+    Measured impact when introduced: 9 records become 0.0 across two arenas
+    (power-reporting-v1, prereg-deviation-v1), moving four players' means by
+    -0.019 to -0.126; 4 tasks in replication-target-lookup-v1 are flagged rather
+    than zeroed.
+    """
+    scored_tasks: set[str] = {
+        r.get("task_id") for r in all_records if _is_scored(r) and r.get("task_id")
+    }
+    unscoreable_tasks: set[str] = {
+        r.get("task_id") for r in all_records
+        if r.get("task_id") and not _is_scored(r)
+    }
+    orphans = unscoreable_tasks - scored_tasks
+
+    out: list[dict] = []
+    for r in all_records:
+        task = r.get("task_id")
+        if _is_scored(r) or not task or task in orphans:
+            out.append(r)
+            continue
+        # Copy deeply enough that the caller's record is untouched.
+        rec = dict(r)
+        score = dict(rec.get("score") or {})
+        breakdown = dict(score.get("breakdown") or {})
+        # The reason is RENAMED rather than kept under `error`, because
+        # `_is_errored` keys on that field: leaving it would make the record
+        # both "scored 0.0" and "errored", so it would be counted in n_errored
+        # AND dropped from the mean — i.e. the policy would silently do nothing.
+        # The flag plus the preserved reason is what lets a reader tell a
+        # policy-assigned 0.0 from a 0.0 the scorer computed.
+        reason = breakdown.pop("error", None)
+        if reason is not None:
+            breakdown["unscoreable_reason"] = reason
+        breakdown[UNSCOREABLE_ZERO_FLAG] = True
+        score["breakdown"] = breakdown
+        score["primary"] = 0.0
+        rec["score"] = score
+        out.append(rec)
+    return out, orphans
+
+
+def _is_policy_zero(rec: dict) -> bool:
+    bd = (rec.get("score") or {}).get("breakdown") or {}
+    return isinstance(bd, dict) and bool(bd.get(UNSCOREABLE_ZERO_FLAG))
+
+
 def _summary(focal_records: list[dict], all_records: list[dict], focal_key: tuple[str, str]) -> dict:
     """Compute the focal player's summary block, including rank vs all players."""
     scored = [r for r in focal_records if _is_scored(r)]
     excluded = [r for r in focal_records if _is_excluded(r)]
     errored = [r for r in focal_records if _is_errored(r)]
-    primary_values = [float(r["score"]["primary"]) for r in scored]
+    # Collapse repeat trials to one observation per task BEFORE the interval:
+    # three trials of one task are not three independent measurements.
+    primary_values = collapse_trials(scored)
     primary_mean, primary_ci = _mean_ci(primary_values)
 
-    cost_values = [float(r["cost_usd"]) for r in scored if r.get("cost_usd") is not None]
+    # Cost is DERIVED from recorded tokens, never read off the record: `cost_usd`
+    # is deliberately not written by the runner (a dollar figure is a claim about
+    # a price list that changes; a token count is a measured fact that stays
+    # true). Reading `r["cost_usd"]` here — as this did until 2026-08-14 — meant
+    # consuming a field the producer never writes, so every published report
+    # carried cost_usd_mean: null while pricing.py sat uncalled.
+    usage_summary = pricing.summarise(scored)
+    # record_cost_usd, not cost_usd: it applies the same three-field subscription
+    # check the Node build applies, so the two engines cannot disagree about
+    # whether a Claude-via-CLI run is priced.
+    cost_values = [
+        c for c in (pricing.record_cost_usd(r) for r in scored) if c is not None
+    ]
     latency_values = [float(r["latency_ms"]) for r in scored if r.get("latency_ms") is not None]
 
     # Rank: aggregate primary_mean per (player_id, player_version), descending.
-    by_player: dict[tuple[str, str], list[float]] = defaultdict(list)
+    by_player_records: dict[tuple[str, str], list[dict]] = defaultdict(list)
     for r in all_records:
         if _is_scored(r):
-            by_player[_player_key(r)].append(float(r["score"]["primary"]))
+            by_player_records[_player_key(r)].append(r)
+    # Same collapse for ranking, so a player cannot move up or down purely by
+    # having been run with more trials than its competitors.
+    by_player = {k: collapse_trials(v) for k, v in by_player_records.items()}
     aggregated = [(k, sum(v) / len(v)) for k, v in by_player.items() if v]
     aggregated.sort(key=lambda kv: kv[1], reverse=True)
     rank = next((i + 1 for i, (k, _) in enumerate(aggregated) if k == focal_key), None)
@@ -131,13 +250,44 @@ def _summary(focal_records: list[dict], all_records: list[dict], focal_key: tupl
     return {
         "primary_mean": primary_mean,
         "primary_ci_half": primary_ci,
-        "n_scored": len(scored),
+        # TASKS measured, not records written — a reader compares this as a
+        # sample size, and a 3-trial player must not advertise 3x the sample.
+        "n_scored": len(primary_values),
         "n_excluded": len(excluded),
         "n_errored": len(errored),
         "rank": rank,
         "n_competitors": len({k for k, _ in aggregated}),
         "cost_usd_mean": (sum(cost_values) / len(cost_values)) if cost_values else None,
         "latency_ms_mean": (sum(latency_values) / len(latency_values)) if latency_values else None,
+        # Tokens are reported even when cost is not: an unpriced or subscription
+        # player still consumed measurable resources, and "no price" must not
+        # read as "no usage". n_with_usage/n_priced say how much of the cost
+        # figure is actually backed by a known price rather than quietly dropped.
+        "tokens_total": usage_summary["total_tokens"],
+        "tokens_prompt": usage_summary["prompt_tokens"],
+        "tokens_completion": usage_summary["completion_tokens"],
+        "n_with_usage": usage_summary["n_with_usage"],
+        # Why usage is absent, when it is. Without it "not recorded" and
+        # "consumed nothing" are indistinguishable to a report's reader — and
+        # the Node engine has always published it, so omitting it here made the
+        # two engines emit different shapes under the same field names.
+        "usage_absent_reason": usage_summary["usage_absent_reason"],
+        "n_priced": usage_summary["n_priced"],
+        "price_table_checked_on": usage_summary["price_table_checked_on"],
+        "price_table_stale": usage_summary["price_table_stale"],
+        # HOW THIS PLAYER WAS CONTAINED (CC3 decision 2026-08-19: keep and
+        # LABEL, do not re-run). A CLI record written before
+        # framework/hermetic.py existed carries no containment block, and is
+        # reported `uncontrolled` — the player ran inside this repo with its
+        # full tool set and could read the answer key. `worst`, not the majority
+        # state: a player with mixed records is not a hermetic player, and
+        # reporting the majority would launder the uncontrolled half.
+        "containment": hermetic.summarise_containment(all_records),
+        # How many of this player's scores are 0.0 because it produced nothing
+        # scoreable, rather than because the scorer computed a zero. Published so
+        # a reader can tell "answered badly" from "could not follow the output
+        # contract" — those are different failures and a bare mean hides it.
+        "n_scored_zero_by_policy": sum(1 for r in focal_records if _is_policy_zero(r)),
     }
 
 
@@ -636,7 +786,7 @@ def render_markdown(report: dict) -> str:
 
 _BUNDLE_README = """# How to read this report
 
-Generated by ScienceArena's framework report engine.
+Generated by Meta Science Arena's framework report engine.
 
 ## Files
 
@@ -660,7 +810,7 @@ python -m framework reproduce \\
 
 ## Why no held-out drilldown?
 
-ScienceArena's leaderboard credibility comes from a held-out task pool that no player ever sees in raw form. Per-task gold and inputs would defeat that guarantee, so they are redacted before the records are even written to disk. You still get categorical counts, difficulty stratification, and your aggregate score — enough to know *what kind* of failures dominate, just not *which specific* held-out tasks they happened on.
+Meta Science Arena's leaderboard credibility comes from a held-out task pool that no player ever sees in raw form. Per-task gold and inputs would defeat that guarantee, so they are redacted before the records are even written to disk. You still get categorical counts, difficulty stratification, and your aggregate score — enough to know *what kind* of failures dominate, just not *which specific* held-out tasks they happened on.
 """
 
 
@@ -695,6 +845,11 @@ def generate_report(
     category_severity = {c["id"]: c["severity"] for c in manifest.get("error_categories", [])}
 
     all_records = load_records_for(arena_dir, task_set_version)
+    # What an unscoreable output is worth (TODO A5(b), decided 2026-08-19).
+    # Applied ONCE here, over the whole arena, because the rule needs the rest of
+    # the field: a failure only counts as the player's when somebody else managed
+    # that task. Must run before any per-player filtering.
+    all_records, unscoreable_tasks = apply_unscoreable_policy(all_records)
     focal_records = [r for r in all_records
                      if r["player_id"] == player_id and r.get("player_version", "") == player_version]
     if not focal_records:
@@ -808,6 +963,12 @@ def generate_report(
             "primary_mean": ho_mean,
             "category_histogram": ho_hist,
         },
+        # Tasks NO player in this arena could produce a scoreable output for.
+        # Deliberately not zeroed: when the whole field fails the same item, the
+        # honest reading is that the item is broken, and publishing zeros there
+        # would say "every model is bad at this" instead. Surfaced so the
+        # suspicion lands on the task, where it belongs.
+        "tasks_no_player_could_score": sorted(unscoreable_tasks),
     }
 
     (bundle / "tool_report.json").write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")

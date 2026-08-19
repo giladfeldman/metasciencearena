@@ -1,6 +1,8 @@
 """Unit tests for the framework.holdout redaction contract."""
 from __future__ import annotations
 
+import json
+
 from framework.holdout import (
     gold_keys,
     held_out_leak_reasons,
@@ -168,3 +170,115 @@ def test_public_envelope_input_is_untouched():
     out = redact_ground_truth_entry(entry)
     assert out["envelope"]["input"]["source_code"] == "DESCRIPTIVES VARIABLES=age."
     assert out["ground_truth"]["gold_statistics"] == {"mean_age": 42.0}
+
+
+# --- provenance.seed is a held-out leak channel (2026-08-09) ------------------
+
+
+def test_redaction_strips_provenance_seed_for_held_out_records():
+    """The private SEED is the entire secret, and it rode in `provenance.seed`.
+
+    `redact_held_out_record` closed output / input_hash / score.breakdown but left
+    `provenance.seed` untouched, and private run files ARE tracked (13 of them).
+    That is half of the original stats-extraction-v1 exposure — the module docstring
+    of `test_private_seed_not_in_tracked_files.py` names both channels: "36 tracked
+    run records carry `provenance.seed` verbatim, and the same integer is embedded
+    in every one of their `task_id`s".
+
+    Task set v2 fixed the task_id channel (hashed discriminator) and, on the first
+    private run, republished the freshly-rotated seed through this one. Anyone with
+    repo access could read it straight out of the committed JSONL and regenerate the
+    entire held-out split, gold included.
+
+    Nothing legitimately consumes the raw seed from a record: reproducing a private
+    run requires `.private_seed` regardless.
+    """
+    record = {
+        "task_id": "t-tier1-d1-0-sabc12345",
+        "task_visibility": "held_out",
+        "output": {"x": 1},
+        "input_hash": "a" * 64,
+        "score": {"primary": 0.5, "breakdown": {"precision": 1.0}},
+        "provenance": {"seed": 987654321, "split": "private", "host": "box"},
+    }
+    out = redact_held_out_record(record)
+    assert out["provenance"]["seed"] != 987654321
+    assert "987654321" not in json.dumps(out), "the seed survived somewhere in the record"
+    # The key must remain so the record shape is stable for consumers.
+    assert "seed" in out["provenance"]
+    # Non-secret provenance is untouched.
+    assert out["provenance"]["host"] == "box"
+    assert out["provenance"]["split"] == "private"
+
+
+def test_redaction_leaves_public_record_provenance_alone():
+    """The revealed seed is committed in arena.yaml — publishing it aids reproduction."""
+    record = {
+        "task_id": "t-tier1-d1-0-s5feceb66",
+        "task_visibility": "public",
+        "output": {"x": 1},
+        "input_hash": "b" * 64,
+        "score": {"primary": 0.5, "breakdown": {"precision": 1.0}},
+        "provenance": {"seed": 0, "split": "revealed"},
+    }
+    out = redact_held_out_record(record)
+    assert out["provenance"]["seed"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Regression: `usage` must be stripped from held-out records.
+#
+# Found 2026-08-14 while wiring token/cost capture through to the published
+# mirror (R2). The run_record schema has documented since 2026-08-13 that a
+# held-out record's `usage` is stripped "where prompt_tokens is a near-exact
+# proxy for input document length" — but NEITHER redaction boundary implemented
+# it (`framework.holdout.redact_held_out_record`, nor `redactHeldOutRecord` in
+# leaderboard-app/scripts/build-data.mjs), and `leak_reasons` did not look for
+# it either.
+#
+# Latent until now only because no record carried `usage` at all. Publishing
+# tokens turns it into a live egress of a document-length proxy for every
+# held-out PDF — i.e. the schema promised a redaction the code never performed.
+# ---------------------------------------------------------------------------
+
+
+def _held_out_record_with_usage() -> dict:
+    return {
+        "run_id": "r1",
+        "arena_id": "pdf-text-fidelity-v1",
+        "task_set_version": "v1",
+        "task_id": "t1",
+        "player_id": "p1",
+        "player_version": "1.0.0",
+        "player_type": "ai-model",
+        "task_visibility": "held_out",
+        "input_hash": "sha256:deadbeef",
+        "output": {"text": "..."},
+        "score": {"primary": 0.5, "breakdown": {"f1": 0.5}},
+        "timestamp_utc": "2026-08-14T00:00:00Z",
+        # prompt_tokens is a near-exact proxy for the length of the held-out PDF.
+        "usage": {"prompt_tokens": 41234, "completion_tokens": 812, "total_tokens": 42046},
+    }
+
+
+def test_redact_held_out_record_strips_usage():
+    out = redact_held_out_record(_held_out_record_with_usage())
+    assert "usage" not in out, (
+        "held-out record kept `usage`; prompt_tokens leaks input document length"
+    )
+
+
+def test_leak_reasons_flags_usage_on_held_out_record():
+    reasons = held_out_leak_reasons(_held_out_record_with_usage(), kind="record")
+    assert any("usage" in r for r in reasons), (
+        f"held_out_leak_reasons ignored a held-out record carrying usage; got {reasons}"
+    )
+
+
+def test_redact_held_out_record_keeps_usage_on_public_record():
+    rec = _held_out_record_with_usage()
+    rec["task_visibility"] = "public"
+    out = redact_held_out_record(rec)
+    assert out.get("usage", {}).get("prompt_tokens") == 41234, (
+        "public records must keep usage — that is the whole point of capturing it"
+    )

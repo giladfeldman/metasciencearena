@@ -1,6 +1,6 @@
 # Data handling — what leaves your machine when you run players
 
-ScienceArena's leaderboard and public API are static and self-contained; nothing
+Meta Science Arena's leaderboard and public API are static and self-contained; nothing
 about a benchmark run is sent anywhere by the site. **But some *players*
 (benchmark competitors) are thin adapters around third-party cloud services**,
 and running those players transmits the task input — including held-out real
@@ -36,11 +36,13 @@ their task instances are genuinely novel, not merely unpublished.
 | Player family | Adapter(s) | Sends to | What is sent |
 |---|---|---|---|
 | LLM-as-player (CLI) | `players/adapters/llm_pdf*.py` (`llm_pdf`, `llm_pdf_sections`, `llm_pdf_tables`, `llm_pdf_citations`, `llm_pdf_references`) | Anthropic / Google / OpenAI (via the `claude` / `gemini` / `codex` CLIs) | The **full task PDF**, including held-out real PMC/APA papers (identifiable authors, affiliations, full text; some APA PDFs are copyrighted) |
+| OpenAI-compatible model endpoints | `players/adapters/openai_compatible.py` | The configured provider or gateway (NVIDIA NIM, OpenRouter, Groq, Mistral, Hugging Face, OmniRoute named backend, etc.) | The task input rendered into the arena prompt; for PDF/text arenas this may include full paper text |
+| ↳ **routers are a chain, not a destination** | same adapter, any `OPENROUTER_*` player | OpenRouter **and whichever backend it forwards to** — measured 2026-08-13, one `openai/gpt-oss-120b` id resolves to CoreWeave, DeepInfra, Novita, Amazon Bedrock or Google depending on routing | Same as above. Naming the gateway does not name the recipient, so a router adds an *unbounded* set of sub-processors unless pinned. The registry pins one backend (`provider.order` + `allow_fallbacks: false`) and every record carries `response_meta.served_by`, so the actual recipient of each call is recoverable from the run artifact rather than assumed |
 | regcheck shim | `players/adapters/regcheck_shim.py` | Groq (if the shim is configured to use a Groq-hosted model) | Manuscript / preregistration text for the prereg-deviation arena |
 | scimeto (remote) | `players/adapters/scimeto_*.py` | The configured `SCIMETO_API_URL` endpoint | Citation / matching / replication-lookup queries |
 
 Tool/library players that run **entirely locally** — docpluck, liteparse,
-pdftotext, GROBID (your own server), statcheck, escimate, the R tools — send
+pdftotext, GROBID (your own server), Docling, statcheck, escimate, the R tools — send
 **nothing** off-machine.
 
 ## What this means

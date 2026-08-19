@@ -5,7 +5,7 @@
 **evidential value** by the **p-curve** method (Simonsohn, Nelson & Simons, 2014). One
 verdict per task: `evidential_value` (boolean) + a confidence.
 
-This arena is built on ScienceArena's revealed/private dual-benchmark framework
+This arena is built on Meta Science Arena's revealed/private dual-benchmark framework
 (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## The method — p-curve (Simonsohn, Nelson & Simons, 2014)

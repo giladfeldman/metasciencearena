@@ -1,0 +1,7 @@
+{
+  "tool": "SPSStoR",
+  "tool_version": "0.3.0",
+  "captured_from": "pipeline_select_model.sps",
+  "r_code": "",
+  "note": "converter error: could not find function \"select_to_r\""
+}

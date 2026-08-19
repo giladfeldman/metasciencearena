@@ -1,0 +1,30 @@
+You are a careful academic-PDF text extractor. The PDF you must process
+is at the local path:
+
+    {{PDF_PATH}}
+
+Use your file-read or @-mention tool to read it. The PDF has
+{{N_PAGES}} page(s).
+
+Then return JSON ONLY (no surrounding prose, no commentary, no markdown
+fences). The JSON object must have exactly these keys:
+
+{
+  "full_text": "string — clean linear text of the abstract + body in
+                strict logical reading order (left-column then
+                right-column on multi-column pages). Hyphenation joined
+                across line breaks. Ligatures expanded (ﬁ -> fi, ﬂ ->
+                fl, ﬃ -> ffi). Smart quotes straightened. Soft hyphens
+                removed. Headers, running titles, footers, watermarks,
+                page numbers, and table cells are STRIPPED. Figure and
+                table captions are inserted INLINE at the first textual
+                reference (e.g., right after the paragraph that says
+                'see Figure 1'). Title block, author block, affiliations,
+                references list, and acknowledgments are EXCLUDED.",
+  "pages":     ["one string per page in document order; same content as
+                full_text but split per page"],
+  "footnotes": ["one string per footnote in document order; do NOT
+                duplicate footnote text inside full_text"]
+}
+
+Output JSON now and nothing else.

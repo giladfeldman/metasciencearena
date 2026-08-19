@@ -101,8 +101,25 @@ class SymmetryReport:
     offenders: list[str] = field(default_factory=list)         # players != intersection
     problems: list[str] = field(default_factory=list)
 
-    def summary(self) -> str:
-        head = "SYMMETRY OK" if self.ok else "SYMMETRY FAIL"
+    def summary(self, *, gating: bool = True) -> str:
+        """One-block report. Set ``gating=False`` for a scope that does NOT gate.
+
+        A non-gating scope must not print the word FAIL. The pooled ``[all]``
+        scope deliberately mixes revealed+private task_ids, so a player that
+        legitimately runs both splits always looks asymmetric there — and the CLI
+        prints it purely as a diagnostic while the run exits 0 with every gate
+        passing. Printing "SYMMETRY FAIL" beside a passing gate is the exact
+        confusion this project already fixed one level down for the per-split
+        report on 2026-08-04 ("trains the reader to ignore SYMMETRY FAIL lines
+        that DO matter") — and it is what a funder reading our audit output would
+        screenshot. (Fable 5 cross-review, 2026-08-15.)
+        """
+        if self.ok:
+            head = "SYMMETRY OK"
+        elif gating:
+            head = "SYMMETRY FAIL"
+        else:
+            head = "SYMMETRY UNEVEN (diagnostic — does not gate)"
         lines = [f"[{head}] {self.arena_id}"]
         lines.append(
             f"  players={len(self.per_player)} intersection={self.intersection_size} "
@@ -271,6 +288,14 @@ class StaleInputReport:
     arena_id: str
     ok: bool
     n_checked: int = 0
+    #: Records whose task_id was not in `current_hashes`, so nothing could be said
+    #: about them. Reported explicitly: `n_checked` alone made a run that checked
+    #: 148 of 220 records look exactly like one that checked all 220.
+    n_ignored: int = 0
+    #: Held-out records whose `input_hash` is the redaction sentinel. These CANNOT
+    #: be freshness-checked by construction — the hash was removed on purpose,
+    #: because it was a membership oracle — so they are neither fresh nor stale.
+    n_unverifiable: int = 0
     per_player: dict[str, int] = field(default_factory=dict)  # player -> n stale records
     problems: list[str] = field(default_factory=list)
 
@@ -289,11 +314,24 @@ def stale_input_records(records: list[dict], current_hashes: dict[str, str], *,
     and the caller decides what is in scope. Records with no ``input_hash`` are
     likewise skipped (older schema), so this never invents a failure.
     """
+    from framework.holdout import REDACTED_INPUT_HASH
+
     per_player: dict[str, int] = {}
     n_checked = 0
+    n_ignored = 0
+    n_unverifiable = 0
     for r in records:
         tid, ih = r.get("task_id"), r.get("input_hash")
+        # A held-out record's hash is deliberately destroyed by
+        # `redact_held_out_record` (it was a membership oracle), so comparing it
+        # can neither confirm nor refute freshness. Counting it as a MISMATCH
+        # reported every real held-out arena as broken; counting it as a match
+        # would be a false all-clear. It is a third thing, and it is named.
+        if ih == REDACTED_INPUT_HASH:
+            n_unverifiable += 1
+            continue
         if not tid or not ih or tid not in current_hashes:
+            n_ignored += 1
             continue
         n_checked += 1
         if current_hashes[tid] != ih:
@@ -305,17 +343,57 @@ def stale_input_records(records: list[dict], current_hashes: dict[str, str], *,
         for pid, n in sorted(per_player.items())
     ]
     return StaleInputReport(arena_id=arena_id, ok=not per_player, n_checked=n_checked,
+                            n_ignored=n_ignored, n_unverifiable=n_unverifiable,
                             per_player=per_player, problems=problems)
 
 
 def current_input_hashes(arena_dir: Path, task_set_version: str = "v1",
-                         split: str = "revealed", seed: int = 0) -> dict[str, str]:
+                         split: str | None = None, seed: int | None = None) -> dict[str, str]:
     """task_id -> input_hash for the tasks the arena's generator emits right now.
+
+    With ``split=None`` (the default) this covers **every** split, resolving each
+    one's seed from ``arena.yaml#benchmark_splits`` — including the private seed
+    from the gitignored ``.private_seed``.
+
+    It used to default to ``split="revealed", seed=0``, so on stats-extraction-v1 it
+    built 36 hashes for 220 records and `stale_input_records` silently ignored all
+    72 private ones. A stale HELD-OUT record — the official suite, the split whose
+    integrity matters most — could never be reported, and the audit printed a clean
+    `[FRESH]` either way. Found by a Codex review pass 2026-08-09.
 
     Returns ``{}`` when the arena cannot be generated in-process (e.g. PDF arenas
     whose generate() needs extra arguments), so callers degrade to "not checked"
-    rather than to a false all-clear.
+    rather than to a false all-clear. A split whose secret seed is missing
+    contributes nothing rather than falling back to a derivable one — the caller
+    then sees those records as unchecked, which is the honest outcome.
     """
+    if split is None:
+        merged: dict[str, str] = {}
+        for one in ("revealed", "private"):
+            merged.update(_input_hashes_for_split(arena_dir, task_set_version, one, seed))
+        return merged
+    return _input_hashes_for_split(arena_dir, task_set_version, split, seed)
+
+
+def _split_seed(arena_dir: Path, task_set_version: str, split: str) -> int | None:
+    """The seed for one split, or None when it cannot be resolved honestly."""
+    try:
+        from framework.discovery import load_arena
+        from framework.parity import resolve_seed
+
+        manifest = load_arena(arena_dir)["manifest"]
+        if not manifest.get("benchmark_splits"):
+            return 0
+        seed, note = resolve_seed(manifest, arena_dir, task_set_version, split)
+        # `note` means the dev fallback fired: the real secret is absent. Hashing
+        # against a derivable seed would compare records to tasks nobody ran.
+        return None if note else seed
+    except Exception:
+        return None
+
+
+def _input_hashes_for_split(arena_dir: Path, task_set_version: str,
+                            split: str, seed: int | None) -> dict[str, str]:
     import importlib.util
     import sys
 
@@ -326,7 +404,11 @@ def current_input_hashes(arena_dir: Path, task_set_version: str = "v1",
     gen_path = arena_dir / "generator.py"
     if not gen_path.exists():
         return {}
-    mod_name = f"_audit_gen_{arena_dir.name.replace('-', '_')}"
+    if seed is None:
+        seed = _split_seed(arena_dir, task_set_version, split)
+        if seed is None:
+            return {}
+    mod_name = f"_audit_gen_{arena_dir.name.replace('-', '_')}_{split}"
     try:
         spec = importlib.util.spec_from_file_location(mod_name, gen_path)
         gen = importlib.util.module_from_spec(spec)
@@ -355,6 +437,38 @@ def current_input_hashes(arena_dir: Path, task_set_version: str = "v1",
         return out
     except Exception:
         return {}
+
+
+def resolve_task_set_version(arena_dir: Path, explicit: str | None = None) -> str:
+    """The task-set version this arena should be audited at.
+
+    Every audit helper defaulted to the literal ``"v1"``, applied to every arena.
+    That was correct only while no arena had a second task set. When
+    stats-extraction-v1 moved to v2 (2026-08-09) and its v1 runs were archived, the
+    freshness audit scanned an empty ``runs/v1/``, hit ``if not records: continue``,
+    and the arena disappeared from the report — not FRESH, not STALE, not SKIP.
+    252 unchecked records read as an all-clear.
+
+    Resolution order: an explicit ``--task-set`` wins (an operator auditing history
+    on purpose), else the newest entry in ``arena.yaml#task_set_versions``, else
+    ``"v1"``. Mirrors ``build-data.mjs::resolveTaskSetVersion`` so the audit and the
+    published bundle can never disagree about which version is current.
+    """
+    if explicit:
+        return explicit
+    try:
+        import yaml
+
+        manifest = yaml.safe_load((arena_dir / "arena.yaml").read_text(encoding="utf-8")) or {}
+        versions = manifest.get("task_set_versions") or []
+        if versions:
+            newest = versions[-1]
+            version = newest.get("version") if isinstance(newest, dict) else newest
+            if version:
+                return str(version)
+    except Exception:
+        pass
+    return "v1"
 
 
 def load_arena_records(arena_dir: Path, task_set_version: str = "v1") -> list[dict]:

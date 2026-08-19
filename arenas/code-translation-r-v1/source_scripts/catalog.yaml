@@ -1,0 +1,151 @@
+# Source scripts for code-translation-r-v1.
+#
+# Each entry is one analysis, authored in BOTH SPSS syntax and Stata do-file
+# form so the two languages are matched on task difficulty (the source_language
+# axis is then a fair comparison, not a confound).
+#
+# `dataset` names a fixture in datasets.yaml. `gold_statistics` lists the
+# quantities the emitted R must reproduce; the scorer executes the player's R and
+# compares these by name. `traps` documents the cross-language defaults that make
+# a naive translation silently wrong — these are the point of the arena.
+#
+# Tiers (the difficulty ladder):
+#   T1 descriptives        — mechanical; anyone should pass
+#   T2 t-test              — the pooled-vs-Welch default flip
+#   T3 regression          — formula + missing-data handling
+#   T4 recode/transform    — value recoding, missing codes, computed variables
+#   T5 factorial ANOVA     — Type I vs Type III sums of squares
+#   T6 multi-step pipeline — select-if + recode + model, order-dependent
+
+- id: descriptives
+  tier: 1
+  dataset: wellbeing
+  description: Means, SDs and N for three continuous variables.
+  gold_statistics: [mean_age, sd_age, n_age, mean_score, sd_score, n_score]
+  traps: []
+
+- id: ttest_groups
+  tier: 2
+  dataset: wellbeing
+  description: >-
+    Independent-samples t-test of score by a two-level group. `mean_diff` is
+    group 1 minus group 2, matching how SPSS and Stata order the contrast.
+  gold_statistics: [t_statistic, df, p_value, mean_diff]
+  traps:
+    - >-
+      SPSS T-TEST and Stata `ttest` report the POOLED (equal-variance) test as
+      their headline result. R's t.test() defaults to var.equal=FALSE (Welch),
+      which yields a different df and p. A translation that drops var.equal=TRUE
+      is silently wrong.
+
+- id: regression_multi
+  tier: 3
+  dataset: wellbeing
+  description: OLS regression of score on age and hours, with listwise deletion.
+  gold_statistics: [coef_age, coef_hours, coef_intercept, r_squared, resid_df]
+  traps:
+    - >-
+      SPSS REGRESSION defaults to LISTWISE deletion across all model variables.
+      R's lm() also drops incomplete cases by default (na.omit), so these agree —
+      but SPSS CORRELATIONS defaults to PAIRWISE, so a translator that reuses one
+      missing-data convention for both procedures gets one of them wrong.
+
+- id: recode_transform
+  tier: 4
+  dataset: wellbeing
+  description: Recode a Likert item, declare a missing code, compute a mean index.
+  gold_statistics: [n_recoded_high, mean_index, n_missing_after]
+  traps:
+    - >-
+      SPSS `MISSING VALUES item4 (99).` makes 99 a USER-MISSING code; it is then
+      excluded from every subsequent computation. Reading the same file into R
+      leaves 99 as a literal value that silently inflates means unless it is
+      converted to NA first.
+    - >-
+      SPSS COMPUTE with MEAN.3(...) requires at least 3 valid values, returning
+      missing otherwise. R's rowMeans(na.rm=TRUE) has no such minimum and will
+      happily average a single observed value.
+
+- id: anova_factorial
+  tier: 5
+  dataset: wellbeing
+  description: Two-way factorial ANOVA with interaction, unbalanced cells.
+  gold_statistics: [f_group, f_condition, f_interaction, df_resid]
+  traps:
+    - >-
+      SPSS UNIANOVA and Stata `anova` report TYPE III sums of squares. R's
+      anova(aov(...)) gives TYPE I (sequential), which differs whenever cells are
+      unbalanced. Correct translation needs car::Anova(type=3) AND contr.sum
+      contrasts — setting the type without the contrasts is still wrong.
+
+- id: pipeline_select_model
+  tier: 6
+  dataset: wellbeing
+  description: Filter cases, recode, then fit a model on the filtered subset.
+  gold_statistics: [n_analysed, coef_age, coef_group, r_squared]
+  traps:
+    - >-
+      SPSS `SELECT IF` permanently drops cases for everything that follows, so
+      statement ORDER changes the result. A translator that hoists the model above
+      the filter, or applies the filter only inside the model call, analyses a
+      different N.
+
+# --- Tiers 7-9, added 2026-08-04 -------------------------------------------
+# The T1-T6 ladder was saturated: claude-sonnet-5 scored a perfect 1.000 on all
+# 12 tasks, so the arena had stopped discriminating at the top of the model
+# range. These three add divergences that are HARDER to get right because the
+# correct R is structurally different from the SPSS/Stata source, not merely a
+# different argument.
+
+- id: correlations_pairwise
+  tier: 7
+  dataset: wellbeing
+  description: >-
+    Correlation matrix of age, hours and score using PAIRWISE deletion, then the
+    same matrix under LISTWISE deletion. Report both r(age,hours) values and the
+    N each is based on.
+  gold_statistics: [r_pairwise_age_hours, n_pairwise_age_hours, r_listwise_age_hours, n_listwise_age_hours]
+  traps:
+    - >-
+      THE PAIR IS THE TRAP. SPSS CORRELATIONS defaults to PAIRWISE deletion while
+      SPSS REGRESSION defaults to LISTWISE — a translator that applies one
+      missing-data convention uniformly gets exactly one of them wrong, and the
+      two correlations genuinely differ here because age and hours have
+      non-overlapping missingness. In R this is `use="pairwise.complete.obs"` vs
+      `use="complete.obs"`, and the N behind each cell differs, which is why both
+      the r AND its N are scored.
+
+- id: weighted_descriptives
+  tier: 8
+  dataset: wellbeing
+  description: >-
+    Apply a case weight, then report the weighted mean of score and the weighted
+    valid N.
+  gold_statistics: [weighted_mean_score, weighted_n]
+  traps:
+    - >-
+      SPSS `WEIGHT BY w` applies a FREQUENCY weight to every subsequent
+      procedure until switched off — it is stateful, and it changes N as well as
+      the mean. Base R has no global weighting state: `mean()` ignores weights
+      entirely, so a translation that drops the WEIGHT statement returns the
+      unweighted mean and looks perfectly reasonable. Correct R needs
+      `weighted.mean(x, w)` and `sum(w)` for the weighted N.
+    - >-
+      Stata's `[fweight=w]` is likewise a per-command option, not a state, so the
+      Stata translation must attach it to the summarize call rather than emit a
+      standalone statement.
+
+- id: split_file_groups
+  tier: 9
+  dataset: wellbeing
+  description: >-
+    Split the file by group, then report the mean of score within each group.
+  gold_statistics: [mean_score_group1, mean_score_group2, n_group1, n_group2]
+  traps:
+    - >-
+      SPSS `SPLIT FILE BY group` makes every following procedure run SEPARATELY
+      per group until `SPLIT FILE OFF`. It is stateful and has no R equivalent:
+      the correct translation restructures the code into a grouped operation
+      (`tapply` / `aggregate` / `dplyr::group_by`), which is a different SHAPE of
+      program, not a different argument. A translator that ignores the split
+      reports one pooled mean and silently answers a different question.

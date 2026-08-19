@@ -26,14 +26,56 @@ pip install metasciencearena
 | `framework.publish` | the rule deciding what may be published — auditable, not asserted |
 | `framework.contract.schemas` | JSON Schema for the manifest, task envelope, run record, findings |
 
-## Reproducing a published score
+## What you can reproduce, and what you cannot
+
+Be clear about the boundary before you start, because it is not the usual one.
+
+**Reproducible from this package + the public arena set:** every public task, its
+ground truth, and the scoring formula. You can regenerate the tasks, score any
+output against the same gold with the same code the leaderboard runs, and
+re-derive a published score from a run record.
 
 ```bash
-export SCIENCEARENA_ARENAS_ROOT=/path/to/arenas
+export SCIENCEARENA_ARENAS_ROOT=/path/to/metasciencearena/arenas
 metasciencearena arenas list
-metasciencearena run --arena grim-consistency-v1 --task-set v1 \
-    --players scrutiny-grim --split revealed --tag repro
 metasciencearena leaderboard --arena grim-consistency-v1 --task-set v1
+```
+
+**The measuring instrument is published too.** `players/registry.yaml`, the
+adapters, and all 25 LLM prompt templates ship with this package. An earlier
+release withheld them on the grounds that "the prompt is part of the instrument"
+— which is the argument for publishing them, not against. A score you cannot
+inspect the instrument for is an assertion, not a measurement.
+
+```bash
+metasciencearena run --arena grim-consistency-v1 --task-set v1 \
+    --players claude-opus-4-8-grim --split revealed
+```
+
+Every credential is read from an environment variable named in the registry
+(`*_key_env`), never stored; a player whose tool you do not have installed fails
+with a clear dependency error rather than a wrong score. The templates of the
+six PRIVATE arenas ship as well — those arenas are private because their source
+PDFs are not ours to republish, not because the instruction is secret.
+
+Each run record carries `provenance.prompt_template_sha256`, so you can check
+which exact template produced any published score; superseded templates are kept
+under `players/prompts/_archive/` rather than overwritten.
+
+**What is still NOT reproducible from this package:** the held-out half. The
+private task seeds and the held-out corpora are not here and never will be —
+that is what keeps the private split meaningful.
+
+You can also run YOUR OWN player against a public arena by adding a registry
+entry pointing at your adapter; the scoring is identical to ours because it is
+literally this code.
+
+To run a public arena inside a standard harness instead:
+
+```bash
+pip install "metasciencearena[inspect]"
+metasciencearena export-inspect --arena grim-consistency-v1 --out ./inspect
+inspect eval ./inspect/grim_consistency_v1.py --model <provider>/<model>
 ```
 
 Arena data is **not** bundled: the package is the scoring machinery, and the

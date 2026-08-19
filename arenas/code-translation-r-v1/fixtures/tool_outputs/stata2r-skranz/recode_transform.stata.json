@@ -1,0 +1,8 @@
+{
+  "tool": "stata2r-skranz",
+  "tool_version": "0.1.0",
+  "captured_from": "recode_transform.do",
+  "r_code": "NA\nNA\nNA\nNA\ndata = scmd_replace(data = data, var_to_replace = \"item4\", r_expr_str = \"NA_real_\", r_if_cond = \"s2r_stata_logical(`item4` == 99)\", is_string = FALSE, force_integer = FALSE)\nNA\ndata = scmd_recode(data = data, varlist_str = \"item1\", rules_templates = c(\"(.VAR. >= 4 & .VAR. <= 5) ~ 1\", \"(.VAR. >= 1 & .VAR. <= 3) ~ 0\"), gen_vars_str = \"item1_high\", is_string = FALSE)\ndata = scmd_label(data = data, subcmd = \"variable\", varname = \"item1_high\", label_str = \"Item 1 endorsed (4 or 5)\")\nNA\ndata = scmd_egen(data = data, new_var = \"_nvalid\", func_name = \"rownonmiss\", calc_expr = \".ROWOP_rownonmiss_PLACEHOLDER.\", args_str = \"item1 item2 item3 item4\", needs_temp_sort = FALSE, is_row = TRUE)\ndata = scmd_egen(data = data, new_var = \"index\", func_name = \"rowmean\", calc_expr = \".ROWOP_rowmean_PLACEHOLDER.\", args_str = \"item1 item2 item3 item4\", needs_temp_sort = FALSE, is_row = TRUE)\ndata = scmd_replace(data = data, var_to_replace = \"index\", r_expr_str = \"NA_real_\", r_if_cond = \"s2r_stata_logical(`_nvalid` < 3)\", is_string = FALSE, force_integer = FALSE)\ndata = scmd_drop(data = data, varlist_str = \"_nvalid\")\nif (isTRUE(stata2r_env$has_original_order_idx)) { data = dplyr::mutate(data, stata2r_original_order_idx = dplyr::row_number()) }\nNA\nNA\nNA",
+  "note": "verbatim do_to_r() output",
+  "tool_gap": false
+}

@@ -1,0 +1,7 @@
+# Tier 3: formatting noise — OCR-style char swaps, HTML entities, line breaks, parens-in-parens.
+nhst:
+  - "(see also t({df1}) = {value}, p = {p})"
+  - "t({df1})\n= {value}, p &lt; {p_threshold}"
+  - "t({df1_ocr}) = {value_ocr}, p = {p_ocr}"   # e.g. O instead of 0
+effect_size:
+  - "(es: {es_label} = {es}, 95% CI [{ci_lo},{ci_hi}])"

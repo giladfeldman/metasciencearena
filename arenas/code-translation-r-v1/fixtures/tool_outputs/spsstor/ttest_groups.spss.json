@@ -1,0 +1,7 @@
+{
+  "tool": "SPSStoR",
+  "tool_version": "0.3.0",
+  "captured_from": "ttest_groups.sps",
+  "r_code": "library(car)\n# x is the name of your data frame\nleveneTest(score ~ group, data = x)\nt.test(score ~ group, data = x, mu = 0, conf.level = .95, var.equal = TRUE)\nt.test(score ~ group, data = x, mu = 0, conf.level = .95, var.equal = FALSE) ",
+  "note": "verbatim spss_to_r() output (captured from stdout)"
+}

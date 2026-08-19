@@ -1,0 +1,15 @@
+section_titles:
+  - "Descriptive Statistics"
+  - "Main Analyses"
+  - "Robustness Checks"
+  - "Effect-Size Reporting"
+
+section_template: |
+  ### {title}
+
+  {body}
+
+cross_reference_phrases:
+  - "as reported above"
+  - "consistent with the previous section"
+  - "see the analyses earlier"

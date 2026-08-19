@@ -43,7 +43,21 @@ def _cmd_players_list(_args):
 
 
 def _resolve_seed(arena_dir, task_set_version, split, explicit_seed):
-    """Explicit --seed wins; else use the split's seed from benchmark_splits; else 0."""
+    """Explicit --seed wins; else use the split's seed from benchmark_splits; else 0.
+
+    A PRIVATE run refuses the dev-fallback seed outright. `parity.resolve_seed`
+    falls back to `revealed_seed + _DEV_PRIVATE_OFFSET` when the secret file is
+    missing — fine for a local parity check, fatal for a run that WRITES records,
+    because that seed is publicly computable (the revealed seed is committed in
+    `arena.yaml` and the offset is a source constant). The old behaviour printed a
+    warning and carried on, so a 120-call tournament could publish a "held-out"
+    score for a split anyone with repo access could regenerate, with run records
+    indistinguishable from official ones.
+
+    Both callers (`_cmd_run`, `_cmd_retry_failed`) write records, so the gate lives
+    here rather than in each of them. `--seed` still wins: an explicit seed is a
+    deliberate, recorded choice.
+    """
     if explicit_seed is not None:
         return explicit_seed
     try:
@@ -54,6 +68,16 @@ def _resolve_seed(arena_dir, task_set_version, split, explicit_seed):
         return 0
     from framework.parity import resolve_seed
     seed, note = resolve_seed(manifest, arena_dir, task_set_version, split)
+    if note and split == "private":
+        raise SystemExit(
+            f"REFUSING to run the private split of {arena_dir.name} without its secret seed.\n"
+            f"  {note}\n"
+            f"  Expected: {arena_dir / 'task_sets' / task_set_version / '.private_seed'}\n"
+            "  That fallback seed is derivable from committed data, so records written with\n"
+            "  it would be a private split in name only. Restore the secret (see\n"
+            "  ~/sciencearena_private_seeds.backup.txt), or pass --seed to choose one\n"
+            "  deliberately."
+        )
     if note:
         print(f"WARNING: {note}")
     return seed
@@ -96,7 +120,12 @@ def _cmd_run(args):
         split=args.split,
         overwrite=args.overwrite,
     )
-    print(f"wrote {n} run records to {out} (split={args.split}, seed={seed})")
+    # NEVER print a private seed. The revealed seed is committed in arena.yaml, so
+    # showing it aids reproduction; the private one IS the secret, and printing it
+    # puts it in terminal scrollback, CI logs and session transcripts. A v2 private
+    # run announced the freshly-rotated seed on its own first line (2026-08-09).
+    shown = seed if args.split == "revealed" else "<redacted:private>"
+    print(f"wrote {n} run records to {out} (split={args.split}, seed={shown})")
     return 0
 
 
@@ -148,10 +177,17 @@ def _cmd_retry_failed(args):
               f"{len(todo)} to (re)try -> {todo[:6]}{'…' if len(todo) > 6 else ''}")
 
         tmp = target.with_suffix(f".retry-r{round_i}.jsonl")
+        # Mirror _cmd_run's safety default: `--split revealed` implies
+        # --public-only. Without it this passed public_only=False, the held-out
+        # egress gate saw will_play_held_out=True, and a REVEALED backfill of any
+        # cloud player died with "refusing to send HELD-OUT tasks" — for tasks that
+        # are public by definition. The two commands must agree on the visibility
+        # filter, or `retry-failed` cannot finish what `run` started.
         run_tournament(
             arena_dir=arena_dir, task_set_version=args.task_set, registry_path=registry_path(),
             player_ids=[player], output_path=tmp, trials=1, timeout_s=args.timeout,
             seed=seed, split=args.split, overwrite=True, only_tasks=set(todo),
+            public_only=(args.split == "revealed"),
         )
         fresh = {r["task_id"]: r for r in read_records(tmp)} if tmp.exists() else {}
         tmp.unlink(missing_ok=True)
@@ -310,6 +346,7 @@ def _cmd_audit(args):
     from framework.audit import (
         current_input_hashes,
         empty_run_files,
+        resolve_task_set_version,
         load_arena_records,
         orphaned_retry_temps,
         per_split_symmetry_ok,
@@ -342,8 +379,14 @@ def _cmd_audit(args):
             a["root"] for a in discover_arenas(arenas_root())
         ]
         for adir in arenas:
-            records = load_arena_records(adir, args.task_set)
+            ts = resolve_task_set_version(adir, args.task_set)
+            records = load_arena_records(adir, ts)
             if not records:
+                # Same rule as --fresh: an arena with nothing to check must SAY so.
+                # `continue` alone let an arena disappear from the symmetry report
+                # and still exit 0, which reads as a pass.
+                print(f"  [SKIP] {adir.name}: no run records under runs/{ts}/ "
+                      f"(not checked — this is NOT an all-clear)")
                 continue
             for vis, label in ((None, "all"), ("public", "revealed"),
                                ("held_out", "private")):
@@ -369,7 +412,8 @@ def _cmd_audit(args):
                                                  visibility=vis)
                     if gate_rep.per_player:
                         rep = gate_rep
-                print(f"\n[{label}] {rep.summary()}{suffix}")
+                # `vis is None` IS the pooled "[all]" scope, which never gates.
+                print(f"\n[{label}] {rep.summary(gating=vis is not None)}{suffix}")
             # Only the PER-SPLIT checks gate the exit code (see per_split_symmetry_ok).
             # The pooled "[all]" scope is printed above for visibility but does not
             # gate: it mixes revealed+private task_ids, so a player that legitimately
@@ -394,10 +438,20 @@ def _cmd_audit(args):
         ]
         n_unchecked = 0
         for adir in arenas:
-            records = load_arena_records(adir, args.task_set)
+            # Per-arena, not the global --task-set default: auditing every arena at
+            # a hardcoded "v1" made stats-extraction-v1 vanish from this report the
+            # moment it moved to v2 and archived its v1 runs.
+            ts = resolve_task_set_version(adir, args.task_set)
+            records = load_arena_records(adir, ts)
             if not records:
+                # NEVER silent. An arena with no records at the version we scanned
+                # is an unchecked arena, and an unchecked arena that prints nothing
+                # is indistinguishable from a clean one.
+                n_unchecked += 1
+                print(f"  [SKIP] {adir.name}: no run records under runs/{ts}/ "
+                      f"(not checked — this is NOT an all-clear)")
                 continue
-            hashes = current_input_hashes(adir, args.task_set)
+            hashes = current_input_hashes(adir, ts)
             if not hashes:
                 # Could not regenerate in-process — report it rather than pass silently.
                 n_unchecked += 1
@@ -405,6 +459,20 @@ def _cmd_audit(args):
                       f"(not checked — this is NOT an all-clear)")
                 continue
             rep = stale_input_records(records, hashes, arena_id=adir.name)
+            # An unchecked record is not a clean one. Before this, `[FRESH] N
+            # record(s)` looked identical whether N was 220 of 220 or 148 of 220.
+            if rep.n_ignored:
+                n_unchecked += 1
+                print(f"  [PARTIAL] {adir.name}: {rep.n_ignored} of "
+                      f"{rep.n_checked + rep.n_ignored} record(s) could NOT be checked "
+                      f"(task_id not in the current task set — missing secret seed, or "
+                      f"records from a retired split)")
+            if rep.n_unverifiable:
+                # Not a defect and not an all-clear: held-out records have their
+                # input_hash redacted on purpose, so freshness is unknowable for
+                # them. Say that, rather than calling them fresh OR stale.
+                print(f"  [HELD-OUT] {adir.name}: {rep.n_unverifiable} held-out record(s) "
+                      f"cannot be freshness-checked (input_hash is redacted by design)")
             if rep.ok:
                 print(f"  [FRESH] {adir.name}: {rep.n_checked} record(s) match current tasks")
             else:
@@ -423,7 +491,8 @@ def _cmd_audit(args):
         # phantom zero-record entry. Blocking, because it corrupts the roster.
         empty_rows = []
         for adir in arenas:
-            empty_rows += [(adir.name, p) for p in empty_run_files(adir, args.task_set)]
+            empty_rows += [(adir.name, p)
+                           for p in empty_run_files(adir, resolve_task_set_version(adir, args.task_set))]
         if empty_rows:
             print("\n== empty (0-byte) run files ==")
             for aname, path in empty_rows:
@@ -434,7 +503,7 @@ def _cmd_audit(args):
         orphan_rows = []
         for adir in arenas:
             orphan_rows += [(adir.name, t, n)
-                            for t, n in orphaned_retry_temps(adir, args.task_set)]
+                            for t, n in orphaned_retry_temps(adir, resolve_task_set_version(adir, args.task_set))]
         if orphan_rows:
             print("\n== orphaned retry temps holding UNMERGED verdicts ==")
             for aname, temp, n in orphan_rows:
@@ -448,6 +517,14 @@ def _cmd_export_kaggle(args):
     # Imported lazily: the exporter pulls in the runner's arena-module loader,
     # and `framework --help` should not pay for that.
     from framework.export_kaggle import export_arena
+    n = export_arena(args.arena, args.task_set, args.out, prompt_template=args.prompt)
+    print(f"exported {n} public task(s) for {args.arena} to {args.out}")
+    return 0
+
+
+def _cmd_export_inspect(args):
+    # Lazily imported for the same reason as export-kaggle.
+    from framework.export_inspect import export_arena
     n = export_arena(args.arena, args.task_set, args.out, prompt_template=args.prompt)
     print(f"exported {n} public task(s) for {args.arena} to {args.out}")
     return 0
@@ -554,7 +631,11 @@ def main(argv: list[str]) -> int:
         help="Leaderboard fairness audits (version drift + task-set symmetry + input freshness).")
     p_audit.add_argument("--arena", default=None,
                          help="Limit symmetry check to one arena (default: all arenas).")
-    p_audit.add_argument("--task-set", default="v1")
+    # Default None = resolve per arena from arena.yaml#task_set_versions (newest).
+    # A literal "v1" default silently audited the wrong version for any arena that
+    # had moved on, and an arena whose runs/v1/ was empty simply vanished from the
+    # report. Pass --task-set explicitly to audit a specific (e.g. archived) version.
+    p_audit.add_argument("--task-set", default=None)
     p_audit.add_argument("--versions", action="store_true",
                          help="Check declared vs installed tool versions (Finding 1).")
     p_audit.add_argument("--symmetry", action="store_true",
@@ -575,6 +656,18 @@ def main(argv: list[str]) -> int:
     p_kaggle.add_argument("--prompt", type=Path, default=None,
                           help="Prompt template containing {{INPUT_TEXT}}.")
     p_kaggle.set_defaults(func=_cmd_export_kaggle)
+
+    p_inspect = sub.add_parser(
+        "export-inspect",
+        help="Emit an Inspect AI task module for an arena's PUBLIC split "
+             "(the format OpenBench and Epoch AI ingest).",
+    )
+    p_inspect.add_argument("--arena", required=True)
+    p_inspect.add_argument("--task-set", default="v1")
+    p_inspect.add_argument("--out", type=Path, default=Path("build/inspect"))
+    p_inspect.add_argument("--prompt", type=Path, default=None,
+                           help="Prompt template containing {{INPUT_TEXT}}.")
+    p_inspect.set_defaults(func=_cmd_export_inspect)
 
     args = parser.parse_args(argv)
     if args.arenas_root is not None:
@@ -600,3 +693,19 @@ def _console_main() -> int:
     except RootNotFoundError as exc:
         print(f"framework: {exc}", file=sys.stderr)
         return 2
+
+
+# `python -m framework.cli …` used to import this module and exit 0 having run
+# NOTHING — argparse never fired, no gate executed, and the shell saw success.
+# On a project whose one-pager cites "framework audit exits 0" as evidence, a
+# plausible invocation that silently no-ops is the exact false-green class
+# LESSONS.md keeps recording. (Fable 5 cross-review, 2026-08-15: the reviewer hit
+# it and nearly recorded the audit as vacuously passing.)
+#
+# `python -m framework …` (framework/__main__.py) and the `metasciencearena`
+# console script remain the documented entry points; this makes the third form
+# behave like them instead of lying.
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(_console_main())

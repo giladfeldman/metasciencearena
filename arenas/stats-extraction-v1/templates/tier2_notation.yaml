@@ -1,0 +1,9 @@
+# Tier 2: notation variation — periods/commas, leading-zero, italic markers, p < .05 vs p = 0.048.
+nhst:
+  - "*t*({df1}) = {value}, *p* = {p_no_lead}."
+  - "t({df1}) = {value}, p < {p_threshold}."
+  - "t({df1}) = {value_comma}, p = {p_comma}."
+effect_size:
+  - "{es_label} = {es_no_lead}, [{ci_lo_no_lead}, {ci_hi_no_lead}]"
+ci_only:
+  - "M_diff = 0,42, 95% CI [{ci_lo_comma}; {ci_hi_comma}]"

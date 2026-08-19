@@ -1,0 +1,3359 @@
+# =============================================================================
+# ARTIFACT RETENTION (standing directive, 2026-08-13)
+# Every run MUST record its prompt-template hash, tokens, provider metadata and
+# our own code version. See docs/RUN_ARTIFACT_RETENTION.md. When adding a player:
+#   - OpenAI-compatible: usage + response_meta come for free via the shared adapter
+#   - reasoning models (Nemotron 3.x): set openai_extra_body enable_thinking:false
+#     or expect ~200x the tokens and 100x the latency
+#   - add the model to framework/pricing.py at its LIST price (free != $0)
+# =============================================================================
+- player_id: statcheck
+  player_type: tool
+  # <package>-<version>, matching every other R tool. The bare "1.5.0" this
+  # replaced passed the drift check only by numeric coincidence (the detected
+  # "statcheck-1.5.0" happens to contain it), not by design.
+  player_version: "statcheck-1.5.0"
+  adapter_class: RCliAdapter
+  r_script: players/adapters/statcheck.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# metacheck (scienceverse) tool player — one RCliAdapter that branches on the
+# envelope's arena_id (players/adapters/metacheck.R). Wires metacheck's REAL module
+# families across FIVE arenas (deterministic offline + bundled offline reference
+# DBs RetractionWatch/FLoRA + live PubPeer API; LLM path skipped, no API key):
+#   significance-language-v1  (marginal -> marginal_significance)
+#   reporting-completeness-v1 (stat_p_exact)
+#   power-reporting-v1        (power, regex only)
+#   reference-integrity-v1    (ref_consistency + injected [RETRACTED] marker;
+#                              ref_replication/ref_retraction/ref_pubpeer run for
+#                              provenance — see INSTALL_LOG for why they don't flag)
+#   open-practices-repro-v1   (code_abs_path/line_stats/file_refs + URL-shape)
+# Remaining metacheck-family arenas (prereg-extraction = LLM+OSF API;
+# transparency = already covered) are documented in players/INSTALL_LOG.md — the
+# adapter errors out if asked to play them.
+- player_id: metacheck
+  player_type: tool
+  player_version: "metacheck-0.1.0"
+  adapter_class: RCliAdapter
+  r_script: players/adapters/metacheck.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: escimate
+  player_type: platform
+  player_version: "0.6.13"
+  adapter_class: HttpAdapter
+  endpoint: http://127.0.0.1:9422/api/v1/process-text
+  # Resolved at run time by framework.player_adapter.resolve_start_command:
+  # $VIBE_ROOT, else $HOME/Vibe. Never hardcode a user path here — the portfolio
+  # root moved out of Dropbox on 2026-08-03 and this entry silently rotted.
+  start_command: ["cmd", "/c", "${VIBE_ROOT}/MetaScienceTools/ESCIcheckapp/start_app.bat"]
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# RETIRED 2026-08-04 (cycle 8): claude-opus-4-7 was the original stats-extraction
+# POC, using the GENERIC claude.txt prompt. It was superseded by the dedicated
+# claude-opus-4-8-stats player (stats_extraction.txt, which documents every
+# injected deception mode). Its 36 run records were found by the new
+# `framework audit --fresh` to have been scored against pre-cycle-4/5 task text
+# (input_hash drift), yet it was still RANKED on the published leaderboard.
+# Retired rather than re-run: a fresh number for a superseded generic-prompt
+# configuration would misrepresent what "Opus on this arena" means. Its records
+# were deleted; this entry is kept as a tombstone so the id is not silently
+# reused and so a future reader knows why the leaderboard lost a row.
+#
+# - player_id: claude-opus-4-7
+#   cli_command: ["claude", "--print", "--model", "claude-opus-4-7"]
+#   prompt_template_path: players/prompts/claude.txt
+
+- player_id: codex-5-5
+  player_type: ai-model
+  player_version: "codex-5.5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["codex", "exec", "--model", "gpt-5.5"]
+  prompt_template_path: players/prompts/codex.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-pro-3-1
+  player_type: ai-model
+  player_version: "gemini-pro-3.1"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["gemini", "-p", "", "-m", "gemini-pro-3.1"]
+  prompt_template_path: players/prompts/gemini.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: scimeto-replication-api
+  player_type: platform
+  player_version: "1.71.3"
+  adapter_class: ScimetoReplicationApiAdapter
+  api_url_env: SCIMETO_API_URL
+  api_key_env: SCIMETO_API_KEY
+  confidence_strategy: native
+  deterministic: true
+
+- player_id: fred-frida-only
+  player_type: tool
+  player_version: "fred-frida-v1-day1"
+  adapter_class: FredFridaOnlyAdapter
+  catalog_path: arenas/replication-target-lookup-v1/catalogs/fred_frida_v1.json
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# RETIRED 2026-08-12: the whole `gemini-2-5-flash-*` family. Google discontinued
+# the Gemini CLI's individual/free sign-in on 2026-06-18; the binary is still on
+# PATH but every call now returns
+#   IneligibleTierError: This client is no longer supported for Gemini Code
+#   Assist for individuals. ... migrate to the Antigravity suite
+# so these players cannot be re-run, only replayed from frozen records.
+#
+# That is why they had to go rather than simply sit idle: a player that can never
+# run again PERMANENTLY BLOCKS TASK-SET GROWTH. `gemini-2-5-flash-sections` held
+# 6 records on pdf-section-structure-v1, and any task added to that arena's public
+# split would have left it asymmetric forever, pinning the ranked cohort at 6 and
+# keeping the "Insufficient sample" banner up for good.
+#
+# Successor route is Antigravity (`agy`), already registered as
+# `antigravity-gemini-3-6-flash-low-*`. It serves Gemini 3.6 Flash, a DIFFERENT
+# model, so it gets its own player ids rather than inheriting these — a score
+# published under `gemini-2-5-flash` must mean Gemini 2.5 Flash.
+#
+# Records archived (not deleted) under
+# arenas/pdf-section-structure-v1/runs/v1/_archive/2026-08-12-gemini-cli-retired/.
+# Ids kept here as tombstones so they are never silently reused.
+#   - player_id: gemini-2-5-flash
+#     player_type: ai-model
+#     player_version: "gemini-2.5-flash"
+#     adapter_class: SubprocessCliAdapter
+#     cli_command: ["gemini", "-p", "", "-m", "gemini-2.5-flash"]
+#     prompt_template_path: players/prompts/replication_lookup_model.txt
+#     confidence_strategy: native
+#     deterministic: false
+#     # RETIRED 2026-08-10 — kept so historical records stay attributable, but this
+#     # player CANNOT be re-run: the `gemini` CLI now returns IneligibleTierError
+#     # ("Code Assist for individuals" discontinued) and Google's replacement route
+#     # (Antigravity, `agy models`) does not serve Gemini 2.5 at all. Its successor
+#     # on this arena is the entry directly below. Do not re-point this id at a 3.x
+#     # model — that would publish a 3.x score under a 2.5 label.
+#
+#   # Successor to gemini-2-5-flash on replication-target-lookup-v1, via Google's
+#   # Antigravity CLI (the supported individual route since the Gemini CLI retired).
+#   # ⚠️ DEPLOY COUPLING: this entry needs `players/adapters/antigravity_cli.py` and
+#   # the `agy_*` kwargs in framework/player_adapter.py. Commit them TOGETHER or the
+#   # adapter class will not resolve and `framework audit` / `next build` will fail.
+
+
+- player_id: antigravity-gemini-3-6-flash-low-replication
+  player_type: ai-model
+  player_version: "antigravity/gemini-3.6-flash-low"
+  adapter_class: AntigravityCliAdapter
+  agy_model: "gemini-3.6-flash-low"
+  agy_print_timeout: "300s"
+  # The arena's real output contract (arenas/replication-target-lookup-v1/schemas/
+  # output.schema.json) verbatim, MINUS its `$schema` key. Two measured findings,
+  # 2026-08-10 — both cost a round of all-failed records:
+  #   1. A lightweight stand-in is worse than none. Requiring only `matches` steered
+  #      the model into OMITTING direction/input_doi/player_strategy_notes, and every
+  #      record failed output_schema_violation.
+  #   2. `agy` rejects two constructs outright (status ERROR in ~0.4 s, bisected):
+  #      a `$schema` key — so `agy_json_schema_path` cannot point at the .json file
+  #      directly — and any `enum` containing the EMPTY STRING, which the arena's
+  #      `outcome` enum has. Dropping "" leaves a strict subset of the arena's allowed
+  #      values, so output stays valid. agy DOES accept enum, additionalProperties:false,
+  #      union types and min/max; with those two fixes the model emits proper nulls
+  #      and abstentions.
+  agy_json_schema: '{"type":"object","additionalProperties":false,"required":["direction","input_doi","matches","player_strategy_notes"],"properties":{"direction":{"type":"string","enum":["targets","replications"]},"input_doi":{"type":"string"},"matches":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["replication_doi","original_doi","abstained"],"properties":{"replication_doi":{"type":["string","null"]},"original_doi":{"type":["string","null"]},"outcome":{"type":"string","enum":["failed","successful","succeeded","mixed","unknown"]},"confidence":{"type":"number","minimum":0,"maximum":1},"evidence":{"type":"string"},"provenance":{"type":"array","items":{"type":"string"}},"abstained":{"type":"boolean"}}}},"player_strategy_notes":{"type":"string"}}}'
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+
+- player_id: claude-haiku-4-5
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- prereg-deviation-v1 players -----------------------------------------
+# regcheck (the headline tool) brings its own LLM/embedding API dependency. It is
+# an LLM-backed comparator, so we run it under THREE providers as distinct players
+# (model breadth) — one RegcheckShimAdapter class, `regcheck_client` pins each:
+#   * regcheck-groq     : regcheck's native Groq path (GROQ_API_KEY, env-only).
+#   * regcheck-deepseek : regcheck's native DeepSeek path (DEEPSEEK_API_KEY, env-only;
+#                         OpenAI-compatible endpoint at https://api.deepseek.com).
+#   * regcheck-openai   : OpenAI provider routed through the local codex-backed shim
+#                         (players/regcheck_shim/openai_shim.py — the owner's ChatGPT
+#                         subscription, NO OpenAI API key/cost; see CLAUDE.md).
+# In every mode EMBEDDINGS go to the local shim (neither Groq nor DeepSeek expose
+# one), so no real OpenAI key is ever needed. Provider keys are read from the live
+# environment only — never committed, never on argv, never in the sanitized
+# provenance command. The heavy regcheck clone + venv are NOT committed;
+# RegcheckShimAdapter locates them via REGCHECK_DIR / REGCHECK_PYTHON and fails
+# loudly with a runbook pointer when unset. deterministic:false (LLM-backed).
+# confidence_strategy:native — derived from regcheck's own yes/no/missing judgement
+# (players/regcheck_shim/regcheck_to_runrecords.py). See run_regcheck.md.
+- player_id: regcheck-groq
+  player_type: tool
+  player_version: "regcheck-bdb961d-groq-llama3.1-8b"
+  adapter_class: RegcheckShimAdapter
+  regcheck_client: groq
+  # llama-3.1-8b-instant, NOT llama-3.3-70b-versatile: the 70b model exhausts the
+  # Groq free-tier daily token cap (TPD 100k) after ~4-7 tasks (verified
+  # 2026-06-08 AND 2026-07-02). The 8b model has a separate, larger quota and is
+  # the proven config for reaching most of the 46-task split. 429-lost tasks are
+  # excluded from scoring (infra throttle, not a wrong answer).
+  regcheck_model: "llama-3.1-8b-instant"
+  confidence_strategy: native
+  deterministic: false
+  # best_effort CLEARED 2026-08-04 (cycle 8): this player now has FULL 46/46
+  # coverage (0 errored), so the flag no longer describes reality. It is not a
+  # free "be lenient" marker — it EXCLUDES a player from the common-set
+  # derivation, so leaving it on a full-coverage player both understates that
+  # player (reported `partial` when it isn't) and needlessly shrinks the
+  # head-to-head basis. The Groq throttle is real but it is a per-MINUTE TPM
+  # 6000 limit, which a paced retry loop clears — not a hard coverage ceiling.
+  # Re-add it if a future run genuinely cannot finish the split.
+
+- player_id: regcheck-deepseek
+  player_type: tool
+  player_version: "regcheck-bdb961d-deepseek-chat"
+  adapter_class: RegcheckShimAdapter
+  regcheck_client: deepseek
+  regcheck_model: "deepseek-chat"
+  confidence_strategy: native
+  deterministic: false
+  # best_effort CLEARED 2026-08-04 (cycle 8): paid DeepSeek, full 46/46 coverage.
+  # It was always the symmetric anchor; the flag was defensive, not descriptive.
+
+- player_id: regcheck-openai
+  player_type: tool
+  player_version: "regcheck-bdb961d-openai-via-codex-shim"
+  adapter_class: RegcheckShimAdapter
+  regcheck_client: openai
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+
+- player_id: claude-haiku-4-5-prereg
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+
+# Watson — a SECOND dedicated prereg-vs-paper deviation comparator, competing head-to-head
+# with regcheck on this arena. LLM-powered; a folder of papers is checked against their
+# preregistrations, emitting a per-deviation report (type / confidence / summary), which
+# maps cleanly onto this arena's list_of_deviation_records output. Author: Shaheed Azaad
+# (postdoc, U. Münster; GitHub `shaheedazaad`). Announced on LinkedIn 2026-06 with the UI
+# + a sample report; verified manually by the author on real papers.
+#
+# PLACEHOLDER — NOT YET RUNNABLE. As of 2026-07-02 Watson is NOT public: the author states
+# "the tool isn't public yet, but it will be open source when it is." No GitHub repo / PyPI /
+# app endpoint exists (checked: web search + `github.com/shaheedazaad` has 6 repos, none is
+# Watson). Kept commented so `framework players list` does not surface an unrunnable player
+# (same convention as gemini-2-5-flash-pdf below).
+#
+# TO ACTIVATE when it goes open source (tracked in todo.md → "Watson availability watch"):
+#   1. Decide the run path — a CLI/HTTP adapter if Watson ships one, else a WatsonShimAdapter
+#      mirroring RegcheckShimAdapter (players/adapters/regcheck_shim.py): locate the clone via
+#      WATSON_DIR / WATSON_PYTHON, provider key from the live env ONLY (never committed/on argv),
+#      and translate Watson's report → run_records like regcheck_to_runrecords.py.
+#   2. Any Claude/Anthropic model Watson can be pointed at MUST go via Claude Max, never the
+#      Anthropic API (CLAUDE.md hard rule) — prefer a non-Anthropic provider (Groq/DeepSeek/
+#      local shim) exactly as the regcheck players do, to sidestep the key question entirely.
+#   3. Uncomment, set player_version to the pinned commit + model, run on prereg-deviation-v1
+#      (revealed split first), then build:data. deterministic:false (LLM-backed).
+# - player_id: watson-prereg
+#   player_type: tool
+#   player_version: "watson-<commit>-<provider>-<model>"   # pin once public
+#   adapter_class: WatsonShimAdapter                        # or a native CLI/HTTP adapter
+#   confidence_strategy: native
+#   deterministic: false
+
+# --- metacheck capability-family baselines -------------------------------
+# Claude (Claude Code CLI → Claude Max) baselines for the 7 metacheck arenas.
+# Each uses SubprocessCliAdapter (no API key; see CLAUDE.md) with a per-arena
+# prompt tailored to that arena's output.schema.json.
+- player_id: claude-haiku-4-5-reporting
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-haiku-4-5-siglang
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+
+# Opus 4.8 + Sonnet 4.6 baselines (Claude Code CLI = Claude Max; no API key).
+# Added 2026-06-29 by sciencearena-iterate cycle 1, reusing the arena's prompt.
+- player_id: claude-opus-4-8-siglang
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-4-6-siglang
+  player_type: ai-model
+  player_version: "claude-sonnet-4-6"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-4-6"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-haiku-4-5-refint
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-haiku-4-5-transparency
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-haiku-4-5-power
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-haiku-4-5-pregextract
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-haiku-4-5-repro
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- Phase 3 statistical-consistency arenas (R reference tools + Claude baselines) ---
+# Deterministic R tools (scrutiny / rsprite2 / zcurve) are the reference players;
+# the Claude baselines (Claude Code CLI = Claude Max, no API key) are the LLM
+# comparison. Tool gold is computed by each arena's generator, so a tool scoring
+# near-perfect also cross-validates the arena's ground truth.
+- player_id: scrutiny-grim
+  player_type: tool
+  player_version: "scrutiny-0.6.1"   # verified installed 2026-08-04 (was an un-versioned label)
+  adapter_class: RCliAdapter
+  r_script: players/adapters/grim_scrutiny.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-grim
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: rsprite2-sprite
+  player_type: tool
+  player_version: "rsprite2-0.2.1"   # verified installed 2026-08-04 (was a bare package name, no version)
+  adapter_class: RCliAdapter
+  r_script: players/adapters/sprite_rsprite2.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-sprite
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: zcurve-tool
+  player_type: tool
+  # zcurve is run with the EM estimator (see zcurve_tool.R). The version field must
+  # be the INSTALLED package version only — the §C build gate string-compares it
+  # against resolved_tool_version(), so a method suffix here reads as drift.
+  player_version: "zcurve-2.4.6"   # verified installed 2026-08-04 (was "zcurve-EM", a method name)
+  adapter_class: RCliAdapter
+  r_script: players/adapters/zcurve_tool.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-zcurve
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- pdf-text-fidelity-v1 players ----------------------------------------
+
+# player_version is the human-declared label (also the report-bundle key); the
+# AUTHORITATIVE version a score was produced with is `resolved_tool_version`,
+# detected at runtime by the adapter and stamped into every run record (see
+# framework/player_adapter.py::resolved_tool_version). Keep these in sync with
+# the installed package; `python -m framework parity --versions` flags drift.
+- player_id: docpluck-academic
+  player_type: platform
+  player_version: "docpluck-2.4.126-academic"
+  adapter_class: DocpluckLibraryAdapter
+  docpluck_level: academic
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: docpluck-standard
+  player_type: platform
+  player_version: "docpluck-2.4.126-standard"
+  adapter_class: DocpluckLibraryAdapter
+  docpluck_level: standard
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: pdftotext-raw
+  player_type: tool
+  player_version: "poppler-pdftotext-24.08.0"
+  adapter_class: PdftotextSubprocessAdapter
+  pdftotext_binary: pdftotext
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: grobid-text-only
+  player_type: tool
+  player_version: "grobid-0.8.1"
+  adapter_class: GrobidTextAdapter
+  endpoint: http://localhost:8070
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: liteparse-default
+  player_type: tool
+  player_version: "liteparse-2.11.1"
+  adapter_class: LiteparseTextAdapter
+  ocr_enabled: true
+  ocr_language: eng
+  dpi: 150
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: docling-text
+  player_type: tool
+  player_version: "docling-2.120.3-tableformer-accurate-noocr"
+  adapter_class: DoclingTextAdapter
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: docling-vlm-text
+  player_type: tool
+  player_version: "docling-2.120.3-vlm-granite-docling-258m"
+  adapter_class: DoclingTextAdapter
+  docling_vlm: true
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: liteparse-no-ocr
+  player_type: tool
+  player_version: "liteparse-2.11.1-no-ocr"
+  adapter_class: LiteparseTextAdapter
+  ocr_enabled: false
+  ocr_language: eng
+  dpi: 150
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-pdf
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: LlmCliPdfAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+
+# gemini CLI 0.37.0 + gemini-2.5-flash refuses PDF input — the CLI's
+# `read_file` tool does not process PDF binaries ("I do not have a tool
+# that can process PDF files directly"), and the workspace sandbox
+# rejects paths under .tmp_pdfs/ since the dir is gitignored. Re-enable
+# once gemini-cli ships a vision/document tool, or wire a separate
+# image-tile rendering path.
+# - player_id: gemini-2-5-flash-pdf
+#   player_type: ai-model
+#   player_version: "gemini-2.5-flash"
+#   adapter_class: LlmCliPdfAdapter
+#   cli_command: ["gemini", "-p", "", "-m", "gemini-2.5-flash", "-y", "--skip-trust"]
+#   prompt_template_path: players/prompts/pdf_text_fidelity.txt
+#   confidence_strategy: native
+#   deterministic: false
+
+# codex CLI 0.128 from `npm install -g @openai/codex`. Default model is
+# gpt-5.5 on the user's ChatGPT subscription. codex's exec mode dumps a
+# transcript to stderr but ONLY writes the assistant's final answer to
+# the file passed via `-o <file>`, so we use that path via the adapter's
+# output_message_flag hook. `--skip-git-repo-check` keeps it from
+# refusing to run if the cwd isn't a git repo (we are, but this is
+# defensive).
+- player_id: codex-5-5-pdf
+  player_type: ai-model
+  player_version: "gpt-5.5-via-codex"
+  adapter_class: LlmCliPdfAdapter
+  cli_command: ["codex", "exec", "--skip-git-repo-check"]
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  output_message_flag: "-o"
+  confidence_strategy: native
+  deterministic: false
+
+# --- pdf-section-structure-v1 players ------------------------------------
+# Order matters: competitors first, docpluck last. The runner respects
+# the order players are passed on the CLI; the registry mirrors that
+# default so `--players ...` without an explicit order keeps docpluck
+# in last position by accident-of-construction.
+
+- player_id: grobid-sections
+  player_type: tool
+  player_version: "grobid-0.8.1"
+  adapter_class: GrobidSectionsAdapter
+  endpoint: http://localhost:8070
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# NOT a liteparse-native capability: liteparse emits only text + per-item
+# bbox/font. The sections here come from an arena-authored IMRaD heading regex
+# (players/adapters/_liteparse_sections_heuristic.py). `tool_native: false` +
+# `wrapper` flag the leaderboard so the score is not read as liteparse-native
+# (Finding 5 of the 2026-06-12 accuracy handoff).
+- player_id: liteparse-sections-heuristic
+  player_type: tool
+  player_version: "liteparse-2.11.1+arena-heuristic-sections"
+  adapter_class: LiteparseSectionsHeuristicAdapter
+  tool_native: false
+  wrapper: arena-heuristic
+  ocr_enabled: true
+  ocr_language: eng
+  dpi: 150
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-sections
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: LlmCliPdfSectionsAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+
+# Current Claude tiers on the PDF section arena (cycle 10, 2026-08-04). Until now
+# this priority-1 arena had only haiku (0.738) and gemini-2.5-flash (0.615) as AI
+# players, while its deterministic parsers score 0.829 revealed / 0.381 held-out —
+# so the interesting question ("do stronger multimodal models close the
+# synthetic-vs-real gap that regex parsers fall into?") had no data. Same adapter,
+# same prompt as haiku, so the comparison is model-only.
+- player_id: claude-sonnet-5-sections
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: LlmCliPdfSectionsAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: claude-opus-4-8-sections
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: LlmCliPdfSectionsAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+
+# Gemini CLI's `read_file` tool may still refuse PDF input (see L1 note).
+# Adapter is wired so the user can enable when the tool ships PDF support.#   - player_id: gemini-2-5-flash-sections
+#     player_type: ai-model
+#     player_version: "gemini-2.5-flash"
+#     adapter_class: LlmCliPdfSectionsAdapter
+#     cli_command: ["gemini", "-p", "", "-m", "gemini-2.5-flash", "-y", "--skip-trust"]
+#     prompt_template_path: players/prompts/pdf_section_structure.txt
+#     confidence_strategy: native
+#     deterministic: false
+
+
+- player_id: docpluck-sections
+  player_type: platform
+  player_version: "docpluck-2.4.126-sections"
+  adapter_class: DocpluckSectionsAdapter
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# --- pdf-table-extraction-v1 players -------------------------------------
+# Order: competitors first, docpluck last (mirrors sections arena).
+
+- player_id: grobid-tables
+  player_type: tool
+  player_version: "grobid-0.8.1"
+  adapter_class: GrobidTablesAdapter
+  endpoint: http://localhost:8070
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# NOT liteparse-native (see liteparse-sections-heuristic note): tables come from
+# an arena-authored bbox grid-clustering heuristic
+# (players/adapters/_liteparse_tables_heuristic.py), not liteparse itself.
+- player_id: liteparse-tables-heuristic
+  player_type: tool
+  player_version: "liteparse-2.11.1+arena-heuristic-tables"
+  adapter_class: LiteparseTablesHeuristicAdapter
+  tool_native: false
+  wrapper: arena-heuristic
+  ocr_enabled: true
+  ocr_language: eng
+  dpi: 150
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-tables
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: LlmCliPdfTablesAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+#   - player_id: gemini-2-5-flash-tables
+#     player_type: ai-model
+#     player_version: "gemini-2.5-flash"
+#     adapter_class: LlmCliPdfTablesAdapter
+#     cli_command: ["gemini", "-p", "", "-m", "gemini-2.5-flash", "-y", "--skip-trust"]
+#     prompt_template_path: players/prompts/pdf_table_extraction.txt
+#     confidence_strategy: native
+#     deterministic: false
+
+
+# --- Docling players (added 2026-08-19) ------------------------------------
+#
+# Docling (docling.ai, IBM Research -> LF AI & Data, MIT). NOT an LLM player and
+# NOT a rule-based parser: the default pipeline is a chain of small LOCAL
+# discriminative models -- a DocLayNet-trained RT-DETRv2 layout detector and
+# TableFormer, a vision transformer for table structure. Table text is matched
+# back onto the PDF's own text cells rather than re-transcribed, so the tool
+# cannot invent a value that is not on the page. Classified `tool`, local for
+# the egress gate, and therefore allowed on the held-out corpus.
+#
+# `player_version` folds the PIPELINE into the identity, not just the package
+# version: Docling swapped its default layout model between releases (+23.5%
+# mAP), so `docling-2.120.3` alone does not name the instrument. Changing the
+# table mode or the layout engine must mint a NEW player rather than silently
+# extend an old one's history. `framework audit --versions` requires the
+# detected version to be a substring, so "2.120.3" stays literal.
+#
+# `deterministic: true` was MEASURED, not assumed. Shipped as false first, which
+# makes the runner take 3 trials, which turned the first tournament into the
+# determinism probe: 12/12 synthetic tasks AND 8/8 real held-out PMC papers
+# reproduced identically across all three trials (evidence retained outside the
+# repo; see players/INSTALL_LOG.md). No published determinism study of Docling
+# exists, so this is a small new result.
+#
+# It matters beyond bookkeeping: `framework/report.py::_summary` computes the CI
+# over RAW RECORDS with no collapsing by task_id, so leaving this false would
+# publish n_scored = 3x the task count and a confidence interval sqrt(3) too
+# NARROW -- three identical trials presented as three independent observations.
+# Every other player on the board runs one trial; this one must too.
+- player_id: docling-tables
+  player_type: tool
+  player_version: "docling-2.120.3-tableformer-accurate-noocr"
+  adapter_class: DoclingTablesAdapter
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# The OPT-IN VlmPipeline: granite-docling-258M, a LOCAL GENERATIVE
+# vision-language model that replaces the whole specialist chain. Still zero
+# egress, but hallucination-capable in a way the standard pipeline is not --
+# which is exactly why it is a separate row rather than a config flag.
+- player_id: docling-vlm-tables
+  player_type: tool
+  player_version: "docling-2.120.3-vlm-granite-docling-258m"
+  adapter_class: DoclingTablesAdapter
+  docling_vlm: true
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: docpluck-tables
+  player_type: platform
+  player_version: "docpluck-2.4.126-tables"
+  adapter_class: DocpluckTablesAdapter
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# --- pdf-reference-parsing-v1 players ------------------------------------
+
+- player_id: grobid-references
+  player_type: tool
+  player_version: "grobid-0.8.1"
+  adapter_class: GrobidReferencesAdapter
+  endpoint: http://localhost:8070
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: anystyle-references
+  player_type: tool
+  player_version: "anystyle-1.x"
+  adapter_class: AnystyleReferencesAdapter
+  cli_command: ["anystyle"]
+  pdftotext_binary: pdftotext
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: cermine-references
+  player_type: tool
+  player_version: "cermine-1.13"
+  adapter_class: CermineReferencesAdapter
+  cermine_jar: tools/cermine-impl-1.13-jar-with-dependencies.jar
+  java_binary: java
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: scimeto-citations-api
+  player_type: platform
+  player_version: "1.71.3"
+  adapter_class: ScimetoCitationsAdapter
+  api_url_env: SCIMETO_API_URL
+  api_key_env: SCIMETO_API_KEY
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-references
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: LlmPdfReferencesAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  prompt_template_path: players/prompts/pdf_reference_parsing.txt
+  confidence_strategy: native
+  deterministic: false
+#   - player_id: gemini-2-5-flash-references
+#     player_type: ai-model
+#     player_version: "gemini-2.5-flash"
+#     adapter_class: LlmPdfReferencesAdapter
+#     cli_command: ["gemini", "-p", "", "-m", "gemini-2.5-flash", "-y", "--skip-trust"]
+#     prompt_template_path: players/prompts/pdf_reference_parsing.txt
+#     confidence_strategy: native
+#     deterministic: false
+#
+#   # --- pdf-citation-matching-v1 players ------------------------------------
+
+
+- player_id: grobid-citations
+  player_type: tool
+  player_version: "grobid-0.8.1"
+  adapter_class: GrobidCitationsAdapter
+  endpoint: http://localhost:8070
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: scimeto-matching-api
+  player_type: platform
+  player_version: "1.71.3"
+  adapter_class: ScimetoMatchingAdapter
+  api_url_env: SCIMETO_API_URL
+  api_key_env: SCIMETO_API_KEY
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-citations
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: LlmPdfCitationsAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  prompt_template_path: players/prompts/pdf_citation_matching.txt
+  confidence_strategy: native
+  deterministic: false
+#   - player_id: gemini-2-5-flash-citations
+#     player_type: ai-model
+#     player_version: "gemini-2.5-flash"
+#     adapter_class: LlmPdfCitationsAdapter
+#     cli_command: ["gemini", "-p", "", "-m", "gemini-2.5-flash", "-y", "--skip-trust"]
+#     prompt_template_path: players/prompts/pdf_citation_matching.txt
+#     confidence_strategy: native
+#     deterministic: false
+#
+#   # --- transparency-statements-v1 R tool players ---------------------------
+#   # oddpub detects open-data / open-code statements only (coi/funding/materials/
+#   # prereg are emitted absent). rtransparent adds native COI + funding detection
+#   # (rt_coi / rt_fund) and reuses oddpub for data/code; its rt_register module is
+#   # broken in v0.2.5 ("object 'index_any' not found"), so prereg is emitted absent.
+#   # --- publication-bias-v1 players -----------------------------------------
+#   # metafor (Egger regtest + trimfill) is the deterministic reference tool; its
+#   # gold is computed by the arena generator, so a tool scoring near-perfect also
+#   # cross-validates the arena's ground truth. The Claude baseline (Claude Code CLI =
+#   # Claude Max, no API key) is the LLM comparison.
+
+
+- player_id: metafor-pubbias
+  player_type: tool
+  player_version: "metafor-5.0.1"   # verified installed 2026-08-04; re-run confirmed identical scores to 4.8.0
+  adapter_class: RCliAdapter
+  r_script: players/adapters/metafor_pubbias.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-pubbias
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- effect-size-conversion-v1 players -----------------------------------
+# effectsize / esc closed-form conversions are the deterministic reference tool; the
+# arena's gold is computed by the generator with the SAME formula family, so a tool
+# scoring near-perfect also cross-validates the arena's ground truth. The Claude
+# baseline (Claude Code CLI = Claude Max, no API key) is the LLM comparison.
+- player_id: effectsize-convert
+  player_type: tool
+  player_version: "effectsize-1.0.2"   # verified installed 2026-08-04; re-run confirmed identical scores to 1.0.1
+  adapter_class: RCliAdapter
+  r_script: players/adapters/effectsize_convert.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-esconvert
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+- player_id: mistral-small-latest-esconvert
+  player_type: ai-model
+  player_version: "mistral/mistral-small-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-small-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- p-curve-v1 players ---------------------------------------------------
+# A FAITHFUL pure-R implementation of the Simonsohn, Nelson & Simons (2014) p-curve
+# right-skew test (players/adapters/pcurve.R) is the deterministic reference tool; the
+# arena's gold is computed by the generator with the SAME algorithm, so a tool scoring
+# near-perfect also cross-validates the arena's ground truth. dmetar (which wraps
+# p-curve) is unavailable for R 4.4 and puniform implements p-uniform* (a sibling), so
+# the published algorithm is implemented directly with base-R distribution functions.
+# DISTINCT from zcurve-evidential-v1 (z-curve EM mixture). The Claude baseline (Claude
+# Code CLI = Claude Max, no API key) is the LLM comparison.
+
+- player_id: pcurve
+  player_type: tool
+  player_version: "pcurve-simonsohn-2014"
+  adapter_class: RCliAdapter
+  r_script: players/adapters/pcurve.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-haiku-4-5-pcurve
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: oddpub
+  player_type: tool
+  player_version: "oddpub-7.2.3"
+  adapter_class: RCliAdapter
+  r_script: players/adapters/oddpub.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: rtransparent
+  player_type: tool
+  player_version: "rtransparent-0.2.5"
+  adapter_class: RCliAdapter
+  r_script: players/adapters/rtransparent.R
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# === Sonnet 5 players (Claude Max via CLI) — added 2026-07-01 by sciencearena-iterate ===
+# One per existing haiku text-arena player, reusing that arena's prompt. PDF arenas excluded.
+
+- player_id: claude-sonnet-5-prereg
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-reporting
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-siglang
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-refint
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-transparency
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-power
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-pregextract
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-repro
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-grim
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-sprite
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-zcurve
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-pubbias
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-esconvert
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-sonnet-5-pcurve
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+# ---------------------------------------------------------------------------
+# Opus 4.8 full text-arena sweep (Claude Code CLI = Claude Max; no API key).
+# Added 2026-07-01 by sciencearena-iterate cycle 5: one claude-opus-4-8-<suffix>
+# per existing text arena, reusing that arena's prompt — advancing the Opus tier
+# from 1 arena (siglang) to full text coverage now that the claude headless auth
+# blocker is resolved. claude-opus-4-8-siglang already exists above (cycle 1),
+# so it is not duplicated here. PDF arenas excluded (need LlmCliPdf* adapters).
+# ---------------------------------------------------------------------------
+- player_id: claude-opus-4-8-prereg
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-reporting
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-refint
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-transparency
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-power
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-pregextract
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-repro
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-grim
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-sprite
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-zcurve
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-pubbias
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-esconvert
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-pcurve
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+# ---------------------------------------------------------------------------
+# stats-extraction-v1 players (cycle 5). This priority-1 arena had only a stale
+# claude-opus-4-7 POC (generic claude.txt prompt) and was NOT in the cycle-4
+# sweep. Wire the current Claude tiers with a dedicated stats_extraction.txt
+# prompt that documents every injected deception mode (the drift-guard target).
+# ---------------------------------------------------------------------------
+- player_id: claude-sonnet-5-stats
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-stats
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-haiku-4-5-stats
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+
+
+# ---------------------------------------------------------------------------
+# code-translation-r-v1 — SPSS/Stata syntax -> R.
+#
+# The non-LLM field here is genuinely tiny (surveyed 2026-08-03): only three
+# real syntax translators exist, none has ever been on CRAN, and one has been
+# dormant since 2021. That asymmetry IS the finding this arena reports — the
+# honest claim is "there is almost no tooling", not "LLMs beat the tools".
+#
+# All three are R packages, so their output is captured once and committed as
+# version-pinned fixtures under the arena's fixtures/tool_outputs/ (user
+# decision 2026-08-03) rather than invoked live. A task a converter cannot
+# handle yields no fixture and is scored as a non-execution — which is the same
+# thing the real tool would do.
+# ---------------------------------------------------------------------------
+- player_id: spss2rmarkdown
+  player_type: tool
+  player_version: "spss2rmarkdown-0.1.0"
+  adapter_class: XlatFixtureAdapter
+  fixture_dir: arenas/code-translation-r-v1/fixtures/tool_outputs/spss2rmarkdown
+  fixture_tool_version: "spss2rmarkdown-0.1.0"
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: spsstor
+  player_type: tool
+  player_version: "SPSStoR-0.3.0"
+  adapter_class: XlatFixtureAdapter
+  fixture_dir: arenas/code-translation-r-v1/fixtures/tool_outputs/spsstor
+  fixture_tool_version: "SPSStoR-0.3.0"
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: stata2r-skranz
+  player_type: tool
+  player_version: "stata2r-skranz-0.1.0"
+  adapter_class: XlatFixtureAdapter
+  fixture_dir: arenas/code-translation-r-v1/fixtures/tool_outputs/stata2r-skranz
+  fixture_tool_version: "stata2r-skranz-0.1.0"
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: claude-sonnet-5-xlat
+  player_type: ai-model
+  player_version: "claude-sonnet-5"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-haiku-4-5-xlat
+  player_type: ai-model
+  player_version: "claude-haiku-4-5-20251001"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-haiku-4-5-20251001"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: claude-opus-4-8-xlat
+  player_type: ai-model
+  player_version: "claude-opus-4-8"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Opt in to `--output-format json`: the CLI then returns an envelope
+  # carrying token usage and stop_reason around the answer. Without it a
+  # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
+  # non-envelope stdout falls through to the permissive extractor.
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --------------------------------------------------------------------------- #
+# Free-tier open-weight models via the opencode gateway (cycle 9, 2026-08-04).
+#
+# These are the first NON-Claude, non-deterministic players in the benchmark, and
+# they matter scientifically: every AI baseline so far is one vendor's family, so
+# "an LLM can do this" has really meant "a Claude model can do this". Open-weight
+# models at 9-30B are also what a lab without an API budget would actually reach
+# for, which is the population this benchmark is supposed to inform.
+#
+# Auth: OpenRouter, via the credential already stored in opencode
+# (`opencode auth list`). NO key is read or committed here — the gateway holds it.
+# This is a third-party free tier, NOT the forbidden Anthropic API (CLAUDE.md).
+#
+# best_effort: true — OpenRouter's free tier is rate-limited (~20 rpm / ~200 per
+# day, shared across models) and a throttled task is an INFRA failure, not a wrong
+# answer. The flag keeps a partially-covered player from collapsing the common set
+# for everyone else, while still ranking it over the tasks it did complete.
+#
+# NOTE (verified 2026-08-04): OpenCode Zen's own `*-free` models are NOT usable —
+# the workspace returns "No payment method" even for free models, so Zen is
+# deliberately not wired. OpenRouter `:free` works and is what these entries use.
+- player_id: nemotron-nano-9b-grim
+  player_type: ai-model
+  player_version: "nvidia-nemotron-nano-9b-v2-free"
+  adapter_class: SubprocessCliAdapter
+  # Wrapped in `timeout`: opencode spawns a detached worker, so a stalled call
+  # survives subprocess.run(timeout=) killing only the parent — one task hung 28
+  # minutes past --timeout 300 in cycle 9. `-k` guarantees SIGKILL after SIGTERM.
+  cli_command: ["timeout", "-k", "20", "240", "opencode", "run", "--model", "openrouter/nvidia/nemotron-nano-9b-v2:free"]
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+
+# UNAVAILABLE 2026-08-04 (cycle 9): openrouter/google/gemma-4-31b-it:free could not
+# answer a trivial "reply PONG" prompt within TEN MINUTES, and every one of its 6
+# arena tasks came back `timeout exited 124`. That is a queue/availability fact
+# about the free tier, not a capability measurement, so the 6 all-timeout records
+# were DELETED rather than published — a row of 0.000 would read as "this model
+# scored zero" when it never answered at all. The sibling nemotron-nano-9b model
+# on the SAME gateway and credential runs fine (~70 s/task), so this is specific
+# to the 31B free endpoint. Re-enable and re-measure if its availability improves.
+#
+# - player_id: gemma-4-31b-grim
+#   cli_command: ["timeout","-k","20","240","opencode","run","--model","openrouter/google/gemma-4-31b-it:free"]
+#   prompt_template_path: players/prompts/grim_consistency.txt
+#   best_effort: true
+
+- player_id: nemotron-nano-9b-siglang
+  player_type: ai-model
+  player_version: "nvidia-nemotron-nano-9b-v2-free"
+  adapter_class: SubprocessCliAdapter
+  # Wrapped in `timeout`: opencode spawns a detached worker, so a stalled call
+  # survives subprocess.run(timeout=) killing only the parent — one task hung 28
+  # minutes past --timeout 300 in cycle 9. `-k` guarantees SIGKILL after SIGTERM.
+  cli_command: ["timeout", "-k", "20", "240", "opencode", "run", "--model", "openrouter/nvidia/nemotron-nano-9b-v2:free"]
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+
+# UNAVAILABLE 2026-08-04 (cycle 9) — same endpoint as gemma-4-31b-grim above; see
+# that note. Never run.
+#
+# - player_id: gemma-4-31b-siglang
+#   cli_command: ["timeout","-k","20","240","opencode","run","--model","openrouter/google/gemma-4-31b-it:free"]
+#   prompt_template_path: players/prompts/significance_language.txt
+
+# ─────────────────────────────────────────────────────────────────────────────
+# --- Free-token named routes promoted after 2026-08-10 revealed smoke --------
+#
+# Promotion scope is PER ARENA. These four passed significance-language-v1 smoke
+# tests on 3 revealed/public tasks with stable attribution and parseable JSON.
+# Do not copy them to GRIM: the same providers/models either over-flagged clean
+# GRIM controls or hit CLI/headless-output issues there.
+
+- player_id: hf-gpt-oss-20b-groq-siglang
+  player_type: ai-model
+  player_version: "hf/openai/gpt-oss-20b:groq"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-20b:groq"
+  openai_base_url_env: HF_BASE_URL
+  openai_api_key_env: HF_API_KEY
+  openai_available_models_env: HF_MODELS
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+
+- player_id: mistral-small-latest-siglang
+  player_type: ai-model
+  player_version: "mistral/mistral-small-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-small-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: nvidia-nemotron-nano-9b-v2-siglang
+  player_type: ai-model
+  player_version: "nvidia/nvidia-nemotron-nano-9b-v2"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nvidia-nemotron-nano-9b-v2"
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: antigravity-gemini-3-6-flash-low-siglang
+  player_type: ai-model
+  player_version: "antigravity/gemini-3.6-flash-low"
+  adapter_class: AntigravityCliAdapter
+  agy_model: "gemini-3.6-flash-low"
+  agy_print_timeout: "180s"
+  agy_json_schema: '{"type":"object","properties":{"flags":{"type":"array","items":{"type":"object"}}},"required":["flags"]}'
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+
+# STRICT FREE-TOKEN ACCESS LAYER (2026-08-10).
+#
+# Use `OpenAIChatCompletionsAdapter` for named, stable OpenAI-compatible free
+# routes after a revealed-split smoke test. Keep OmniRoute/OpenRouter `auto` and
+# other rotating routers out of scored registry entries: they are useful for
+# scouting, but not attributable enough for publishable model rows.
+#
+# Runbook + provider ledger:
+#   docs/model-access/free-token-access-ledger.md
+#
+# Example activation after smoke test (do not uncomment without live env vars):
+#
+# - player_id: nvidia-nemotron-nano-9b-grim-api
+#   player_type: ai-model
+#   player_version: "nvidia/nemotron-nano-9b-v2"
+#   adapter_class: OpenAIChatCompletionsAdapter
+#   openai_model: "nvidia/nemotron-nano-9b-v2"
+#   openai_base_url_env: NVIDIA_NIM_BASE_URL
+#   openai_api_key_env: NVIDIA_NIM_API_KEY
+#   openai_available_models_env: NVIDIA_NIM_MODELS
+#   prompt_template_path: players/prompts/grim_consistency.txt
+#   confidence_strategy: native
+#   deterministic: false
+#   best_effort: true
+#
+# - player_id: openrouter-nemotron-nano-9b-grim-api
+#   player_type: ai-model
+#   player_version: "openrouter/nvidia/nemotron-nano-9b-v2:free"
+#   adapter_class: OpenAIChatCompletionsAdapter
+#   openai_model: "nvidia/nemotron-nano-9b-v2:free"
+#   openai_base_url_env: OPENROUTER_BASE_URL
+#   openai_api_key_env: OPENROUTER_API_KEY
+#   openai_available_models_env: OPENROUTER_MODELS
+#   prompt_template_path: players/prompts/grim_consistency.txt
+#   confidence_strategy: native
+#   deterministic: false
+#   best_effort: true
+#
+# Antigravity CLI is a separate agent route, not the legacy Gemini CLI and not a
+# reusable API key. Promote only after `scripts/antigravity_pilot.py` proves
+# stable model attribution and parseable JSON on revealed tasks.
+#
+# - player_id: antigravity-gemini-3-6-flash-low-grim
+#   player_type: ai-model
+#   player_version: "antigravity/gemini-3.6-flash-low"
+#   adapter_class: AntigravityCliAdapter
+#   agy_model: "gemini-3.6-flash-low"
+#   agy_print_timeout: "180s"
+#   agy_json_schema: '{"type":"object","properties":{"records":{"type":"array","items":{"type":"object"}}},"required":["records"]}'
+#   prompt_template_path: players/prompts/grim_consistency.txt
+#   confidence_strategy: native
+#   deterministic: false
+#   best_effort: true
+#
+# KAGGLE BENCHMARKS MODEL PROXY (K1, 2026-08-07)
+#
+# The first HTTP-based MODEL players: every other one of the 69 shells out
+# through SubprocessCliAdapter. The Kaggle Benchmarks Resource Grant provides
+# credit for OpenAI / Google / Anthropic / Grok / Qwen / DeepSeek behind one
+# OpenAI-compatible proxy, which is what unlocks the multi-provider coverage the
+# funder one-pager describes.
+#
+# These are COMMENTED OUT until the grant is awarded and the environment
+# actually supplies MODEL_PROXY_URL / MODEL_PROXY_API_KEY / LLMS_AVAILABLE.
+# A registered player that cannot run would appear on `players list` and in the
+# coverage ledger as if it were part of the field — advertising a competitor
+# that has never played a task. To activate: uncomment, confirm each
+# `proxy_model` appears in LLMS_AVAILABLE, then run the REVEALED split only.
+#
+# HELD-OUT EGRESS: unchanged and non-negotiable. `framework run` aborts on any
+# cloud-player + held-out combination unless SCIENCEARENA_ALLOW_HELDOUT_EGRESS=1
+# (framework/runner.py::assert_heldout_egress_allowed). Routing a model through
+# Kaggle's proxy does not make it a local player.
+#
+# - player_id: kaggle-gpt-5-grim
+#   player_type: ai-model
+#   player_version: "kaggle-proxy/gpt-5"
+#   adapter_class: ModelProxyAdapter
+#   proxy_model: gpt-5
+#   prompt_template_path: players/prompts/grim_consistency.txt
+#   confidence_strategy: native
+#   deterministic: false
+#
+# - player_id: kaggle-gemini-pro-3-1-grim
+#   player_type: ai-model
+#   player_version: "kaggle-proxy/gemini-pro-3.1"
+#   adapter_class: ModelProxyAdapter
+#   proxy_model: gemini-pro-3.1
+#   prompt_template_path: players/prompts/grim_consistency.txt
+#   confidence_strategy: native
+#   deterministic: false
+#
+# - player_id: kaggle-deepseek-siglang
+#   player_type: ai-model
+#   player_version: "kaggle-proxy/deepseek-chat"
+#   adapter_class: ModelProxyAdapter
+#   proxy_model: deepseek-chat
+#   prompt_template_path: players/prompts/significance_language.txt
+#   confidence_strategy: native
+#   deterministic: false
+
+# --- Mistral Large (La Plateforme) -------------------------------------------
+# Promoted 2026-08-12 after a 3-task revealed smoke on each arena below.
+# Materially stronger than mistral-small-latest, which is already registered for
+# significance-language and effect-size-conversion: e.g. p-curve 1.00/0.93/1.00,
+# transparency 1.00x3, prereg-extraction 1.00/0.99/1.00.
+# THROTTLING: La Plateforme returns HTTP 429 on back-to-back requests. Runs must
+# be paced; use `framework retry-failed --cooldown` to fill gaps rather than
+# leaving errored records, which are excluded from the mean and would otherwise
+# read as coverage the player does not have.
+
+- player_id: mistral-large-latest-repro
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-pcurve
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-power
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-pregextract
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-pubbias
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-refint
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-reporting
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-sprite
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-transparency
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-zcurve
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: mistral-large-latest-grim
+  player_type: ai-model
+  player_version: "mistral/mistral-large-latest"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "mistral-large-latest"
+  openai_base_url_env: MISTRAL_BASE_URL
+  openai_api_key_env: MISTRAL_API_KEY
+  openai_available_models_env: MISTRAL_MODELS
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- GPT-OSS 120B via Groq -----------------------------------------------------
+# Promoted 2026-08-12. The standout of the large-free-model smoke sweep: 1.000 on
+# BOTH grim-consistency and significance-language over 3 revealed tasks each,
+# where groq's own llama-3.3-70b managed 0.333/0.667 and qwen3.6-27b could not
+# produce parseable JSON for GRIM at all.
+# Open-weight model on a free-tier host, so it is attributable and reproducible in
+# a way the rotating routers are not. Text arenas only — the five pdf-* arenas
+# need a PDF-input adapter, not chat completions.
+
+- player_id: groq-gpt-oss-120b-xlat
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-esconvert
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-grim
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-repro
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-pcurve
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-power
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-prereg
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-pregextract
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-pubbias
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-refint
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-replication
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-reporting
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-siglang
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-sprite
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-stats
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-transparency
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: groq-gpt-oss-120b-zcurve
+  player_type: ai-model
+  player_version: "groq/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: GROQ_BASE_URL
+  openai_api_key_env: GROQ_API_KEY
+  openai_available_models_env: GROQ_MODELS
+  openai_extra_body:
+    max_tokens: 6000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- Nemotron 3 Super 120B via NVIDIA NIM ---------------------------------------
+# Promoted 2026-08-12 alongside groq-gpt-oss-120b, which matched it at 1.00/1.00
+# on the grim + significance-language smoke. Both were added rather than picking
+# the winner, because they are DIFFERENT MODEL FAMILIES and the ensemble analysis
+# rewards complementarity over raw strength: two players that fail on the same
+# tasks add nothing to a combination, however good each is alone.
+# NVIDIA NIM is slower than Groq (~24s/task observed on the 9B), so expect long
+# runs; the adapter's 429/5xx backoff covers the throttling.
+
+- player_id: nvidia-nemotron-3-super-120b-xlat
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-esconvert
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-grim
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-repro
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-pcurve
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-power
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-prereg
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-pregextract
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-pubbias
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-refint
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-replication
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-reporting
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-siglang
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-sprite
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-stats
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-transparency
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-3-super-120b-zcurve
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3-super-120b-a12b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3-super-120b-a12b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- Nemotron 3.5 Lightning 30B via NVIDIA NIM ----------------------------------
+# Added 2026-08-13, replacing nemotron-3-super-120b-a12b as the primary NVIDIA
+# route. Measured on an identical trivial prompt that day:
+#     nemotron-3-super-120b-a12b       57.9 s
+#     nemotron-3.5-lightning-30b-a3b    4.5 s   <- 13x faster
+#     nemotron-3-nano-30b-a3b           2.0 s
+# 58 s/task made super-120b a 6+ hour sweep for one player, and it was killed
+# after 2 arenas. Those 2 (code-translation-r-v1, effect-size-conversion-v1) had
+# FULL coverage and are kept as valid rows; its partials were archived, because a
+# score over a convenience subset of tasks is worse than no score.
+- player_id: nvidia-nemotron-lightning-xlat
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-esconvert
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-grim
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-repro
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-pcurve
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-power
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-prereg
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-pregextract
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-pubbias
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-refint
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-replication
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-reporting
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-siglang
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-sprite
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-stats
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-transparency
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+- player_id: nvidia-nemotron-lightning-zcurve
+  player_type: ai-model
+  player_version: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "nvidia/nemotron-3.5-lightning-30b-a3b"
+  # Nemotron 3.x ships with chain-of-thought ON, and the thinking tokens come
+  # out of the same budget as the answer. Measured 2026-08-13 on a real p-curve
+  # prompt: lightning went from an HTTP 504 to 3.7s, super-120b from 172s to 32s.
+  # Without this the route looks unusably slow; the model was never the problem.
+  openai_extra_body:
+    chat_template_kwargs:
+      enable_thinking: false
+  openai_base_url_env: NVIDIA_NIM_BASE_URL
+  openai_api_key_env: NVIDIA_NIM_API_KEY
+  openai_available_models_env: NVIDIA_NIM_MODELS
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+# --- Groq free-tier output ceiling -----------------------------------------
+# Every GROQ_* player carries `openai_extra_body.max_tokens: 6000`. This is NOT a
+# judgement about how long an answer should be - it is the provider's tier.
+# Groq free tier is 8000 tokens per minute counted as prompt + max_tokens TOGETHER,
+# and the reservation is checked BEFORE the model runs. On 2026-08-13 the adapter
+# began sending an explicit 32000 ceiling (see `_DEFAULT_MAX_TOKENS`) and Groq
+# answered HTTP 413 "Requested 33115, Limit 8000" on 46 of 46 prereg-deviation
+# tasks - a whole arena of zeros with the model never consulted.
+#
+# 6000 is measured, not guessed: the largest prompt across all 17 text arenas is
+# 1553 tokens (reference-integrity-v1), so 1553 + 6000 = 7553 clears 8000 with
+# room to spare.
+#
+# The honest cost: p99 of observed completions is ~14.9k tokens, so a long answer
+# WILL be cut off here. That is visible as `response_meta.finish_reason == "length"`
+# and must be read as Groq's free tier, never as the model's incapability - the
+# distinction run_record.schema.json calls the single most important field on the
+# record. A player that needs more headroom belongs on a different route.
+# ---------------------------------------------------------------------------
+
+# --- Gemini 3.5 Flash via Google AI Studio ---------------------------------------
+# Added 2026-08-13 to supplement Groq, whose 200k tokens/day ran out mid-sweep.
+# It also closes a real gap: retiring the dead `gemini-2-5-flash-*` CLI family left
+# the benchmark with NO Google model at all, so the field was Anthropic + open
+# weights only. Smoked on real arena prompts that day: grim 9.4s, significance
+# 2.9s, valid JSON on both. gemini-3.6-flash also works but was ~3.5x slower on
+# grim for the same output size.
+# Credential comes from the Google entry in OpenCode's auth store; the sweep
+# script exports it as GEMINI_API_KEY rather than committing anything.
+#
+# STATUS 2026-08-13, MEASURED, NOT INFERRED: the sweep over these players died on
+# HTTP 429 after ~37 tasks, and a bare re-probe hours later still 429s with
+#   "Quota exceeded for metric: generativelanguage.googleapis.com/
+#    generate_content_free_tier_requests, limit: 20"
+# That is 20 REQUESTS PER DAY, not a burst limit, so retrying does not help: one
+# 17-arena sweep is ~400 tasks, i.e. 20 days. The two partial runs are archived
+# under `_pilot_archive/2026-08-13-gemini-free-tier-429/` rather than left in
+# runs/, which would both fail the symmetry gate and publish a 16-task row.
+#
+# The entries are KEPT, not deleted, because nothing about them is wrong - the
+# smoke timings above are real and the route works. It is the free tier that is
+# too small. A Google model on a usable quota should come from `agy`
+# (Antigravity, serves gemini-3.6/3.5-flash free) or from OpenRouter, not from
+# raising this one's retry count.
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# openai/gpt-oss-120b served by OPENROUTER (added 2026-08-13).
+#
+# Why a second identity for a model we already run on Groq: Groq's free tier is
+# 200k tokens/DAY, which exhausted mid-sweep and left 7 arenas damaged. OpenRouter
+# meters the same weights on an INDEPENDENT quota, so the coverage gap can be
+# closed today instead of one arena per day.
+#
+# It is a separate player_id, never a re-tag of the Groq one, because the serving
+# stack is part of what a score measures - and this is not hypothetical here.
+# OpenRouter is a ROUTER: a 2026-08-13 probe for `openai/gpt-oss-120b` came back
+# served by Amazon Bedrock, and the same id is also fanned out over CoreWeave,
+# DeepInfra, Novita and Google at different quantizations. So:
+#   * `provider.order` pins ONE backend and `allow_fallbacks: false` refuses a
+#     silent substitution - an unavailable backend must fail loudly, not quietly
+#     score a different artifact under this player's name;
+#   * the adapter records `response_meta.served_by`, so the pin is EVIDENCED per
+#     record rather than merely asserted here.
+#
+# The pin is Cerebras, chosen by timing every backend on a REAL p-curve arena
+# prompt (2026-08-13) rather than a toy round-trip - the toy probe that misjudged
+# NVIDIA earlier the same day is why. Same prompt, same ~1300-1900 output tokens:
+#
+#     Cerebras    2.0s   fp16   $0.35/$0.75 per 1M
+#     Novita     17.6s   fp4    $0.05/$0.25
+#     CoreWeave  39.3s   fp4    $0.03/$0.17
+#     DeepInfra 151.2s   fp4    $0.05/$0.25
+#     Google      HTTP 429 (upstream quota);  Fireworks  HTTP 404 (no endpoint)
+#
+# Cerebras costs ~10x more per token and is still the right pin: it is the only
+# fp16 endpoint. The cheap backends serve a 4-BIT quantization, so a score from
+# them is a score for a compressed variant published under the name of the full
+# model - the misattribution this file's model allowlists already exist to stop.
+#
+# COVERAGE 2026-08-13: p-curve-v1 and power-reporting-v1 only, both COMPLETE
+# (12/12, 21/21, zero errors). The sweep then died on prereg-deviation-v1 with
+# HTTP 402 on 45 of 46 tasks - archived under
+# `_pilot_archive/2026-08-13-openrouter-402-credit-exhausted/`.
+#
+# The 402 is worth reading carefully, because the key's own /key endpoint says
+# `limit: 1, limit_remaining: 0.94` and looks healthy. The ACCOUNT is what binds:
+# /credits reports `total_credits: 0`. OpenRouter reserves credit for the full
+# `max_tokens` up front, so the error is "you requested up to 40960 tokens, but
+# can only afford 39463" - the model was never asked anything. Two consequences,
+# both now fixed rather than worked around:
+#   * the adapter had been sending NO `max_tokens` at all, letting each provider
+#     apply its own ceiling (see `_DEFAULT_MAX_TOKENS`);
+#   * a key-level budget is not an account-level budget. Check /credits, not /key.
+#
+# Two complete arenas is not a broken player - symmetry is judged WITHIN an arena
+# and both are full task sets - so these stay. The rest of gpt-oss-120b's coverage
+# comes from Groq, whose daily quota resets.
+# ---------------------------------------------------------------------------
+
+- player_id: gemini-3-5-flash-xlat
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-esconvert
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-grim
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-repro
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-pcurve
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-power
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-prereg
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-pregextract
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-pubbias
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-refint
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-replication
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-reporting
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-siglang
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-sprite
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-stats
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-transparency
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: gemini-3-5-flash-zcurve
+  player_type: ai-model
+  player_version: "google/gemini-3.5-flash"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "gemini-3.5-flash"
+  openai_base_url_env: GEMINI_BASE_URL
+  openai_api_key_env: GEMINI_API_KEY
+  openai_available_models_env: GEMINI_MODELS
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+
+- player_id: openrouter-gpt-oss-120b-xlat
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-esconvert
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-grim
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-repro
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-pcurve
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-power
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-prereg
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-pregextract
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-pubbias
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/publication_bias.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-refint
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-replication
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-reporting
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-siglang
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-sprite
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-stats
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-transparency
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+- player_id: openrouter-gpt-oss-120b-zcurve
+  player_type: ai-model
+  player_version: "openrouter/openai/gpt-oss-120b"
+  adapter_class: OpenAIChatCompletionsAdapter
+  openai_model: "openai/gpt-oss-120b"
+  openai_base_url_env: OPENROUTER_BASE_URL
+  openai_api_key_env: OPENROUTER_API_KEY
+  openai_available_models_env: OPENROUTER_MODELS
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  openai_extra_body:
+    provider:
+      order: ["Cerebras"]
+      allow_fallbacks: false
+
+
+# --- cursor-agent / grok-4.6 (2026-08-19) --------------------------------------
+# PUBLISHED WITH TWO STANDING CAVEATS, both machine-enforced rather than prose:
+#
+#   1. `containment: uncontrolled` on its leaderboard row, because
+#      `cursor-agent` CANNOT BE CONTAINED ON WINDOWS:
+#   * `--mode ask` + scratch cwd + `--workspace <scratch>` still returned a
+#     planted nonce from an absolute path inside this repo (probe 2026-08-19);
+#   * its own `--sandbox enabled` refuses to start — "Sandbox requires macOS or
+#     Linux".
+#      `framework/hermetic.py` marks this profile `flags_insufficient`, so every
+#      record it writes classifies `uncontrolled` no matter how it was invoked.
+#      Real containment needs a Linux container with the repo absent from the
+#      filesystem — see docs/design/containerised-cli-players.md (TODO CC8).
+#
+#   2. `best_effort: true`, because it ran 8 of the 22 revealed tasks. That flag
+#      keeps it OUT of the arena's common-set derivation (otherwise it drags the
+#      intersection from 22 down to 8 and the symmetry gate fails every other
+#      player), and the page ranks it in the `partial` bucket over the subset it
+#      covered rather than head-to-head. The documented meaning of best_effort is
+#      "coverage bounded by a token cap rather than by unfairness" — here the cap
+#      is the owner's budget, not a provider throttle, which is the same shape and
+#      is recorded plainly rather than dressed up as a rate limit.
+#
+# Effort tier is in the player_id on purpose: `low` and `high` are different
+# instruments and must not share a row.
+#
+# COST, measured before wiring this: a five-word prompt cost 17,991 input tokens
+# and real tasks ~45k, because the CLI's own system prompt and tool definitions
+# are charged per task and dwarf any arena prompt. Cost is ~45k x n_tasks almost
+# regardless of arena, so a cheaper arena means FEWER TASKS, not shorter prompts.
+# Completing the remaining 14 tasks would cost ~630k input tokens.
+- player_id: cursor-grok-4-6-low-esconvert
+  player_type: ai-model
+  player_version: "cursor-grok-4.6-low"
+  adapter_class: SubprocessCliAdapter
+  cli_command: ["cursor-agent", "--print", "--output-format", "json", "--model", "cursor-grok-4.6-low"]
+  # cursor-agent's envelope names every field differently from Anthropic's
+  # (inputTokens / cacheReadTokens / request_id), so it gets its own unwrap.
+  cli_json_envelope: cursor
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true

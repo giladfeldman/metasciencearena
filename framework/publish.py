@@ -91,14 +91,21 @@ PRIVATE_GOLD_MARKERS = (
 PUBLIC_TOP_LEVEL = (
     "framework/**/*.py",
     "framework/contract/schemas/*.json",
-    # Test FIXTURES.  never matched these, so the mirrored
+    # REQUIRED, not optional: framework/pricing.py reads this at IMPORT time, so a
+    # mirror shipping the module without the table is an ImportError on `import
+    # metasciencearena`. Published provider list prices; no secret.
+    "framework/contract/*.json",
+    # Test FIXTURES. `framework/**/*.py` never matched these, so the mirrored
     # tests referenced fake arenas and registries that were not shipped.
+    # (The glob was lost from this sentence by the 2026-08-14 control-character
+    # repair, leaving a comment that named no cause. Restored 2026-08-15.)
     "framework/tests/fixtures/**/*.yaml",
     "framework/tests/fixtures/**/*.yml",
     "framework/tests/fixtures/**/*.json",
     "framework/tests/fixtures/**/*.jsonl",
     "contract/README.md",
     "contract/arena.example.yaml",
+    # The injected-mistake taxonomy the arenas generate from — data, not answers.
     "taxonomy/**/*.yaml",
     "taxonomy/**/*.md",
     "pyproject.toml",
@@ -109,6 +116,37 @@ PUBLIC_TOP_LEVEL = (
     "DATA_HANDLING.md",
     "publish_templates/*.yml",
     "contract/published_arenas.json",
+    # THE INSTRUMENT (added 2026-08-15, user directive: "our prompts and
+    # everything about the way we call the models/tools should be shared").
+    #
+    # A published score is a measurement, and a measurement nobody can inspect
+    # the instrument for is not reproducible — it is an assertion. The prompt
+    # templates, the player registry and the adapters ARE the instrument: they
+    # decide what each tool is asked and how its answer is read back.
+    #
+    # Verified before publishing, three ways (Fable 5 / Sonnet 5 / Codex, all
+    # reproduced locally): every template is input-independent (it interpolates
+    # `{{INPUT_TEXT}}` / `{{PDF_PATH}}` / `{{N_PAGES}}` and names no document,
+    # DOI or answer); the registry holds zero literal credentials (every one is
+    # an env var NAME — `test_registry_declares_credentials_by_env_var_name`
+    # pins that); and no adapter reaches the real-paper gold path.
+    #
+    # The 6 PRIVATE arenas' prompts ship too, and that is deliberate: those
+    # arenas are private because their PDFs are not ours to republish, not
+    # because the instruction is secret. Hiding the instrument for them would
+    # make the private half unauditable for no gain.
+    "players/__init__.py",
+    "players/registry.yaml",
+    "players/prompts/*.txt",
+    # Superseded templates, kept so a published record's
+    # `prompt_template_sha256` always resolves to readable text. See
+    # `players/prompts/_archive/README.md`.
+    "players/prompts/_archive/*.txt",
+    "players/prompts/_archive/README.md",
+    "players/adapters/**/*.py",
+    "players/adapters/**/*.R",
+    "players/regcheck_shim/**/*.py",
+    "players/regcheck_shim/*.md",
 )
 
 #: Paths that land under a DIFFERENT name in the mirror.
@@ -145,6 +183,54 @@ PUBLIC_ARENA_GLOBS = (
     "schemas/*.json",
     "tests/**/*.py",
     "tools/**/*.py",
+    # R is a first-class player language here (harvest.R, tools/*.R). Shipping
+    # only the .py half of an arena's harness ships half a harness.
+    "*.R",
+    "tools/**/*.R",
+    # The CONTENT a generator renders from. Placeholder sentences and format
+    # variants, not answers — but without them `generate()` raises
+    # FileNotFoundError, which is what stats-extraction-v1 (the arena with the
+    # most published records) did in every mirror built before 2026-08-15. A
+    # published generator that cannot generate is a capability we claim and do
+    # not have.
+    "templates/**/*.yaml",
+    # Reproduction metadata for the task set: the REVEALED seed, task count and
+    # generator signature. `NEVER_PUBLISH` still blocks everything else under
+    # `task_sets/` — `_held_out/`, `.private_seed`, `_ground_truth.json`.
+    "task_sets/*/manifest.yaml",
+    # code-translation-r-v1's revealed half: the SPSS/Stata inputs, the fixed
+    # dataset, the catalog, and the executed-R gold cached under
+    # `source_scripts/gold/`.
+    #
+    # Publishing an answer key looks like the one thing this module exists to
+    # prevent, so the reasoning is recorded rather than assumed. Checked, not
+    # inferred: `leaderboard-app/public/data/code-translation-r-v1/ground_truth.json`
+    # ALREADY serves all 18 revealed tasks with full envelopes and answers on the
+    # live site, and every other public arena's revealed gold is likewise
+    # obtainable by anyone — `generator.ground_truth()` recomputes it from the
+    # published seed 0. This arena simply CACHES its revealed gold in files
+    # (because building it means executing R) instead of recomputing it. So this
+    # discloses nothing the design has not already committed to, and withholding
+    # it only meant shipping a generator that raised FileNotFoundError.
+    #
+    # The PRIVATE half is untouched: `task_sets/v1/_held_out/` carries its own
+    # `gold.json` per case and is blocked by `NEVER_PUBLISH`.
+    "source_scripts/*.yaml",
+    "source_scripts/**/*.sps",
+    "source_scripts/**/*.do",
+    "source_scripts/**/*.R",
+    "source_scripts/**/*.json",
+    "source_scripts/**/*.csv",
+    # Captured OUTPUTS of players that cannot be installed on demand (the three
+    # SPSS/Stata->R translators, none of which was ever on CRAN). Registry
+    # entries point at these directories, so a mirror without them has three
+    # players that cannot run. They are a player's ANSWER, not the gold it is
+    # scored against — and this arena's tasks are seed-generated and public, so
+    # the answers reveal nothing the task set does not already give away.
+    # Computed by glob rather than named per-arena on purpose: a hardcoded path
+    # is the drifting list this module exists to avoid. `NEVER_PUBLISH` still
+    # drops `_ground_truth.json`, and the verbatim scan still runs over these.
+    "fixtures/**/*.json",
 )
 
 #: Per-arena paths that are private no matter which arena they belong to.
@@ -158,11 +244,20 @@ PRIVATE_ARENA_PATHS = ("tools/build_gold.py",)
 #: installs the package — not a leak, a breakage, but a public repo with a red X
 #: is its own kind of unbacked claim.
 #:
-#: Three `framework/tests/*` files imported `players.adapters.*` and broke CI on
-#: the public repo within minutes of the first release (2026-08-07). They are
-#: integration tests for adapters the package does not ship, so they belong with
-#: the private repo.
-PRIVATE_PACKAGES = frozenset({"players"})
+#: EMPTY SINCE 2026-08-15, and the emptiness is the point: `players` was the only
+#: entry, and publishing the instrument (see PUBLIC_TOP_LEVEL) removed it. Three
+#: `framework/tests/*` files that imported `players.adapters.*` and broke the
+#: public repo's CI within minutes of the first release (2026-08-07) are
+#: therefore mirrored again — `--verify-tests` is what proves they now run.
+#:
+#: The MECHANISM stays, for the next package that is private on its own terms.
+#: Because an empty set makes `imports_a_private_package` unfirable — and an
+#: unfirable check is decoration — two things carry the real weight now:
+#: `test_the_private_import_check_actually_detects_one` exercises the mechanism
+#: against a monkeypatched set, and
+#: `test_every_first_party_import_in_the_mirror_resolves_inside_the_mirror`
+#: checks the actual property this rule was a proxy for.
+PRIVATE_PACKAGES: frozenset[str] = frozenset()
 
 #: Test files that are bound to PRIVATE data and cannot run in the mirror.
 #:
@@ -180,19 +275,54 @@ PRIVATE_PACKAGES = frozenset({"players"})
 #: `scripts/build_public_mirror.py --verify-tests` RUNS the mirrored suite, so
 #: this list cannot quietly go stale.
 PRIVATE_TEST_FILES = frozenset({
-    # Assert a prompt in players/prompts/ documents every deception kind.
-    "arenas/grim-consistency-v1/tests/test_generator.py",
-    "arenas/open-practices-repro-v1/tests/test_generator.py",
-    "arenas/prereg-extraction-v1/tests/test_generator.py",
-    "arenas/reference-integrity-v1/tests/test_generator.py",
-    "arenas/reporting-completeness-v1/tests/test_generator.py",
-    "arenas/significance-language-v1/tests/test_generator.py",
-    "arenas/stats-extraction-v1/tests/test_generator.py",
-    "arenas/transparency-statements-v1/tests/test_generator.py",
-    "arenas/stats-extraction-v1/tests/test_coverage.py",
-    # Read players/registry.yaml, private arenas, or run the private side of the
-    # publish boundary (whose answer differs by construction inside the mirror).
+    # NINE ENTRIES REMOVED 2026-08-15. Eight arena `test_generator.py` files and
+    # `stats-extraction-v1/tests/test_coverage.py` were excluded for one reason —
+    # they read a template under `players/prompts/` — and publishing the
+    # instrument removed that reason. They are back in the mirrored suite, and
+    # `--verify-tests` (not this comment) is what says they pass there.
+    #
+    # Read gold from a FILE the mirror never ships (`_ground_truth.json`). Only
+    # Codex caught these two: Fable and Sonnet both recommended publishing the
+    # whole `players` package, which would have shipped them. Note the contrast
+    # with `test_effectsize_convert_adapter_smoke.py` and
+    # `test_pcurve_adapter_smoke.py`, which call `generator.ground_truth(...)` —
+    # that is COMPUTED from the arena's public seed, so it ships fine. The
+    # distinction is the source of the answer, not the word "ground_truth".
+    "players/adapters/tests/test_metacheck_adapter_smoke.py",
+    "players/adapters/tests/test_transparency_tools_smoke.py",
+    # Read private arenas, or run the private side of the publish boundary
+    # (whose answer differs by construction inside the mirror).
     "framework/tests/test_publish.py",
+    # Resolve the route to the eval-only gold corpus / assert on the PRIVATE
+    # repo's tree. `scan_for_leaks` flagged both on sight (2026-08-13) — correctly:
+    # publishing a module that resolves gold publishes the route to the answer key.
+    # They exist to police the private repo's own CI, where the corpora are absent
+    # by design; the mirror has its own `--verify-tests` pass.
+    "framework/tests/_corpora.py",
+    "framework/tests/test_clean_checkout.py",
+    # Imports `_corpora` at module scope, which aborted pytest COLLECTION in the
+    # mirror — no tests ran at all (found 2026-08-15 by
+    # `test_every_first_party_import_in_the_mirror_resolves_inside_the_mirror`).
+    # Unlike `arenas/stats-extraction-v1/tests/test_task_set_v2.py`, which was
+    # fixed with a guarded import because six of its assertions need no corpus,
+    # every assertion here is about the PRIVATE repo's own posture: two are
+    # corpora-gated and the third greps tracked files for seed values, which is
+    # vacuous in a tree that has no seeds. `test_clean_checkout.py` runs the
+    # inverse assertions on a corpus-free checkout.
+    "framework/tests/test_private_seed_not_in_tracked_files.py",
+    # RE-DERIVED EMPIRICALLY 2026-08-15 by running the mirrored suite (54 -> 10
+    # -> 0 failures). Each of these reads an asset the mirror deliberately does
+    # not ship, and none of them is a check the PUBLIC repo could run anyway:
+    #   * runs/ — never mirrored, so an audit over run records has nothing to see
+    "framework/tests/test_audit.py",
+    #   * a PRIVATE arena's catalog (replication-target-lookup-v1)
+    "framework/tests/test_fred_frida_only.py",
+    #   * scripts/ and .claude/skills/ — this repo's own QA tooling
+    "framework/tests/test_qa_checks_documented.py",
+    #   * a PRIVATE arena's label_map.yaml (pdf-section-structure-v1)
+    "players/adapters/tests/test_liteparse_heuristics.py",
+    #   * stats-extraction-v1's committed _ground_truth.json (NEVER_PUBLISH)
+    "arenas/stats-extraction-v1/tests/test_coherent_labels.py",
     "framework/tests/test_parity.py",
     "framework/tests/test_registry_attribution.py",
     "framework/tests/test_retry_failed.py",
@@ -567,7 +697,23 @@ def private_seed_values(repo_root: Path) -> set[str]:
     return values
 
 
-def scan_for_leaks(repo_root: Path, files: list[Path]) -> list[str]:
+#: The two halves of the leak gate, split by what they NEED to run.
+#:
+#: "allowlist" — the path/marker half. Needs only the repo, so it runs anywhere,
+#:               including CI, and protects every PR.
+#: "all"       — that half PLUS the verbatim held-out scan, which needs the
+#:               private corpora and therefore only runs where they exist
+#:               (a dev machine, the pre-push hook).
+#:
+#: Why a mode flag and not "skip the scan when the corpora are absent": absence
+#: is ALSO what a misconfigured arenas root looks like, so an auto-skip would
+#: reintroduce exactly the false green `test_leak_scan_is_not_vacuous` exists to
+#: prevent. The caller must SAY which gate it is running; "all" still refuses to
+#: certify when it finds nothing to compare against.
+GATE_MODES = ("all", "allowlist")
+
+
+def scan_for_leaks(repo_root: Path, files: list[Path], *, gates: str = "all") -> list[str]:
     """Reasons the given files must NOT be mirrored. Empty list == clean.
 
     WHAT THIS CATCHES
@@ -586,6 +732,8 @@ def scan_for_leaks(repo_root: Path, files: list[Path]) -> list[str]:
     It is a backstop for copy-paste, which is the realistic accident. It is not
     a proof of non-disclosure, and the docs must not claim it is.
     """
+    if gates not in GATE_MODES:
+        raise ValueError(f"gates must be one of {GATE_MODES}, got {gates!r}")
     reasons: list[str] = []
     seeds = private_seed_values(repo_root)
     ho_shingles, ho_files = held_out_shingles(repo_root)
@@ -610,6 +758,15 @@ def scan_for_leaks(repo_root: Path, files: list[Path]) -> list[str]:
                 f"module that resolves gold publishes the route to the answer key, even "
                 f"though the file contains no gold text for the verbatim scan to find."
             )
+
+    # The path/marker half is complete. In "allowlist" mode that is the whole
+    # contract, so return WITHOUT running the non-vacuity refusal below — which
+    # would otherwise fire on every machine that legitimately has no corpora
+    # (CI), and which is the reason this gate was red on every push for a week.
+    # The caller asked for the half that does not need the corpora; it gets
+    # exactly that, and the printed mode says so.
+    if gates == "allowlist":
+        return reasons
 
     # Non-vacuity. A scan that examined nothing must not report "clean" —
     # that is the exact shape of false confidence this project keeps re-learning.

@@ -1,0 +1,39 @@
+You are extracting tables from a scientific PDF.
+
+PDF path: {{PDF_PATH}}
+Pages: {{N_PAGES}}
+
+Read the PDF. For each table you can identify, emit a record with:
+- `label`: the table's label as printed (e.g., "Table 1", "Table A2"), or null.
+- `page`: 1-indexed page number where the table starts, or null.
+- `caption`: the table's caption text, or null.
+- `n_rows`: total number of rows including header rows.
+- `n_cols`: total number of columns.
+- `header_rows`: number of leading rows that are header rows.
+- `cells`: every cell in the table, with `r` and `c` 0-indexed,
+   `rowspan` and `colspan` (default 1), `text`, and `is_header`.
+
+For cells that span multiple rows or columns, emit a SINGLE cell record
+with the appropriate `rowspan` / `colspan` — do NOT duplicate the cell
+across the spanned region.
+
+Emit AT MOST 8 tables. If the PDF has more than 8 tables, emit the first
+8 in document order.
+
+Output ONLY a JSON object, no prose, no markdown fences. Schema:
+
+{
+  "tables": [
+    {
+      "label": "Table 1",
+      "page": 4,
+      "caption": "Per-condition descriptive statistics.",
+      "n_rows": 3,
+      "n_cols": 4,
+      "header_rows": 1,
+      "cells": [
+        {"r": 0, "c": 0, "rowspan": 1, "colspan": 1, "text": "Condition", "is_header": true}
+      ]
+    }
+  ]
+}

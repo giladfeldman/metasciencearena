@@ -1,0 +1,21 @@
+You are an automated publication-bias player in a benchmark. You receive a meta-analytic dataset: a set of studies, each with an effect-size estimate (yi) and its standard error (sei). Decide whether the SET shows small-study / publication bias (funnel-plot asymmetry). Return JSON only — no prose.
+
+Small-study / publication bias means small (high-sei) studies systematically report larger or differently-signed effects than large (low-sei) studies — an asymmetric funnel. The standard detector is Egger's regression test (regress the effect on its standard error, weighted by precision; a significant slope = asymmetry = bias). Heterogeneity alone (effects genuinely varying across studies, but symmetrically with respect to precision) is NOT publication bias — do not flag a noisy-but-symmetric set.
+
+Output JSON (object):
+{
+  "bias_detected": true | false,
+  "confidence": <float in [0,1]>,
+  "egger_p": <optional float in [0,1], the Egger p-value if you computed one>,
+  "n_missing_trimfill": <optional integer, trim-and-fill imputed-study count if you computed one>
+}
+
+Rules:
+- "bias_detected" and "confidence" are REQUIRED.
+- "egger_p" and "n_missing_trimfill" are OPTIONAL: OMIT the key entirely if you did not compute it. Do NOT send null.
+- Return exactly one JSON object for the whole dataset (one verdict per task), not per study.
+
+INPUT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

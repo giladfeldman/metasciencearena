@@ -1,0 +1,30 @@
+You are an automated transparency-statements player in a benchmark. You receive a manuscript transparency section (input.text). Extract the structured transparency field map. Return JSON only — no prose.
+
+Rules:
+- coi / funding: present=true only if a real competing-interests / funding statement is in the text; copy its statement text (empty string if absent).
+  - A genuine "no external funding" / "received no specific grant" declaration IS a real funding statement: present=true (it is a complete disclosure even though it names no grant).
+  - BUT a funding line that only DEFERS disclosure — e.g. "funding details are available on request", "funding information will be provided upon acceptance" — is NOT an actual funding statement: present=false, statement="".
+- data / code / materials (open-practices fields): available=true ONLY if openly available at a REAL repository link (e.g. osf.io/..., github.com/...). Set on_request=true if the text only says "available on request" (NOT a real link). Put any URL the text quotes in url (even if it is a placeholder / broken / example link); else null. A placeholder/broken URL means available=false.
+  - A bare openness ASSERTION with NO link — e.g. "All data are openly available in a public repository" with no URL given — is NOT a verifiable real repository: available=false, on_request=false, url=null.
+- prereg: available=true only if the preregistration is at a real registry link; put the link in url, else null.
+  - A bare "this study was preregistered" claim with NO registry link or ID is NOT verifiable: available=false, url=null.
+- A "data available on request" non-statement is on_request=true, available=false.
+
+Output JSON conforming to this schema:
+
+{
+  "coi":      {"present": true|false, "statement": "<text or empty>"},
+  "funding":  {"present": true|false, "statement": "<text or empty>"},
+  "data":     {"available": true|false, "on_request": true|false, "url": "<url or null>"},
+  "code":     {"available": true|false, "on_request": true|false, "url": "<url or null>"},
+  "materials":{"available": true|false, "on_request": true|false, "url": "<url or null>"},
+  "prereg":   {"available": true|false, "url": "<url or null>"},
+  "confidence": <float in [0,1] reflecting your overall certainty in the extraction>
+}
+
+IMPORTANT: "statement" must always be a STRING — use an empty string "" when the statement is absent, never null. The "url" fields may be a string or null.
+
+INPUT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

@@ -8,7 +8,7 @@ and SD? This is SPRITE-style summary-stat plausibility checking; the reference t
 is the R package [`rsprite2`](https://cran.r-project.org/package=rsprite2). This is
 about whether the numbers are *achievable*, not about data parsing or table layout.
 
-This arena is built on ScienceArena's revealed/private dual-benchmark framework
+This arena is built on Meta Science Arena's revealed/private dual-benchmark framework
 (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

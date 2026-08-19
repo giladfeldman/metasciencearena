@@ -1,0 +1,35 @@
+# Fixed datasets the source scripts run against.
+#
+# The data is generated deterministically from `seed` by tools/make_dataset.py
+# and written to a CSV that BOTH the reference R translation and the player's
+# emitted R read. Because every player runs against byte-identical data, any
+# difference in the resulting statistics is attributable to the translation.
+#
+# The dataset deliberately contains the features the traps depend on: unbalanced
+# cells (Type I vs Type III diverge), genuine NAs (listwise vs pairwise diverge),
+# a 99 user-missing code, and unequal group variances (pooled vs Welch diverge).
+
+wellbeing:
+  seed: 20260803
+  n: 180
+  description: >-
+    A synthetic wellbeing survey. Two crossed factors with deliberately
+    unbalanced cells, three continuous measures, four Likert items (one carrying
+    a 99 user-missing code), and scattered true missingness.
+  columns:
+    - {name: id, type: int, description: "Row identifier, 1..n"}
+    - {name: age, type: numeric, min: 18, max: 75, missing_rate: 0.04,
+       description: "Age in years; genuinely missing for a few rows"}
+    - {name: hours, type: numeric, min: 0, max: 60, missing_rate: 0.03,
+       description: "Self-reported weekly hours"}
+    - {name: score, type: numeric, mean: 50, sd: 10,
+       description: "Wellbeing composite; group variances differ by design so pooled and Welch t-tests diverge"}
+    - {name: group, type: factor, levels: [1, 2], unbalanced: true,
+       description: "Two-level grouping (1=control, 2=treatment); cells unbalanced on purpose"}
+    - {name: condition, type: factor, levels: [1, 2, 3], unbalanced: true,
+       description: "Three-level condition, crossed with group; unbalanced so SS type matters"}
+    - {name: item1, type: likert, min: 1, max: 5, description: "Likert item"}
+    - {name: item2, type: likert, min: 1, max: 5, description: "Likert item"}
+    - {name: item3, type: likert, min: 1, max: 5, description: "Likert item"}
+    - {name: item4, type: likert, min: 1, max: 5, missing_code: 99,
+       description: "Likert item where 99 encodes 'declined to answer' — user-missing in SPSS, a literal 99 in R until recoded"}

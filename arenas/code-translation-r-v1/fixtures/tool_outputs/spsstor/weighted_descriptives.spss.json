@@ -1,0 +1,7 @@
+{
+  "tool": "SPSStoR",
+  "tool_version": "0.3.0",
+  "captured_from": "weighted_descriptives.sps",
+  "r_code": "",
+  "note": "converter error: could not find function \"weight_to_r\""
+}

@@ -430,3 +430,68 @@ def test_hidden_gap_items_never_leak_examples():
     for h in [i for i in items if i["kind"] == "hidden_gap"]:
         assert "public_examples" not in h
         assert "t1" not in str(h)
+
+
+# ----------------------------------------------------------------------------
+# Regression: cost must be DERIVED from usage, not read from a field nothing writes.
+#
+# Found 2026-08-14. `framework/pricing.py` states the design plainly — "A run
+# record stores token counts... So cost is derived here, at report time" — and
+# `cost_usd` is therefore deliberately never written to a record. But `_summary`
+# read `r["cost_usd"]` off the record, and `report.mjs` (the Node build that
+# actually produces the PUBLISHED reports) did the same. Both consumers read a
+# field both producers intentionally leave absent, so `cost_usd_mean` was `null`
+# in all 127 published reports while the pricing module sat fully unit-tested
+# and entirely uncalled.
+#
+# This is the seam defect CLAUDE.md describes: every unit correct, the value
+# never arriving. The test asserts arrival, not unit behaviour.
+# ----------------------------------------------------------------------------
+
+
+def test_cost_usd_mean_is_derived_from_usage(tmp_path):
+    arena = _make_arena_dir(tmp_path)
+    # A priced model (in pricing.PRICES) with recorded token usage, and NO
+    # cost_usd key — exactly what the runner writes.
+    usage = {"prompt_tokens": 1_000_000, "completion_tokens": 1_000_000}
+    records = [
+        _record(task_id="t1", player_type="ai-model",
+                resolved_tool_version="openai/gpt-oss-120b", usage=dict(usage),
+                score={"primary": 0.8, "breakdown": {}}),
+        _record(task_id="t2", player_type="ai-model",
+                resolved_tool_version="openai/gpt-oss-120b", usage=dict(usage),
+                score={"primary": 0.6, "breakdown": {}}),
+    ]
+    _write_jsonl(arena / "runs" / "v1" / "main.jsonl", records)
+
+    bundle = generate_report(
+        arena_dir=arena, task_set_version="v1", player_id="p", player_version="0.1.0",
+    )
+    summary = json.loads((bundle / "tool_report.json").read_text(encoding="utf-8"))["summary"]
+
+    # gpt-oss-120b = $0.15/1M in + $0.75/1M out -> $0.90 per task at 1M+1M.
+    assert summary["cost_usd_mean"] is not None, (
+        "cost_usd_mean is None despite priced records carrying usage — the "
+        "pricing module is not being called"
+    )
+    assert summary["cost_usd_mean"] == pytest.approx(0.90)
+
+
+def test_cost_usd_mean_stays_none_for_subscription_players(tmp_path):
+    """A Claude-via-Claude-Max run consumes tokens but has no per-token price.
+    None is the honest answer; 0.0 would claim the run was free."""
+    arena = _make_arena_dir(tmp_path)
+    records = [
+        _record(task_id="t1", player_id="claude-opus-4-8", player_type="ai-model",
+                player_version="claude-opus-4-8",
+                usage={"prompt_tokens": 1000, "completion_tokens": 500},
+                score={"primary": 0.8, "breakdown": {}}),
+    ]
+    _write_jsonl(arena / "runs" / "v1" / "main.jsonl", records)
+    bundle = generate_report(
+        arena_dir=arena, task_set_version="v1",
+        player_id="claude-opus-4-8", player_version="claude-opus-4-8",
+    )
+    summary = json.loads((bundle / "tool_report.json").read_text(encoding="utf-8"))["summary"]
+    assert summary["cost_usd_mean"] is None
+    assert summary["tokens_total"] == 1500, "tokens must still be reported for unpriced players"

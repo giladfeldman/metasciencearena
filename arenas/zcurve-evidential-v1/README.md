@@ -8,7 +8,7 @@ is the R package [`zcurve`](https://cran.r-project.org/package=zcurve) (z-curve
 2.0), which estimates the expected discovery / replication rate from the
 distribution of significant z-scores.
 
-Built on ScienceArena's revealed/private dual-benchmark framework (see
+Built on Meta Science Arena's revealed/private dual-benchmark framework (see
 `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

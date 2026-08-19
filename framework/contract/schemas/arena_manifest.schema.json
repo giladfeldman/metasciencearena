@@ -22,6 +22,11 @@
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$"
     },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Short human display name, e.g. \"Stats Extraction\". THE arena's title everywhere a human sees one — cards, the header switcher, player pages. Distinct from the taxonomy leaf's `name`, which is a long descriptive phrase (\"NHST stats + effect-size + CI extraction from manuscripts\") better suited to a subtitle. Before this field existed the two lived in different registries — the leaf name in index.json and a hand-maintained short name in the app's lib/config.ts — so a card and the header switcher on the SAME page showed different names for the same arena."
+    },
     "taxonomy_leaf_id": {
       "type": "string"
     },

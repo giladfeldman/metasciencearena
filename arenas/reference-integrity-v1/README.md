@@ -6,7 +6,7 @@ markers, judge — per reference — whether it has an *integrity* problem, and 
 `pdf-reference-parsing-v1` / `pdf-citation-matching-v1` for those). Modeled on
 [metacheck](https://github.com/)'s `ref_*` integrity modules.
 
-This arena is built on ScienceArena's revealed/private dual-benchmark framework
+This arena is built on Meta Science Arena's revealed/private dual-benchmark framework
 (see `contract/README.md` → "Revealed/private dual benchmark").
 
 ## Input → output

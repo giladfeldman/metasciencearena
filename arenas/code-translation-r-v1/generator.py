@@ -96,7 +96,11 @@ def _held_out_cases() -> list[dict]:
     it until 2026-08-04; a declared-but-unread path is a promise the code does
     not keep, so this is the reader.
     """
-    if not HELD_OUT_DIR.is_dir():
+    # Imported lazily: a generator may be loaded with only its own
+    # directory on sys.path, where `framework` is not importable.
+    from framework.holdout import require_corpus
+
+    if require_corpus(HELD_OUT_DIR, arena_id='code-translation-r-v1', kind='held-out R cases') is None:
         return []
     cases = []
     for case_dir in sorted(p for p in HELD_OUT_DIR.iterdir() if p.is_dir()):
