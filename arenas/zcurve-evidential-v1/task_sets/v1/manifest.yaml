@@ -1,0 +1,19 @@
+version: v1
+seed: 0
+released_on: "2026-06-07"
+n_tasks: 18       # 6 tiers x 3 tasks each
+generator_signature: |
+  task_set_version=v1, revealed_seed=0, tiers=[1..6], per_tier=3,
+  regimes=[evidential, non_evidential], z_threshold=1.96
+notes: |
+  Dual-benchmark single-verdict arena. The player classifies a SET of significant
+  z-scores as has_evidential_value true/false; the reference tool is the R package
+  `zcurve`. The REVEALED split is generated on-the-fly from
+  (task_set_version="v1", seed=0); the PRIVATE split uses the secret seed in
+  task_sets/v1/.private_seed (gitignored) plus any hand-curated real
+  significant-result sets under _held_out/. Gold is NOT produced by running
+  zcurve — it is the GENERATING REGIME the arena controlled (evidential = real
+  effects with high true power; non_evidential = null effects selected for
+  significance). Gold is regenerated from the seed (no committed answer key, no
+  external registry) — see generator.ground_truth(). Both splits cover the same
+  tier matrix and BOTH regimes; tools/check_parity.py enforces it.

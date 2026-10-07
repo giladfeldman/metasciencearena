@@ -1,0 +1,27 @@
+arena_id: fake-split-arena
+taxonomy_leaf_id: fake-leaf
+version: 0.0.1
+owner: tests
+license: MIT
+input_artifact: plain_text_section
+output_to_judge: classification_label
+difficulty_axes:
+  - {id: tier, min: 1, max: 1, description: "Single tier for tests"}
+task_set_versions:
+  - {version: v1, n_tasks: 1, released_on: "2026-06-06"}
+benchmark_splits:
+  revealed: {seed: 0}
+  private: {seed_source: env}
+  parity:
+    match_axes: [tier]
+    match_categories: true
+    count_tolerance: 0.0
+error_categories:
+  - {id: wrong_label, description: "Player label disagrees with gold.", severity: major}
+display_columns:
+  - {id: composite, source: score.primary, label: Composite, description: "Test composite", direction: higher, format: f3, primary: true}
+tier_pivot:
+  axis: tier
+  composite_formula: "test"
+  values:
+    - {value: 1, label: T1, sub: only}

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "power-reporting-v1 player output",
+  "description": "The player's power-analysis field-map: detection, classification, and extracted structured fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["has_power_analysis", "kind", "fields", "confidence"],
+  "properties": {
+    "has_power_analysis": {
+      "type": "boolean",
+      "description": "True if the excerpt reports a power analysis."
+    },
+    "kind": {
+      "type": ["string", "null"],
+      "enum": ["apriori", "sensitivity", "posthoc", null],
+      "description": "The kind of power analysis when present; null when has_power_analysis is false. NOTE: a post-hoc analysis worded as a-priori is still 'posthoc'."
+    },
+    "fields": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Extracted structured fields. Omit a field entirely if the excerpt does not report it (do not invent values).",
+      "properties": {
+        "test": {"type": "string", "description": "The statistical test the analysis is for."},
+        "sample": {"type": "string", "description": "The sample size (required or achieved)."},
+        "alpha": {"type": "string", "description": "The alpha / significance level."},
+        "power": {"type": "string", "description": "The power (target or achieved)."},
+        "effect_size": {"type": "string", "description": "The effect size assumed or observed."},
+        "software": {"type": "string", "description": "The software/package used (e.g. G*Power, pwr)."}
+      }
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Player's confidence in the has_power_analysis detection call."
+    }
+  }
+}

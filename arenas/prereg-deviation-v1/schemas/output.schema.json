@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "prereg-deviation-v1 player output",
+  "description": "Per-dimension deviation judgements comparing the paper to the preregistration.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["deviations"],
+  "properties": {
+    "deviations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["dimension", "deviation", "confidence"],
+        "properties": {
+          "dimension": {"type": "string", "description": "Dimension id (must be one of input.dimensions)."},
+          "deviation": {"type": "boolean", "description": "True if the paper deviates from the preregistration on this dimension."},
+          "deviation_kind": {"type": ["string", "null"], "description": "If deviation=true, the kind of deviation (e.g. 'outcome_switch', 'sample_size_change'); null otherwise."},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the deviation judgement."},
+          "registered_summary": {"type": "string", "description": "Optional. What the preregistration said about this dimension."},
+          "paper_summary": {"type": "string", "description": "Optional. What the paper said about this dimension."}
+        }
+      }
+    }
+  }
+}

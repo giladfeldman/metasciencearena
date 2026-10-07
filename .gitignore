@@ -1,0 +1,13 @@
+# Managed from the private repo (publish_templates/public.gitignore -> .gitignore
+# via framework.publish.MIRROR_RENAMES). Edit it there, not here.
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# Per-machine paths for platform players (players/registry.yaml resolves
+# start_command through it). It names directories on YOUR machine; never commit it.
+players/local_paths.yaml

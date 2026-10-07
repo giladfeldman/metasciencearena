@@ -1,0 +1,8 @@
+{
+  "tool": "stata2r-skranz",
+  "tool_version": "0.1.0",
+  "captured_from": "descriptives.do",
+  "r_code": "NA\nNA\nNA\nNA",
+  "note": "verbatim do_to_r() output",
+  "tool_gap": false
+}

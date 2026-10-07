@@ -1,0 +1,283 @@
+{
+  "cases": [
+    {
+      "classes": [],
+      "name": "scored",
+      "outcome": "conformant",
+      "record": {
+        "score": {
+          "breakdown": {},
+          "primary": 0.5
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "scored_zero",
+      "outcome": "conformant",
+      "record": {
+        "score": {
+          "breakdown": {},
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "no_breakdown_key",
+      "outcome": "conformant",
+      "record": {
+        "score": {
+          "primary": 0.5
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "no_score_key",
+      "outcome": "unattributed",
+      "record": {
+        "task_id": "t"
+      }
+    },
+    {
+      "classes": [],
+      "name": "primary_null",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": {},
+          "primary": null
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "breakdown_is_list",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": [],
+          "primary": 0.5
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "error_empty_string",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": ""
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "error_zero",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": 0
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "error_null",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": null
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "transport",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": "ReadTimeout: x"
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [
+        "enum_swap"
+      ],
+      "name": "violation_error",
+      "outcome": "violation",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": "output_schema_violation: 'not_a_stat' is not one of ['nhst_stat']"
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [
+        "missing_required"
+      ],
+      "name": "violation_renamed",
+      "outcome": "violation",
+      "record": {
+        "score": {
+          "breakdown": {
+            "scored_zero_by_policy": true,
+            "unscoreable_reason": "output_schema_violation: 'confidence' is a required property"
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [
+        "redacted"
+      ],
+      "name": "violation_redacted",
+      "outcome": "violation",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": "output_schema_violation"
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [
+        "extra_property",
+        "missing_required"
+      ],
+      "name": "violation_multi",
+      "outcome": "violation",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": "output_schema_violation: Additional properties are not allowed ('e' was unexpected); 'converted' is a required property"
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [
+        "envelope_shape",
+        "unclassified"
+      ],
+      "name": "violation_semicolon_in_value",
+      "outcome": "violation",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": "output_schema_violation: [{'text': 'p < .05; ns'}] is not of type 'object'"
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "error_empty_object",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": {}
+          },
+          "primary": 0.5
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "error_empty_list",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": {
+            "error": []
+          },
+          "primary": 0.5
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "policy_zero_no_reason",
+      "outcome": "unattributed",
+      "record": {
+        "score": {
+          "breakdown": {
+            "excluded": true,
+            "scored_zero_by_policy": true
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [
+        "missing_required"
+      ],
+      "name": "policy_zero_with_violation",
+      "outcome": "violation",
+      "record": {
+        "score": {
+          "breakdown": {
+            "scored_zero_by_policy": true,
+            "unscoreable_reason": "output_schema_violation: 'x' is a required property"
+          },
+          "primary": 0.0
+        }
+      }
+    },
+    {
+      "classes": [],
+      "name": "scorer_zero",
+      "outcome": "conformant",
+      "record": {
+        "score": {
+          "breakdown": {
+            "precision": 0.0
+          },
+          "primary": 0.0
+        }
+      }
+    }
+  ],
+  "enum_values": [
+    "nhst_stat",
+    "not_a_stat",
+    "ok"
+  ],
+  "summary": {
+    "n_attributable": 10,
+    "n_conformant": 4,
+    "n_unattributed": 10,
+    "n_violations": 6,
+    "structural_adherence": 0.4,
+    "violation_classes": {
+      "enum_swap": 1,
+      "envelope_shape": 1,
+      "missing_required": 3,
+      "redacted": 1
+    }
+  }
+}

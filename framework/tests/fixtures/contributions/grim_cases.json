@@ -1,0 +1,115 @@
+{
+ "_comment": "Synthetic GRIM cases written for the T5 contributions tests (2026-09-28). No article content. The GRIM arithmetic of every value is asserted in framework/tests/test_contributions.py.",
+ "cases": [
+  {
+   "input": {
+    "statistics": [
+     {
+      "stat_id": "c1_liking",
+      "label": "Single-item liking rating (1-7)",
+      "stat_type": "mean",
+      "mean": 3.51,
+      "sd": 1.2,
+      "n": 7,
+      "n_items": 1,
+      "scale_min": 1,
+      "scale_max": 7,
+      "decimals": 2
+     },
+     {
+      "stat_id": "c1_trust",
+      "label": "Single-item trust rating (1-7)",
+      "stat_type": "mean",
+      "mean": 3.57,
+      "sd": 1.4,
+      "n": 7,
+      "n_items": 1,
+      "scale_min": 1,
+      "scale_max": 7,
+      "decimals": 2
+     },
+     {
+      "stat_id": "c1_female",
+      "label": "Percentage female",
+      "stat_type": "percent",
+      "percent": 42.86,
+      "n": 7,
+      "decimals": 2
+     }
+    ]
+   },
+   "expected_output": {
+    "records": [
+     {
+      "stat_id": "c1_liking",
+      "flagged": true,
+      "issue_kind": "grim_inconsistent",
+      "confidence": 1.0
+     },
+     {
+      "stat_id": "c1_trust",
+      "flagged": false,
+      "issue_kind": null,
+      "confidence": 1.0
+     },
+     {
+      "stat_id": "c1_female",
+      "flagged": false,
+      "issue_kind": null,
+      "confidence": 1.0
+     }
+    ]
+   },
+   "note": "Impossible mean at n = 7 beside two achievable values"
+  },
+  {
+   "input": {
+    "statistics": [
+     {
+      "stat_id": "c2_passed",
+      "label": "Percentage passing the attention check",
+      "stat_type": "percent",
+      "percent": 33.0,
+      "n": 9,
+      "decimals": 1
+     },
+     {
+      "stat_id": "c2_effort",
+      "label": "Single-item effort rating (1-5)",
+      "stat_type": "mean",
+      "mean": 2.25,
+      "sd": 0.9,
+      "n": 8,
+      "n_items": 1,
+      "scale_min": 1,
+      "scale_max": 5,
+      "decimals": 2
+     }
+    ]
+   },
+   "expected_output": {
+    "records": [
+     {
+      "stat_id": "c2_passed",
+      "flagged": true,
+      "issue_kind": "grim_percent_inconsistent",
+      "confidence": 1.0
+     },
+     {
+      "stat_id": "c2_effort",
+      "flagged": false,
+      "issue_kind": null,
+      "confidence": 1.0
+     }
+    ]
+   },
+   "note": "Impossible percentage at n = 9 (33.3 is achievable, 33.0 is not)"
+  }
+ ],
+ "declared_relationships": [
+  {
+   "player_family": "statcheck",
+   "relation": "developer"
+  }
+ ]
+}

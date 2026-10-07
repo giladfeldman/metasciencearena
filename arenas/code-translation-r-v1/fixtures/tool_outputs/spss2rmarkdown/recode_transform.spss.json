@@ -1,0 +1,7 @@
+{
+  "tool": "spss2rmarkdown",
+  "tool_version": "0.1.0",
+  "captured_from": "recode_transform.sps",
+  "r_code": "library(dplyr)\nlibrary(jmv)\n# MISSING VALUES (metadata command - skipped)\n# Error converting: RECODE\n# missing value where TRUE/FALSE needed\n# VARIABLE LABELS (metadata command - skipped)\ndata <- data |>\n  dplyr::mutate(INDEX = MEAN.3(ITEM1, ITEM2, ITEM3, ITEM4))\n# EXECUTE (Implicit in R)\njmv::descriptives(\n  data = data,\n  vars = c('ITEM1_HIGH'),\n  freq = TRUE,\n  hist = TRUE,\n  bar = TRUE\n)\njmv::descriptives(\n  data = data,\n  vars = c('INDEX'),\n  freq = FALSE,\n  mean = TRUE,\n  median = TRUE,\n  sd = TRUE,\n  min = TRUE,\n  max = TRUE,\n  skew = TRUE,\n  kurt = TRUE,\n  missing = TRUE\n)",
+  "note": "verbatim convert_all_commands() output"
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["extractions", "player_strategy_notes"],
+  "properties": {
+    "extractions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["span", "kind", "fields", "confidence"],
+        "anyOf": [
+          {"required": ["verdict"]},
+          {"required": ["flagged_suspicious"]}
+        ],
+        "description": "`flagged_suspicious` stopped being required on 2026-08-22. The prompt calls it deprecated in favour of the typed `verdict`, and while the schema still demanded it every extraction that took the prompt at its word failed validation - 36 of 36 haiku records and 9 opus records, all `output_schema_violation`. A contract cannot ask for a field in one document and call it optional in another. `anyOf` keeps the real invariant: at least one of the two must be present, because if BOTH are absent the scorer would silently read the extraction as `ok` rather than as a missing answer.",
+        "properties": {
+          "span": {"type": "object", "required": ["text", "char_start", "char_end"], "properties": {"text": {"type": "string"}, "char_start": {"type": "integer"}, "char_end": {"type": "integer"}}},
+          "kind": {"type": "string", "enum": ["nhst_stat", "effect_size", "confidence_interval"]},
+          "fields": {"type": "object"},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "flagged_suspicious": {"type": "boolean"},
+          "verdict": {
+            "type": "string",
+            "enum": ["ok", "inconsistent", "unverifiable", "not_a_stat"],
+            "description": "The player's VERIFICATION judgement, separate from whether it read the number correctly. 'ok' = the reported values cohere. 'inconsistent' = they contradict each other (e.g. the statistic and its df imply a different p). 'unverifiable' = this cannot be checked from what is printed, which is an abstention and is NOT scored as an accusation. 'not_a_stat' = the string is stat-shaped but is not a statistic (a section number, a price). Optional: when absent the scorer falls back to `flagged_suspicious`, which cannot distinguish 'inconsistent' from 'unverifiable' — the reason this field replaces it."
+          },
+          "rationale": {"type": "string"}
+        }
+      }
+    },
+    "player_strategy_notes": {"type": "string"}
+  }
+}

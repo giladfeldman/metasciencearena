@@ -1,0 +1,39 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+# Computed-gold conversion arena: each task's gold is the exact closed-form
+# conversion (same formula family as the effectsize/esc reference tool), kept far
+# from degenerate boundaries so the deterministic tool agrees.
+
+tier:
+  1:
+    label: simple
+    description: >-
+      the canonical d<->r conversion, the textbook starting point.
+  2:
+    label: round-trip-controls
+    description: >-
+      a value converted out (d->OR, eta2->f) whose inverse must close back to
+      the original; stability under round-trip is the trap.
+  3:
+    label: all-pairwise
+    description: >-
+      every context-free conversion kind exactly once (d<->r, d<->OR,
+      eta2<->f, d<->f).
+  4:
+    label: needs-context
+    description: >-
+      d<->r with UNEQUAL group sizes (n1, n2): the conversion factor h =
+      (n1+n2-2)*(1/n1 + 1/n2) replaces the equal-n default of 4. Ignoring the
+      group sizes gives a subtly wrong answer.
+  5:
+    label: extreme-but-valid-magnitudes
+    description: >-
+      large effects that stress the constants (big d, high r, large OR, large
+      eta2/f) but stay clear of the degenerate boundaries.
+  6:
+    label: small-magnitude-mix
+    description: >-
+      tiny effects across several kinds, the subtle low end where LLMs drift
+      on the constants.
+
+needs_context: Whether the conversion consumes group sizes (n1, n2) from `context`
+  (1, the d<->r-with-group-sizes tier) or is context-free (0, all other tiers).

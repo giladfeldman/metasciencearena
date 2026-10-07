@@ -1,0 +1,15 @@
+version: v1
+seed: 0
+released_on: "2026-06-08"
+n_tasks: 12       # T1:2 + T2:2 + T3:2 + T4:2 + T5:2 + T6:2 (2 labels: unbiased/biased)
+generator_signature: |
+  task_set_version=v1, revealed_seed=0, labels=[unbiased, biased], tiers=[1..6]
+notes: |
+  Computed-gold dual-benchmark meta-analysis arena (small-study / publication-bias
+  detection). The REVEALED split is generated on-the-fly from
+  (task_set_version="v1", seed=0); the PRIVATE split uses the secret seed in
+  task_sets/v1/.private_seed (gitignored) plus any hand-curated real meta-analytic
+  datasets under _held_out/. Gold is regenerated from the seed (no committed answer
+  key, no external registry) — see generator.ground_truth(). Both splits cover the
+  same tier matrix and both constructed labels (unbiased/biased); tools/check_parity.py
+  enforces it. Reference tool: metafor (Egger regtest + trimfill).

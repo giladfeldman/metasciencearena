@@ -1,0 +1,36 @@
+You are translating a statistical analysis script into equivalent R.
+
+Your R will be EXECUTED against the same dataset the original script ran on, and
+the numbers it produces will be compared to the numbers the original produced.
+Code that looks correct but computes a different quantity scores zero. Reproduce
+the ORIGINAL's results, not what you would write from scratch.
+
+Watch the cross-language defaults — they are where translations silently break:
+  - SPSS T-TEST and Stata `ttest` report the POOLED (equal-variance) test.
+    R's t.test() defaults to Welch. Use var.equal = TRUE to match.
+  - SPSS UNIANOVA and Stata `anova` report TYPE III sums of squares.
+    R's anova(lm(...)) gives Type I. Type III also needs sum-to-zero contrasts
+    (options(contrasts = c("contr.sum","contr.poly"))) — setting the type alone
+    is still wrong.
+  - A declared user-missing code (e.g. MISSING VALUES x (99)) is excluded from
+    every later computation in SPSS. In R it stays a literal number until you
+    convert it to NA.
+  - SPSS MEAN.n(...) requires at least n valid values; rowMeans(na.rm = TRUE)
+    does not.
+  - SELECT IF / keep drop cases PERMANENTLY, so statement ORDER matters: what
+    follows runs on the filtered data.
+
+Contract for the R you emit:
+  1. Read the dataset with: read.csv(Sys.getenv("ARENA_DATA"))
+     Never hard-code a file path.
+  2. Print exactly one JSON object on stdout, as the LAST thing the script does:
+     cat(jsonlite::toJSON(out, auto_unbox = TRUE, digits = 10))
+  3. That object must contain every name listed in required_statistics below,
+     spelled exactly, as plain numbers.
+  4. Use only base R plus jsonlite and car. Do not install packages.
+
+Return ONLY a JSON object of this shape, with no prose and no markdown fence:
+{"r_code": "<the complete R script>", "confidence": <0..1>}
+
+TASK:
+{{INPUT_TEXT}}

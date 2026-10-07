@@ -1,0 +1,219 @@
+{
+  "$comment": [
+    "LANGUAGE-NEUTRAL IDENTITY FIXTURES. Read by BOTH engines' test suites:",
+    "  framework/tests/test_player_identity.py",
+    "  leaderboard-app/lib/__tests__/model-family.test.ts",
+    "so Python and Node cannot drift into two different answers about which",
+    "players are the same instrument. A page that disagrees with a report has",
+    "shipped on this repo for weeks before.",
+    "",
+    "EVERY PAIR IS PINNED AS A STRING, deliberately, and not read off the",
+    "published bundle. A bundle-only test is how the GLM slug collision below",
+    "stayed green: the bundle cannot contain the offending pair until the bad",
+    "url has already shipped. Both halves are here -- known-EQUAL pairs that",
+    "must merge and known-DIFFERENT pairs that must not -- because a grouping",
+    "function that merges everything and one that merges nothing both pass a",
+    "one-sided test."
+  ],
+  "slug_identity": {
+    "$comment": "A DECLARED instrument is already in familySlug's output shape, so familySlug is the identity on it. This is what makes the collision below unconstructible for declared instruments rather than merely untested.",
+    "instruments": [
+      "claude-haiku-4-5",
+      "claude-opus-5",
+      "cohere-command-a-03-2025",
+      "docpluck-2-4-141-academic",
+      "grobid-0-8-1",
+      "local-gguf-gpt-oss-20b-q8-rlow",
+      "local-gguf-qwen3-6-35b-a3b-ud-q3-k-xl-nothink",
+      "openrouter-gpt-oss-120b-cerebras"
+    ]
+  },
+  "cases": [
+    {
+      "name": "glm-non-thinking-vs-thinking",
+      "why": "THE CASE THIS DESIGN EXISTS FOR. Same weights file, thinking off vs thinking on. Their player_version strings differed only by / vs - before the separator was repaired, and familySlug squeezes every non-alphanumeric run to '-' so BOTH slug to local-gguf-glm-4-7-flash-ud-q4-k-xl -- ONE url for two players, with familyBySlug returning the first match. normaliseVersion keeps them distinct, which is why checking only that function gives a false all-clear: two of three consult seats did exactly that on 2026-09-16. Repairing the separator does not help; the desktop repaired it and the strings became IDENTICAL, because player_version labels weights. Only a declared instrument separates them.",
+      "a": {"player_id": "glm47-flash-q4-grim", "player_type": "ai-model", "player_version": "local-gguf/GLM-4.7-Flash/UD-Q4_K_XL", "instrument": "local-gguf-glm-4-7-flash-ud-q4-k-xl-nothink"},
+      "b": {"player_id": "glm47-flash-q4think-grim", "player_type": "ai-model", "player_version": "local-gguf/GLM-4.7-Flash-UD-Q4_K_XL", "instrument": "local-gguf-glm-4-7-flash-ud-q4-k-xl-think"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": false,
+      "legacy_same_slug": true
+    },
+    {
+      "name": "glm-after-the-separator-repair",
+      "why": "The same two players after the desktop repaired the separator. The version strings are now byte-identical, so every function that reads only the version says 'one player'. The declaration is the only thing that still separates them.",
+      "a": {"player_id": "glm47-flash-q4-grim", "player_type": "ai-model", "player_version": "local-gguf/GLM-4.7-Flash/UD-Q4_K_XL", "instrument": "local-gguf-glm-4-7-flash-ud-q4-k-xl-nothink"},
+      "b": {"player_id": "glm47-flash-q4think-grim", "player_type": "ai-model", "player_version": "local-gguf/GLM-4.7-Flash/UD-Q4_K_XL", "instrument": "local-gguf-glm-4-7-flash-ud-q4-k-xl-think"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": true,
+      "legacy_same_slug": true
+    },
+    {
+      "name": "qwen-reasoning-ladder-baseline-vs-thinking",
+      "why": "+0.24 to +0.28 mean score apart, the largest single effect measured in this corpus, under ONE identical player_version.",
+      "a": {"player_id": "local-qwen36-35b-a3b-q3-grim", "player_type": "ai-model", "player_version": "local-gguf/Qwen3.6-35B-A3B-UD-Q3_K_XL", "instrument": "local-gguf-qwen3-6-35b-a3b-ud-q3-k-xl-nothink"},
+      "b": {"player_id": "local-qwen36-35b-a3b-q3think-grim", "player_type": "ai-model", "player_version": "local-gguf/Qwen3.6-35B-A3B-UD-Q3_K_XL", "instrument": "local-gguf-qwen3-6-35b-a3b-ud-q3-k-xl-think"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": true,
+      "legacy_same_slug": true
+    },
+    {
+      "name": "gpt-oss-reasoning-effort-ladder-low-vs-medium",
+      "why": "A deliberate dose-response experiment on reasoning effort. Keyed on player_version its three levels render as one row, and mean_placing averages an experiment's own levels into one sort key.",
+      "a": {"player_id": "local-gpt-oss-20b-q8-grim", "player_type": "ai-model", "player_version": "local-gguf/gpt-oss-20b-Q8_0", "instrument": "local-gguf-gpt-oss-20b-q8-rlow"},
+      "b": {"player_id": "local-gpt-oss-20b-q8-rmed-grim", "player_type": "ai-model", "player_version": "local-gguf/gpt-oss-20b-Q8_0", "instrument": "local-gguf-gpt-oss-20b-q8-rmed"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": true,
+      "legacy_same_slug": true
+    },
+    {
+      "name": "gpt-oss-reasoning-effort-ladder-medium-vs-high",
+      "why": "The second rung of the same ladder. Pinned separately so a fix that separated only the end points would still go red.",
+      "a": {"player_id": "local-gpt-oss-20b-q8-rmed-grim", "player_type": "ai-model", "player_version": "local-gguf/gpt-oss-20b-Q8_0", "instrument": "local-gguf-gpt-oss-20b-q8-rmed"},
+      "b": {"player_id": "local-gpt-oss-20b-q8-rhigh-grim", "player_type": "ai-model", "player_version": "local-gguf/gpt-oss-20b-Q8_0", "instrument": "local-gguf-gpt-oss-20b-q8-rhigh"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": true,
+      "legacy_same_slug": true
+    },
+    {
+      "name": "nemotron-base-vs-thinking",
+      "why": "Same weights, enable_thinking false vs true. Same shape as the Qwen and gpt-oss ladders on a different vendor's switch.",
+      "a": {"player_id": "local-nemotron-3-nano-iq4-grim", "player_type": "ai-model", "player_version": "local-gguf/Nemotron-3-Nano-IQ4_XS", "instrument": "local-gguf-nemotron-3-nano-iq4-xs-nothink"},
+      "b": {"player_id": "local-nemotron-3-nano-iq4think-grim", "player_type": "ai-model", "player_version": "local-gguf/Nemotron-3-Nano-IQ4_XS", "instrument": "local-gguf-nemotron-3-nano-iq4-xs-think"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": true,
+      "legacy_same_slug": true
+    },
+    {
+      "name": "gemma-community-quant-vs-qat-q4-0",
+      "why": "Measured on the desktop: two independently sourced Q4_0 builds emit a bit-identical twelve-answer set while the community UD-Q4_K_M build of the same weights emits seven distinct answers to the same twelve documents, and the Q4_0 pair both collapses on publication-bias and beats the community build on p-curve and z-curve. Different quantizations of one model are different instruments. NEGATIVE CONTROL for the slug collision: these two do NOT collide, so a test that reported a collision here would be reporting a broken comparison rather than a defect.",
+      "a": {"player_id": "local-ud-gemma4-26b-a4b-q4-pubbias", "player_type": "ai-model", "player_version": "local-gguf/gemma-4-26B-A4B-it-UD-Q4_K_M", "instrument": "local-gguf-gemma-4-26b-a4b-it-ud-q4-k-m"},
+      "b": {"player_id": "local-ud-gemma4-26b-qat-q40-pubbias", "player_type": "ai-model", "player_version": "local-gguf/gemma-4-26B-it/QAT-Q4_0", "instrument": "local-gguf-gemma-4-26b-it-qat-q4-0"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": false,
+      "legacy_same_slug": false
+    },
+    {
+      "name": "haiku-dated-vs-undated-snapshot",
+      "why": "KNOWN-EQUAL. The case the datestamp strip was written for: eighteen Haiku players declare claude-haiku-4-5 and the nineteenth declares claude-haiku-4-5-20251001. They must merge -- and under a declared instrument they merge because both entries DECLARE claude-haiku-4-5, not because a regex happened to remove the right eight characters.",
+      "a": {"player_id": "claude-haiku-4-5-grim", "player_type": "ai-model", "player_version": "claude-haiku-4-5", "instrument": "claude-haiku-4-5"},
+      "b": {"player_id": "claude-haiku-4-5-stats", "player_type": "ai-model", "player_version": "claude-haiku-4-5-20251001", "instrument": "claude-haiku-4-5"},
+      "same_family": true,
+      "same_slug": true,
+      "legacy_same_family": true,
+      "legacy_same_slug": true
+    },
+    {
+      "name": "one-instrument-across-two-arenas",
+      "why": "KNOWN-EQUAL. A player_id is a model IN ONE ARENA, so one instrument holds one id per arena. This is the merge /players exists to perform, and it must survive every change that separates the pairs above.",
+      "a": {"player_id": "local-gpt-oss-20b-q8-grim", "player_type": "ai-model", "player_version": "local-gguf/gpt-oss-20b-Q8_0", "instrument": "local-gguf-gpt-oss-20b-q8-rlow"},
+      "b": {"player_id": "local-gpt-oss-20b-q8-pubbias", "player_type": "ai-model", "player_version": "local-gguf/gpt-oss-20b-Q8_0", "instrument": "local-gguf-gpt-oss-20b-q8-rlow"},
+      "same_family": true,
+      "same_slug": true,
+      "legacy_same_family": true,
+      "legacy_same_slug": true
+    },
+    {
+      "name": "grobid-one-tool-five-arena-harnesses",
+      "why": "KNOWN-EQUAL across player TYPES too. Five Grobid player ids are one tool at one version playing five arenas through five adapters; before the declared instrument, tools were keyed by player_id and rendered as five separate rows.",
+      "a": {"player_id": "grobid-text-only", "player_type": "tool", "player_version": "grobid-0.8.1", "instrument": "grobid-0-8-1"},
+      "b": {"player_id": "grobid-sections", "player_type": "tool", "player_version": "grobid-0.8.1", "instrument": "grobid-0-8-1"},
+      "same_family": true,
+      "same_slug": true,
+      "legacy_same_family": false,
+      "legacy_same_slug": false
+    },
+    {
+      "name": "groq-vs-openrouter-route-to-one-model",
+      "why": "KNOWN-DIFFERENT. Same weights reached two ways; the route measurably changes results (token ceilings, quantisation, sampling defaults), and the OpenRouter entry additionally pins the Cerebras backend.",
+      "a": {"player_id": "groq-gpt-oss-120b-xlat", "player_type": "ai-model", "player_version": "groq/openai/gpt-oss-120b", "instrument": "groq-gpt-oss-120b"},
+      "b": {"player_id": "openrouter-gpt-oss-120b-xlat", "player_type": "ai-model", "player_version": "openrouter/openai/gpt-oss-120b", "instrument": "openrouter-gpt-oss-120b-cerebras"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": false,
+      "legacy_same_slug": false
+    },
+    {
+      "name": "docpluck-academic-vs-standard",
+      "why": "KNOWN-DIFFERENT. A deliberate A/B of two configurations that were measured separately; one row labelled 'docpluck' would report one configuration's number under the other's name.",
+      "a": {"player_id": "docpluck-academic", "player_type": "platform", "player_version": "docpluck-2.4.141-academic", "instrument": "docpluck-2-4-141-academic"},
+      "b": {"player_id": "docpluck-standard", "player_type": "platform", "player_version": "docpluck-2.4.141-standard", "instrument": "docpluck-2-4-141-standard"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": false,
+      "legacy_same_slug": false
+    },
+    {
+      "name": "cohere-command-a-vs-command-r-plus-datestamps",
+      "why": "KNOWN-DIFFERENT, and the reason the datestamp strip has to stay conservative: -03-2025 and -08-2024 are snapshots of DIFFERENT models, not of one. Stripping both still leaves cohere/command-a and cohere/command-r-plus distinct -- pinned so a future widening of the regex goes red here rather than in production.",
+      "a": {"player_id": "cohere-command-a-xlat", "player_type": "ai-model", "player_version": "cohere/command-a-03-2025", "instrument": "cohere-command-a-03-2025"},
+      "b": {"player_id": "cohere-command-r-plus-xlat", "player_type": "ai-model", "player_version": "cohere/command-r-plus-08-2024", "instrument": "cohere-command-r-plus-08-2024"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": false,
+      "legacy_same_slug": false
+    },
+    {
+      "name": "undeclared-falls-back-and-is-not-merged-with-a-declared-one",
+      "why": "The fallback path. A player whose registry entry declares no instrument keys on the normalised version, which is a DEGRADED key; it must not be quietly folded into a declared row that happens to sit nearby.",
+      "a": {"player_id": "mystery-grim", "player_type": "ai-model", "player_version": "local-gguf/gpt-oss-20b-Q8_0", "instrument": null},
+      "b": {"player_id": "local-gpt-oss-20b-q8-grim", "player_type": "ai-model", "player_version": "local-gguf/gpt-oss-20b-Q8_0", "instrument": "local-gguf-gpt-oss-20b-q8-rlow"},
+      "same_family": false,
+      "same_slug": false,
+      "legacy_same_family": true,
+      "legacy_same_slug": true
+    }
+  ],
+  "inference_config": {
+    "$comment": "Canonicalisation cases for framework/identity.py inference_config + its Node mirror. `entry` is a registry entry fragment; `expect` is the canonical config, and `expect_sha_null` says whether the digest must be null (which it is exactly when the config is null -- never the hash of the string 'null').",
+    "cases": [
+      {
+        "name": "temperature-and-extra-body-merge-minus-the-budget",
+        "entry": {"openai_temperature": 0.0, "openai_extra_body": {"seed": 42, "reasoning_effort": "low", "max_tokens": 4096}},
+        "expect": {"temperature": 0.0, "seed": 42, "reasoning_effort": "low"},
+        "expect_sha_null": false
+      },
+      {
+        "name": "max-tokens-is-a-budget-not-a-configuration",
+        "why": "Correcting an output ceiling must not mint a new instrument. The ceiling is recorded in provenance.request_max_tokens on every record, so nothing is lost by excluding it here -- and including it would have split gpt-oss-20b into two instruments when the Cohere ceilings were corrected.",
+        "entry": {"openai_temperature": 0.0, "openai_extra_body": {"seed": 42, "reasoning_effort": "low", "max_tokens": 8192}},
+        "expect": {"temperature": 0.0, "seed": 42, "reasoning_effort": "low"},
+        "expect_sha_null": false
+      },
+      {
+        "name": "no-knobs-at-all-is-null-not-an-empty-config",
+        "why": "An R tool has no temperature. Returning {} would assert a configuration nobody measured; null says 'this player exposes no inference settings to us', which is a different and true claim.",
+        "entry": {"player_id": "statcheck"},
+        "expect": null,
+        "expect_sha_null": true
+      },
+      {
+        "name": "a-budget-only-body-is-still-no-configuration",
+        "why": "An entry whose only extra_body key is the ceiling configures nothing about the model.",
+        "entry": {"openai_extra_body": {"max_tokens": 4096}},
+        "expect": null,
+        "expect_sha_null": true
+      },
+      {
+        "name": "nested-blocks-canonicalise-by-key-order",
+        "why": "chat_template_kwargs is a nested object, and two entries that wrote its keys in a different order must hash equal or the audit would report a split that does not exist.",
+        "entry": {"openai_extra_body": {"chat_template_kwargs": {"enable_thinking": false}}},
+        "expect": {"chat_template_kwargs": {"enable_thinking": false}},
+        "expect_sha_null": false
+      },
+      {
+        "name": "a-zero-temperature-is-a-setting-not-an-absence",
+        "why": "0.0 is falsy in both languages. A truthiness check here would drop the one sampling parameter every local player sets.",
+        "entry": {"openai_temperature": 0.0},
+        "expect": {"temperature": 0.0},
+        "expect_sha_null": false
+      }
+    ]
+  }
+}

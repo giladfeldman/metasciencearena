@@ -1,0 +1,42 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clean-simple
+    description: >-
+      every transparency field has a real, well-formed statement (real COI +
+      funding, real repository URLs). No injected mistakes.
+  2:
+    label: paraphrase-consistent
+    description: >-
+      every field is reworded but still real and correct. The false-alarm
+      trap: a good player must NOT flag rewording as missing/fake.
+  3:
+    label: single-injected-mistake
+    description: >-
+      exactly one field carries one of the seven mistake kinds (missing_coi,
+      missing_funding, data_on_request_not_real, placeholder_url,
+      false_open_claim, false_prereg_claim, funding_on_request); the rest are
+      clean.
+  4:
+    label: subtle-mistake
+    description: >-
+      a single mistake (an on-request hedge, a placeholder link, a bare
+      openness/prereg claim with no link, or a funding line deferred behind a
+      request) hidden amid PARAPHRASED (reworded) clean fields, so the wording
+      noise makes the one real mistake harder to spot. Its confusable clean
+      look-alike (a real link / a complete disclosure) sits on the
+      neighbouring fields.
+  5:
+    label: multiple-mistakes
+    description: >-
+      two field-disjoint co-occurring mistakes at once, amid paraphrased
+      others.
+  6:
+    label: full-composition
+    description: >-
+      every mistake kind present across the section (spanning the two tasks),
+      mixed with clean / paraphrased fields.
+
+n_mistakes: Count of injected transparency-field mistakes in the manuscript
+  (0 for T1/T2; up to 5 in T6).

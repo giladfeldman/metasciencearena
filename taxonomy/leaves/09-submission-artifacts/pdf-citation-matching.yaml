@@ -1,0 +1,40 @@
+id: pdf-citation-matching
+name: PDF in-text citation matching (Layer 6)
+lifecycle_stage: 09-submission-artifacts
+order: 14
+description: |
+  Given a scientific PDF, return the paper's bibliography, every in-text
+  citation with the list of references it cites, and a consistency report:
+  orphan citations (no matching reference), uncited references, and
+  duplicate references. Gold is derived from JATS <xref ref-type="bibr">
+  linkage, with grouped and ranged citations ("[3-6]", "5-7") expanded to
+  every work they cite (framework/jats_citations.py).
+
+  Sibling of pdf-text-fidelity (Layer 1), pdf-section-structure
+  (Layer 3), and pdf-reference-parsing (Layer 5) under the same
+  lifecycle stage. Where pdf-reference-parsing parses the bibliography,
+  this layer links in-text callouts to it -- the structural task
+  reference-string parsers cannot do.
+
+  Scoring (task set v2): 0.8 * link F1 + 0.2 * consistency F1. A
+  citation is graded by the WORKS it cites, not by its printed text or
+  character offset; the player's reference ids are crosswalked to the
+  gold's by content, so any numbering scheme works.
+input_artifact: pdf_or_docx_manuscript
+output_to_judge: citation_reference_linkage_report
+existing_solutions:
+  - {id: grobid,               type: tool,     owner: third-party}
+  - {id: claude-haiku-4-5-pdf, type: ai-model, owner: anthropic}
+ground_truth_feasibility: high
+# Live since 2026-09-28 (task set v2): arenas/<id>/task_sets/v2/ carries the
+# manifest and the committed public gold, and held-out gold is served from the
+# eval-only registry. Until then this said `design`, because the arena had no
+# task_sets/ dir and build-data.mjs demoted it every build (corrected 2026-08-09).
+arena_status: live
+scope_tier: A
+notes: |
+  Isolates in-text linkage. AnyStyle and CERMINE do not enter this arena:
+  they parse reference strings but do not link in-text callouts.
+  SciMeto was retired from it 2026-09-22 (its matching runs
+  only in a cloud pipeline the local-only directive forbids for held-out
+  PDFs). Chat-API models play "-via-pdftotext".

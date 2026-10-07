@@ -1,0 +1,24 @@
+id: trial-registration-consistency
+name: Trial registration timing and registration-vs-report consistency
+lifecycle_stage: 02-preregistration
+order: 40
+description: |
+  Given a synthetic clinical-trial registry record (registration and start
+  dates, primary and secondary outcomes, target sample size, arms, follow-up)
+  and a synthetic trial report, flag retrospective or missing registration and
+  important inconsistencies between registration and publication: switched or
+  demoted primary outcomes, new outcomes, unexplained changes in target N, arms
+  or follow-up. Controls include disclosed, justified amendments. Mirrors
+  INSPECT-SR checks 2.2 and 2.3 (doi:10.1136/bmj-2026-100611).
+  Synthetic inputs, gold by construction.
+input_artifact: registry_record_and_trial_report
+output_to_judge: list_of_deviation_records
+existing_solutions:
+  - {id: regcheck, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+ground_truth_feasibility: high
+arena_status: design
+scope_tier: B
+notes: |
+  Arena: trial-registration-consistency-v1 (design only). Clinical sibling of
+  prereg-deviation-v1; no deterministic player found for the timing check.

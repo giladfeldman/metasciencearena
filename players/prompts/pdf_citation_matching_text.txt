@@ -1,0 +1,60 @@
+You are matching in-text citations to the reference list of a scientific paper.
+
+The paper's text follows between the two markers. It was extracted from the
+PDF with pdftotext (-layout), so columns, line breaks and hyphenation are as
+the page lays them out; there are no images.
+
+<<<DOCUMENT
+{{INPUT_TEXT}}
+DOCUMENT>>>
+
+Read the text. Do three things:
+
+1. List the paper's reference list (bibliography). Give every entry an id of
+   your choosing -- its printed number if it has one (e.g. "12"), otherwise
+   any short label (e.g. "smith2020a") -- and copy the entry as printed.
+
+2. Find EVERY in-text citation in the running text, figure and table captions,
+   and footnotes -- bracketed numbers, superscript numbers, parenthesised
+   numbers, and author-year callouts (e.g. "[12]", "(3-5)", "Smith & Doe,
+   2020"). For each citation list ALL the references it cites, using the ids
+   from step 1. A grouped or ranged citation cites several: "[2, 5, 8-10]"
+   cites 2, 5, 8, 9 and 10; "(Lee, 2019a, 2019b)" cites two works.
+
+3. Report citation consistency over the whole paper.
+
+For each reference provide: reference_id, raw_text (the entry exactly as
+printed), and where you can read them: authors ([{"surname", "given_names"}]),
+year, title, venue, doi. Use null for anything not printed.
+
+For each citation provide:
+- marker_text: the citation exactly as printed (e.g. "[2, 5, 8-10]").
+- reference_ids: the ids of EVERY reference it cites. An empty list means it
+  cites nothing in the reference list (an orphan).
+
+The consistency report has exactly three fields:
+- orphan_markers: the marker_text of every citation that cites nothing in the
+  reference list.
+- uncited_reference_ids: ids of references never cited anywhere in the text.
+- duplicate_reference_groups: groups of ids where the same work is listed more
+  than once in the reference list.
+
+Do not invent citations or references that do not appear in the text.
+
+Output ONLY a JSON object, no prose, no markdown fences. Schema:
+
+{
+  "references": [
+    {"reference_id": "12", "raw_text": "Smith J, Doe A. A study. J Things. 2020;4:1-9.",
+     "authors": [{"surname": "Smith", "given_names": "J"}], "year": "2020",
+     "title": "A study", "venue": "J Things", "doi": null}
+  ],
+  "markers": [
+    {"marker_text": "[12, 14-16]", "reference_ids": ["12", "14", "15", "16"]}
+  ],
+  "consistency": {
+    "orphan_markers": ["[99]"],
+    "uncited_reference_ids": ["7"],
+    "duplicate_reference_groups": [["3", "21"]]
+  }
+}

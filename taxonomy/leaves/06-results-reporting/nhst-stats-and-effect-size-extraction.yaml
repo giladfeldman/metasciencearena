@@ -1,0 +1,25 @@
+id: nhst-stats-and-effect-size-extraction
+name: NHST stats + effect-size + CI extraction from manuscripts
+lifecycle_stage: 06-results-reporting
+order: 10
+description: |
+  Given a results section (PDF, DOCX, or plain text), extract every reported
+  statistical test, effect size, and confidence interval, with the claim text
+  each is attached to. Tool-agnostic: ESCImate, statcheck, metacheck, and LLMs
+  are all candidate players.
+input_artifact: pdf_or_docx_manuscript
+output_to_judge: list_of_effect_size_records
+existing_solutions:
+  - {id: escimate, type: platform, owner: gilad}
+  - {id: statcheck, type: tool, owner: third-party}
+  - {id: metacheck, type: tool, owner: third-party}
+  - {id: claude-opus, type: ai-model, owner: anthropic}
+  - {id: chatgpt-codex, type: ai-model, owner: openai}
+  - {id: gemini-pro, type: ai-model, owner: google}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Pilot arena `arenas/stats-extraction-v1/` is live. v1 uses plain-text inputs;
+  PDF/DOCX inputs come once DocPluck arena lands.

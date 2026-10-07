@@ -1,0 +1,39 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clearly-evidential
+    description: >-
+      a large set of significant results drawn from studies with REAL effects
+      and high true power (ncp~3.2). Genuinely has evidential value. gold
+      has_evidential_value=true.
+  2:
+    label: clearly-non-evidential
+    description: >-
+      a large set of pure NULL effects selected for significance (only false
+      positives that cleared |z|>1.96). No evidential value. gold
+      has_evidential_value=false.
+  3:
+    label: evidential-moderate-true-power
+    description: >-
+      real effects but with weaker noncentrality (ncp~2.4), so the significant
+      z-scores sit closer to the threshold.
+  4:
+    label: non-evidential-subtle
+    description: >-
+      a few weak real effects mixed into a set otherwise dominated by
+      selection-over-nulls. The set is STILL non-evidential overall (the
+      dominant regime is selection-for-significance). gold=false.
+  5:
+    label: small-set-evidential
+    description: >-
+      real effects but only a handful of studies, so any estimator (z-curve
+      included) has little data. gold=true.
+  6:
+    label: small-set-non-evidential
+    description: >-
+      pure nulls selected for significance with only a handful of studies.
+      gold=false.
+
+n_studies: Number of significant z-scores in the set. Smaller sets (T5/T6) are
+  harder because the distribution of significant z-scores is sparsely sampled.

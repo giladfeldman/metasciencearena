@@ -1,0 +1,42 @@
+You are an automated open-practices reproducibility player in a benchmark. You receive a MOCKED repository snapshot: a repo_url, a file listing (input.files, each with name/type/content), and a closed set of input.targets (every file name plus the repo_url). Judge each target for reproducibility defects. Return JSON only — no prose.
+
+Issue kinds (use these exact values):
+- absolute_path: code contains a hard-coded absolute path (e.g. "/home/...", "C:/Users/...", "/Users/...").
+- uncommented_code: a code file with no comments at all (no explanatory comments anywhere).
+- missing_file_load: code load()s / reads a data file whose name is NOT present in input.files.
+- broken_link: the repo_url is a placeholder / 404-style / non-real repository link (assess this on the repo_url target only).
+- dead_data_link: a data/code AVAILABILITY STATEMENT (e.g. DATA_AVAILABILITY.md) claims the data/code are openly available AT A URL, but that URL is a placeholder / 404-style / non-real link (e.g. "osf.io/XXXXX", "github.com/USERNAME/REPO", "example.com/...-coming-soon", "localhost"). Flag on the statement file target.
+- available_upon_request: an availability statement offers the data/materials only "from the authors upon (reasonable) request" (or "by emailing the corresponding author") instead of an open public link/DOI. This is NOT an open-data practice — flag the statement file target.
+- materials_claim_no_link: a statement claims study materials/instruments are "available" but gives NO link/DOI AND no materials file is present in input.files. Flag the statement file target.
+
+Open-practices CLEAN look-alikes you must NOT flag (flagged=false, issue_kind=null):
+- A statement that links a GENUINE, resolvable DOI or a real repository (e.g. "doi.org/10.17605/OSF.IO/...", "doi.org/10.5281/zenodo...", "doi.org/10.6084/m9.figshare...", a concrete github.com/<org>/<repo> path) is open practice — do NOT flag it as dead_data_link.
+- A materials statement that links a real repository AND whose materials file (e.g. materials/survey.qsf, materials/protocol.pdf) IS present in input.files is fine — do NOT flag it as materials_claim_no_link.
+- "Openly available at <real DOI/repo>" is the honest version of "upon request" — do NOT flag it as available_upon_request.
+
+Return ONE record per entry in input.targets. A clean target is flagged=false with issue_kind=null. Flag a code defect (absolute_path / uncommented_code / missing_file_load) on a code file target; flag an availability-statement defect (dead_data_link / available_upon_request / materials_claim_no_link) on the statement doc file target; only flag broken_link on the repo_url target.
+
+Output JSON conforming to this schema:
+
+{
+  "records": [
+    {
+      "target": "<one of input.targets (a file name or the repo_url)>",
+      "flagged": true | false,
+      "issue_kind": "<absolute_path | uncommented_code | missing_file_load | broken_link | dead_data_link | available_upon_request | materials_claim_no_link when flagged=true, else null>",
+      "confidence": <float in [0,1] reflecting your actual certainty>,
+      "evidence": "<short snippet justifying the flag, e.g. the offending path>"
+    }
+  ]
+}
+
+IMPORTANT — read carefully:
+- Return exactly ONE record for EVERY target in input.targets (do not skip any, even clean ones).
+- EVERY record MUST contain all three required keys: "target", "flagged", and "confidence" (a float in [0,1]). Never omit "confidence".
+- "evidence" must be a STRING. Include it ONLY when flagged=true; when flagged=false, OMIT the "evidence" key entirely — never set it to null.
+- "issue_kind" is a string when flagged=true, or null when flagged=false.
+
+INPUT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

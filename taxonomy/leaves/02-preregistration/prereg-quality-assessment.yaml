@@ -1,0 +1,22 @@
+id: prereg-quality-assessment
+name: Preregistration quality and completeness assessment
+lifecycle_stage: 02-preregistration
+order: 50
+description: |
+  Given a synthetic preregistration or pre-analysis plan, rate each required
+  element (hypotheses, primary outcome, sample size and stopping rule,
+  exclusions, analysis model, inference criteria) as specified, missing or
+  ambiguous. Elements are generated present, absent or deliberately ambiguous;
+  only unambiguous constructions are scored. Distinct from prereg-extraction
+  (pulls fields) and prereg-vs-paper-deviation-detection (compares to a paper).
+input_artifact: structured_prereg
+output_to_judge: structured_field_map
+existing_solutions:
+  - {id: precheck, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+ground_truth_feasibility: medium
+arena_status: design
+scope_tier: A
+notes: |
+  Arena: prereg-quality-v1 (design only). The scoring rubric needs owner sign-off
+  and a cross-model check before any task set is minted.

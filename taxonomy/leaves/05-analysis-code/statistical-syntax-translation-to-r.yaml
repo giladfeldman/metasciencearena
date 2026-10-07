@@ -1,0 +1,42 @@
+id: statistical-syntax-translation-to-r
+name: Statistical syntax translation to R
+lifecycle_stage: 05-analysis-code
+order: 20
+description: |
+  Given an analysis script in a non-R statistical language (SPSS .sps syntax or
+  a Stata .do file) plus the codebook of the dataset it runs against, emit R
+  code that reproduces the same analysis. Scored by EXECUTABLE EQUIVALENCE: the
+  emitted R is run against the same fixed dataset and the statistics it produces
+  are compared to gold values, rather than diffed against a reference
+  translation. A script that merely looks right but computes a different
+  quantity therefore scores near zero.
+
+  This matters for meta-science because migrating legacy SPSS/Stata analyses to
+  R is a routine step in reproduction and reanalysis, and a silent
+  mistranslation (a default that differs across languages — listwise vs pairwise
+  deletion, pooled vs Welch t-tests, Type I vs Type III sums of squares, 0- vs
+  1-based factor contrasts) changes the reported result without any error being
+  raised. Ground truth is generated: each source script is authored alongside a
+  fixed dataset, and gold is produced by executing a hand-verified reference R
+  translation, so the gold is an executed result rather than an assertion.
+input_artifact: statistical_syntax_script
+output_to_judge: translated_r_script
+existing_solutions:
+  - {id: spsstor, type: tool, owner: third-party}
+  - {id: translatespss2r, type: tool, owner: third-party}
+  - {id: stata2r, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+ground_truth_feasibility: medium
+arena_status: live
+scope_tier: A
+notes: |
+  Arena: code-translation-r-v1. Two source languages on one leaderboard via a
+  source_language difficulty axis, so SPSS and Stata stay comparable.
+
+  The dedicated converters are weak and mostly unmaintained (SPSStoR is
+  GitHub-only and regex-based; translateSPSS2R is CRAN-archived; stata2r is
+  self-described alpha) — which is the point: this arena measures how far the
+  real tooling is from the LLMs on a task practitioners actually face. Per the
+  user's decision their outputs are vendored as version-pinned fixtures rather
+  than invoked live, so the arena runs on a machine without R; gold generation
+  still requires local R.

@@ -1,0 +1,32 @@
+id: pdf-section-structure
+name: PDF section structure recognition (Layer 3)
+lifecycle_stage: 09-submission-artifacts
+order: 11
+description: |
+  Given a scientific PDF, return ordered section records labeled by
+  canonical IMRaD vocabulary (title, abstract, introduction,
+  related_work, methods, results, discussion, conclusion, references,
+  acknowledgments, other) plus heading text and span. Gold derived from
+  JATS <sec sec-type="..."> on the same PMC corpus seeded by
+  pdf-text-fidelity-v1.
+
+  Sibling of pdf-text-fidelity (Layer 1) and pdf-reference-parsing
+  (Layer 5) under the same lifecycle stage; the three together replace
+  the original placeholder leaf docpluck-pdf-docx-text-extraction.
+
+  Arena will be built once Docpluck's in-flight section recognizer
+  lands so the head-to-head Docpluck vs GROBID vs LLMs is meaningful.
+input_artifact: pdf_or_docx_manuscript
+output_to_judge: pdf_section_records
+existing_solutions:
+  - {id: docpluck-section-recognizer, type: platform, owner: gilad}
+  - {id: grobid,                       type: tool,     owner: third-party}
+  - {id: claude-haiku-4-5-pdf,         type: ai-model, owner: anthropic}
+  - {id: gemini-2-5-flash-pdf,         type: ai-model, owner: google}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Score: section-label F1 + heading-string F1 + span IoU
+  (informational). Difficulty axes likely: section_count,
+  label_diversity, presence_of_unconventional_sections.

@@ -1,0 +1,98 @@
+arena_id: publication-bias-v1
+title: "Publication Bias"
+taxonomy_leaf_id: meta-analysis-publication-bias
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: meta_analytic_dataset
+output_to_judge: publication_bias_statistics
+difficulty_axes:
+  - {id: tier, min: 1, max: 6, description: "Number of studies rises with tier: k = 10, 16, 20, 24, 32, 40 in v2. In v2 each tier holds two datasets built under different conditions (no selection, p-value selection, or a small-study coupling), and nothing is scored against the condition. In the superseded v1: 1 small-k clean vs strong-biased · 2 controls-only false-alarm trap (k=16, 24) · 3 null-effect (k=20) · 4 heterogeneous (k=24) · 5 large-k (k=32) · 6 largest-k (k=40)."}
+  - {id: k,    min: 10, max: 40, description: "Number of studies in the meta-analytic set (>=10 so Egger is meaningful)."}
+task_set_versions:
+  # generator_fingerprint covers BOTH splits and resolves the private seed from
+  # the gitignored .private_seed. A machine WITHOUT that seed computes a
+  # different, revealed-only hash and will report DRIFT THAT IS NOT DRIFT.
+  # `framework audit` says so in the DRIFT output too. Do not "fix" a mismatch
+  # by rewriting this value until you have confirmed the seed is present.
+  #
+  # Which version the board serves is decided by `status: current`, never by
+  # position in this list (framework/discovery.py::resolve_task_set_version,
+  # mirrored by build-data.mjs::versionLadder).
+  - version: v1
+    generator_fingerprint: "sha256:5989d8cc61b016c1129cd6ce982e8e5ba18e9444c81fc6b7701052c576e7164f"
+    n_tasks: 12
+    released_on: "2026-06-08"
+    status: superseded
+    superseded_by: v2
+    rationale: >-
+      DEPRECATED (owner decision 2026-10-01). The original task set scored one
+      biased/unbiased verdict per dataset (85%) plus confidence calibration (15%).
+      How to turn publication-bias statistics into such a verdict is an unresolved
+      methodological question, so this ranking measures an answer nobody can
+      defend; use v2. Kept published for the record: its scores were computed on
+      these exact tasks and its generator still reproduces them.
+  - version: v2
+    generator_fingerprint: "sha256:c82b7b0a62f05de7c795b3b39de81af1b3536d954f61fd462c2cbd65d1cd5cd9"
+    n_tasks: 12
+    released_on: "2026-09-30"
+    status: current
+    supersedes: v1
+    comparable_with_previous: false
+    rationale_path: CHANGELOG.md#v2
+    rationale: >-
+      v2 scores whether a player computes each publication-bias method's
+      statistics correctly -- Egger, Begg's rank correlation, trim-and-fill,
+      PET-PEESE, the three-parameter selection model and RoBMA -- and no longer
+      scores a bias verdict. Turning these statistics into a yes/no verdict is an
+      unresolved methodological question, so v1's verdict measured an answer
+      nobody can defend, while v1 players were told the statistics were optional.
+      NOT COMPARABLE WITH v1: different datasets, a different question, a
+      different score. v2 removes nothing already published; v1 stays up.
+benchmark_splits:
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file        # task_sets/v1/.private_seed (gitignored)
+    real_holdout_dir: task_sets/v1/_held_out   # hand-curated real meta-analytic datasets (future)
+  parity:
+    match_axes: [tier]              # k and label are deterministic functions of tier
+    match_categories: true          # both constructed labels (biased/unbiased) appear in both splits
+    count_tolerance: 0.2
+error_categories:
+  # --- v2 ------------------------------------------------------------------
+  - id: statistic_off
+    description: A statistic was reported but falls outside the full-credit band around the value the named method produces (e.g. an Egger p more than 0.005 from gold). Partial credit decays to zero at the band's far edge.
+    severity: major
+  - id: statistic_missing
+    description: A statistic the task asks for was not reported. Scored 0 for that statistic, exactly like a wrong value, so omitting is never cheaper than computing.
+    severity: major
+  # --- v1 (superseded) -------------------------------------------------------
+  - id: bias_missed
+    description: A set that genuinely shows small-study/publication bias (funnel asymmetry, Egger p far below threshold) was judged unbiased (false negative).
+    severity: major
+  - id: bias_false_alarm
+    description: A symmetric / unbiased set (often a heterogeneous-but-clean control that merely looks noisy) was flagged as biased (false positive).
+    severity: major
+display_columns:
+  - {id: primary,     source: score.primary,             label: Score,        description: "The headline score (higher is better). In task set v2 it is a weighted average, over six publication-bias methods (RoBMA 0.30, PET-PEESE 0.225, the three-parameter selection model 0.225, Egger 0.10, Begg 0.075, trim-and-fill 0.075 — current methods weigh more than the mostly outdated ones), of how close each reported statistic is to the value that method produces — full credit within a small band, none beyond a wider one, and none for a statistic left out. No bias verdict is scored. In the superseded v1 it was 85% a biased/unbiased verdict plus 15% confidence calibration. The two are NOT comparable.", direction: higher, format: f3, primary: true}
+  # --- v2 columns ---------------------------------------------------------
+  - {id: method_egger,     source: score.breakdown.method_egger,     label: Egger,       description: "Credit for Egger's regression test p-value (1.0 = within 0.005 of the value lm(yi ~ sei, weights = 1/vi) gives, 0 beyond 0.05).", direction: higher, format: f2, primary: false, task_sets: [v2]}
+  - {id: method_begg,      source: score.breakdown.method_begg,      label: Begg,        description: "Credit for Begg and Mazumdar's rank correlation: Kendall's tau and its p-value.", direction: higher, format: f2, primary: false, task_sets: [v2]}
+  - {id: method_trimfill,  source: score.breakdown.method_trimfill,  label: "Trim-fill", description: "Credit for trim-and-fill: the number of imputed studies and the adjusted pooled effect.", direction: higher, format: f2, primary: false, task_sets: [v2]}
+  - {id: method_pet_peese, source: score.breakdown.method_pet_peese, label: "PET-PEESE", description: "Credit for the PET and PEESE estimates (the intercepts of the precision-weighted regressions of the effect on its standard error and on its variance).", direction: higher, format: f2, primary: false, task_sets: [v2]}
+  - {id: method_three_psm, source: score.breakdown.method_three_psm, label: "3PSM",      description: "Credit for the three-parameter selection model: the adjusted effect and the likelihood-ratio test p-value.", direction: higher, format: f2, primary: false, task_sets: [v2]}
+  - {id: method_robma,     source: score.breakdown.method_robma,     label: RoBMA,       description: "Credit for robust Bayesian meta-analysis (the RoBMA package's default ensemble): the inclusion Bayes factor for publication bias and the model-averaged effect. RoBMA is sampled by MCMC, so its bands were sized from the measured seed-to-seed spread.", direction: higher, format: f2, primary: false, task_sets: [v2]}
+  - {id: n_reported,       source: score.breakdown.n_reported,       label: Reported,    description: "How many of the 11 statistics the player reported at all, right or wrong. Reporting is not computing: a high count with a low score is a player that fills in numbers.", direction: higher, format: f2, primary: false, task_sets: [v2]}
+  # --- v1 columns (superseded) --------------------------------------------
+  - {id: correct,     source: score.breakdown.correct,   label: Correct,      description: "Whether the player's bias verdict matched the true label for the dataset (1.0 = right, 0.0 = wrong).", direction: higher, format: f2, primary: false, task_sets: [v1]}
+  - {id: calibration, source: score.breakdown.calibration, label: Calibration, description: "How honest the player's confidence is — how closely its stated certainty matches whether it was actually right. It rewards confidence aligned with being correct.", direction: higher, format: f2, primary: false, task_sets: [v1]}
+tier_pivot:
+  axis: tier
+  composite_formula: "v2: weighted mean over six methods of per-statistic band credit (RoBMA .30, PET-PEESE .225, 3PSM .225, Egger .10, Begg .075, trim-and-fill .075) · v1 (deprecated): 0.85 × correct + 0.15 × calibration"
+  values:
+    - {value: 1, label: T1, sub: "k=10"}
+    - {value: 2, label: T2, sub: "k=16"}
+    - {value: 3, label: T3, sub: "k=20, null effect"}
+    - {value: 4, label: T4, sub: "k=24"}
+    - {value: 5, label: T5, sub: "k=32"}
+    - {value: 6, label: T6, sub: "k=40"}

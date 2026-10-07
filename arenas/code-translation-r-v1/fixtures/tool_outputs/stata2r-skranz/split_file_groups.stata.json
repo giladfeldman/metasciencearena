@@ -1,0 +1,8 @@
+{
+  "tool": "stata2r-skranz",
+  "tool_version": "0.1.0",
+  "captured_from": "split_file_groups.do",
+  "r_code": "NA\nNA\nNA\ndata = scmd_sort(data = data, varlist_str = \"group\", type = \"sort\")\nif (isTRUE(stata2r_env$has_original_order_idx)) { data = dplyr::mutate(data, stata2r_original_order_idx = dplyr::row_number()) }\nNA",
+  "note": "verbatim do_to_r() output",
+  "tool_gap": false
+}

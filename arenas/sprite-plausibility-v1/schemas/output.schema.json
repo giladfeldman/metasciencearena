@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "sprite-plausibility-v1 player output",
+  "description": "Per-statistic SPRITE-style plausibility judgements. One record per reported statistic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["records"],
+  "properties": {
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stat_id", "flagged", "confidence"],
+        "properties": {
+          "stat_id": {"type": "string", "description": "Statistic id from input.statistics."},
+          "issue_kind": {
+            "type": ["string", "null"],
+            "description": "The impossibility kind when flagged=true; null otherwise. One of: impossible_mean (reported mean falls outside [scale_min, scale_max]), impossible_sd (reported SD exceeds the maximum SD attainable for bounded integers with that mean).",
+            "enum": ["impossible_mean", "impossible_sd", null]
+          },
+          "flagged": {"type": "boolean", "description": "True if the reported (mean, SD) pair is impossible for N integers in [scale_min, scale_max]."},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the flagged judgement."}
+        }
+      }
+    }
+  }
+}

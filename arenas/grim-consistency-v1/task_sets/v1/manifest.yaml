@@ -1,0 +1,15 @@
+version: v1
+seed: 0
+released_on: "2026-06-07"
+n_tasks: 13       # T1:3 + T2:3 + T3:1 + T4:1 + T5:3 + T6:2 (1 issue kind: grim)
+generator_signature: |
+  task_set_version=v1, revealed_seed=0, issue_kinds=1, tiers=[1..6]
+notes: |
+  GRIM-only dual-benchmark arena (granularity of MEANS; n_items always 1). The
+  REVEALED split is generated on-the-fly from (task_set_version="v1", seed=0); the
+  PRIVATE split uses the secret seed in task_sets/v1/.private_seed (gitignored) plus
+  any hand-curated real summary-stat tables under _held_out/. Gold is regenerated
+  from the seed (no committed answer key, no external registry) — see
+  generator.ground_truth(). Both splits cover the same tier matrix and the full set
+  of injected issue kinds (grim_inconsistent); tools/check_parity.py enforces it.
+  SD/GRIMMER is out of scope (covered by sprite-plausibility-v1).

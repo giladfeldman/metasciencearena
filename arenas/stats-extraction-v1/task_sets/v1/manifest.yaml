@@ -1,0 +1,10 @@
+version: v1
+seed: 0
+released_on: "2026-04-29"
+n_tasks: 36       # 6 tiers × 3 densities × 2 = 36 (revealed, seed 0). CI can expand by varying seed.
+generator_signature: |
+  task_set_version=v1, seed=0, n_per_cell=2, densities=[1,2,3], tiers=[1..6]
+notes: |
+  Public task set is generated on-the-fly by the framework runner from
+  (task_set_version="v1", seed=0). No materialized JSONL is committed.
+  Held-out generation will use the same generator with different seeds.

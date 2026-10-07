@@ -1,0 +1,7 @@
+{
+  "tool": "spss2rmarkdown",
+  "tool_version": "0.1.0",
+  "captured_from": "weighted_descriptives.sps",
+  "r_code": "library(jmv)\n# WEIGHT (metadata command - skipped)\njmv::descriptives(\n  data = data,\n  vars = c('SCORE'),\n  freq = FALSE,\n  mean = TRUE,\n  median = TRUE,\n  sd = TRUE,\n  min = TRUE,\n  max = TRUE,\n  skew = TRUE,\n  kurt = TRUE,\n  missing = TRUE\n)\n# WEIGHT (metadata command - skipped)",
+  "note": "verbatim convert_all_commands() output"
+}

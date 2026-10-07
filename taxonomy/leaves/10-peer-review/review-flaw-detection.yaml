@@ -1,0 +1,21 @@
+id: review-flaw-detection
+name: Peer-review flaw detection on full manuscripts
+lifecycle_stage: 10-peer-review
+order: 10
+description: |
+  Given a full synthetic manuscript with injected flaws in design, statistics,
+  reporting and claims, write a review. Scored by how many injected flaws the
+  review names (matched to the flaw list, cross-model adjudicated) and how many
+  flaws it invents; never by similarity to human reviewer prose.
+input_artifact: pdf_or_docx_manuscript
+output_to_judge: review_flaw_report
+existing_solutions:
+  - {id: reviewerzero, type: platform, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+  - {id: human-reviewer, type: human-baseline, owner: in-house}
+ground_truth_feasibility: medium
+arena_status: design
+scope_tier: B
+notes: |
+  Arena: review-flaw-detection-v1 (design only). Depends on the full-paper
+  generation engine.

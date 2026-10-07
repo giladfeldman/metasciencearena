@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "prereg-extraction-v1 player output",
+  "description": "Whether a preregistration was found, its platform and link, and the extracted field-map.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["prereg_found", "platform", "link", "fields", "confidence"],
+  "properties": {
+    "prereg_found": {"type": "boolean", "description": "True if the paper embeds a preregistration."},
+    "platform": {"type": ["string", "null"], "enum": ["osf", "aspredicted", null], "description": "The registry platform, or null if none found."},
+    "link": {"type": ["string", "null"], "description": "The canonical registration link, or null if none found."},
+    "fields": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The four extracted preregistration fields (null when no prereg / not recoverable).",
+      "properties": {
+        "hypotheses": {"type": ["string", "null"]},
+        "design": {"type": ["string", "null"]},
+        "sample_size": {"type": ["string", "null"]},
+        "analysis_plan": {"type": ["string", "null"]}
+      }
+    },
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the prereg_found detection call."}
+  }
+}

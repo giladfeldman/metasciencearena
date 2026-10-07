@@ -1,0 +1,47 @@
+# Tier 1: clean APA-formatted inline stats. {value}, {p}, {df1}, {df2}, {ci_lo}, {ci_hi}, {es}, {es_label} are placeholders.
+nhst:
+  - "Participants improved on the task, t({df1}) = {value}, p {p_rel} {p}."
+  - "We observed an effect, F({df1}, {df2}) = {value}, p {p_rel} {p}."
+  - "There was a correlation, r({df1}) = {value}, p {p_rel} {p}."
+  - "Group differences were significant, chi2({df1}) = {value}, p {p_rel} {p}."
+effect_size:
+  - "The effect was {es_label} = {es}, 95% CI [{ci_lo}, {ci_hi}]."
+  - "We found a sizeable effect ({es_label} = {es})."
+ci_only:
+  - "The mean difference was 0.42, 95% CI [{ci_lo}, {ci_hi}]."
+# Matched clean control for the tier-5 nhst_inconsistent deception: a fully
+# coherent result where {stat_str} carries the correct label + df-arity and {p}
+# is the recomputed two-sided p. A player that recomputes p finds no discrepancy,
+# so this must NOT be flagged. {stat_str} is pre-rendered in code (e.g. "F(3, 57)
+# = 9.12") so the df count matches the test.
+nhst_consistent:
+  - "The effect was statistically reliable, {stat_str}, p {p_rel} {p}."
+  - "As predicted, the test was significant, {stat_str}, p {p_rel} {p}."
+# Matched clean control for the tier-5 effect_size_rounding deception: a correctly
+# rounded effect size whose point estimate ({es}) equals its CI midpoint
+# ((ci_lo+ci_hi)/2). Same shape as the deception (estimate + symmetric 95% CI) but
+# internally consistent, so a player recomputing the midpoint finds no discrepancy
+# and must NOT flag it.
+clean_es:
+  - "The estimate was well determined, {es_label} = {es}, 95% CI [{ci_lo}, {ci_hi}]."
+  - "Consistent with expectations, {es_label} = {es} (95% CI [{ci_lo}, {ci_hi}])."
+
+# --- v3+ only (task set v3, 2026-08-21) --------------------------------------
+# THE FORM THIS ARENA HAD NEVER ONCE EMITTED. Measured on task set v2: 0 of 51
+# effect-size gold items sat in a clause containing a test statistic, and the
+# canonical APA form `t(48) = 2.31, p = .025, d = 0.65` occurred 0 times in all
+# 9,201 characters of task text. Every effect-size template was bare.
+#
+# That is the most common way psychology reports an effect size, and it is the
+# only form a checker can verify -- an effect size with no statistic beside it
+# has nothing to check it against. Probed against live effectcheck 0.7.6 on
+# 2026-08-21: all six bare forms this arena emitted returned ZERO rows, while
+# all three paired forms parsed and passed. The benchmark was scoring a
+# verification tool exclusively on inputs it is designed not to answer.
+#
+# Each of these yields TWO gold items -- the statistic and the effect size --
+# and they are `{stat_str}`-rendered so the label and df-arity are coherent.
+nhst_with_es:
+  - "The manipulation had an effect, {stat_str}, p {p_rel} {p}, {es_label} = {es}."
+  - "As predicted, {stat_str}, p {p_rel} {p}, {es_label} = {es}, 95% CI [{ci_lo}, {ci_hi}]."
+  - "This difference was reliable, {stat_str}, p {p_rel} {p}, {es_label} = {es}."

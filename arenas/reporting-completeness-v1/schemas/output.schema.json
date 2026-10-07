@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "reporting-completeness-v1 player output",
+  "description": "The list of statistical-reporting completeness defects the player flags in the results-section text. A clean, complete report should yield an empty flags array.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["flags"],
+  "properties": {
+    "flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["span", "category", "confidence"],
+        "properties": {
+          "span": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "char_start", "char_end"],
+            "description": "The location of the defect in the input text.",
+            "properties": {
+              "text": {"type": "string", "description": "The flagged substring."},
+              "char_start": {"type": "integer", "minimum": 0, "description": "Inclusive start offset into input.text."},
+              "char_end": {"type": "integer", "minimum": 0, "description": "Exclusive end offset into input.text."}
+            }
+          },
+          "category": {
+            "type": "string",
+            "description": "The completeness-defect category.",
+            "enum": [
+              "missing_effect_size",
+              "imprecise_p",
+              "impossible_p_zero",
+              "missing_ci",
+              "missing_df",
+              "nonsig_as_support",
+              "unspecified_test",
+              "no_correction",
+              "percent_count_mismatch"
+            ]
+          },
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in this flag."}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clean-simple
+    description: >-
+      every script is commented, uses relative paths, loads files that are
+      present, and the repo_url is real. No defects.
+  2:
+    label: false-alarm-trap
+    description: >-
+      every script LOOKS suspicious (its comments mention an absolute path or
+      a file rename) but is actually CLEAN: relative path, present file,
+      commented. A good player must NOT flag rewording/mentions as defects.
+  3:
+    label: single-injected-defect
+    description: >-
+      exactly one target genuinely carries a defect, cycling through every
+      issue_kind (absolute_path, uncommented_code, missing_file_load,
+      broken_link, dead_data_link, available_upon_request,
+      materials_claim_no_link); the rest are clean.
+  4:
+    label: subtle-defect
+    description: >-
+      exactly one genuine defect hidden amid trap files that look just as
+      suspicious. Cycles a hard-coded absolute path / a missing-file load, AND
+      each open-practices statement defect (a dead data link, an "upon
+      request" dodge, a materials claim with no link) — each sitting next to
+      its confusable CLEAN look-alike (a genuine DOI / a real materials repo).
+  5:
+    label: multiple-defects
+    description: >-
+      several targets carry distinct defects at once, including a broken
+      repo_url and an availability-statement defect.
+  6:
+    label: full-composition
+    description: >-
+      a mix of clean, trap, multiple file-level defects, a broken repo_url,
+      and a false availability claim.
+
+n_issues: Count of targets (files, the repo_url, or an availability statement)
+  that actually carry an injected reproducibility / open-practices defect (0 for
+  T1/T2).

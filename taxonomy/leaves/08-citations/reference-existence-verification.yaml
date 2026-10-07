@@ -1,0 +1,25 @@
+id: reference-existence-verification
+name: Reference existence verification (fabricated or hallucinated citations)
+lifecycle_stage: 08-citations
+order: 20
+description: |
+  Given a reference list mixing real references and fabricated ones, flag each
+  reference that does not exist or whose metadata cannot belong to one real
+  work, with the fabrication type. Type names follow the HALLMARK benchmark
+  (github.com/rpatrik96/hallmark) so results are comparable. Real references
+  contribute bibliographic metadata only.
+input_artifact: reference_list
+output_to_judge: list_of_reference_integrity_records
+existing_solutions:
+  - {id: hallmark-baselines, type: platform, owner: third-party}
+  - {id: bibtexupdater, type: tool, owner: third-party}
+  - {id: citelink, type: tool, owner: gilad}
+  - {id: referencecheck, type: tool, owner: gilad}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+ground_truth_feasibility: high
+arena_status: design
+scope_tier: A
+notes: |
+  Arena: reference-existence-v1 (design only, low priority): partner with
+  HALLMARK before building. citelink and referencecheck are maintainer tools
+  (conflict of interest).

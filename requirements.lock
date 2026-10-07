@@ -1,0 +1,155 @@
+# Pinned runtime dependencies for reproducible benchmark scoring (DR-0020).
+#
+# pyproject.toml declares floor + ceiling RANGES; this file pins the exact
+# versions a fresh install should resolve to, so scoring is byte-reproducible
+# across dev / CI / collaborators and a fresh install can never pull a
+# pre-release alpha (lxml resolved to 7.0.0a2 in an unpinned venv on 2026-06-28,
+# the exact footgun this closes).
+#
+# Install with:   pip install -r requirements.lock
+# Regenerate when bumping a dep: update the version here AND the range in
+# pyproject.toml in the same commit (portfolio rule: one lockfile, kept in sync).
+#
+# lxml is intentionally pinned to the latest STABLE 6.x (< 7.0.0a0); the rest are
+# the current resolved stable versions.
+
+jsonschema==4.26.0
+lxml==6.1.1
+numpy==2.4.4
+packaging==26.2
+pyyaml==6.0.3
+rapidfuzz==3.14.5
+reportlab==4.5.0
+requests==2.33.1
+scipy==1.17.1
+
+# --- docpluck: pinned by COMMIT, not by version and not by tag ---------------
+# Added 2026-08-22. docpluck produces PUBLISHED benchmark rows (the
+# `docpluck-2.4.137-*` players) and before 2026-08-22 was pinned NOWHERE: absent from
+# pyproject.toml and from this file, present only because someone pip-installed
+# it into a venv by hand. `player_version` recorded 2.4.136, but that field is a
+# PROVENANCE LABEL describing what already ran — it cannot make a fresh checkout
+# install anything. The published numbers were not reproducible from this repo.
+# Known and unfixed since at least .claude/skills/sciencearena-qa/SKILL.md:105,
+# which already listed "arena -> docpluck (.venv, pinned in no manifest at all)".
+#
+# `docpluck==2.4.136` DOES NOT WORK. Measured 2026-08-22: PyPI's newest docpluck
+# is 2.4.135. Our 2.4.136 was installed from a git tag and was never published to
+# the index, so a version specifier resolves against PyPI, finds no such release,
+# and fails. The artefact behind our published scores was never distributed.
+#
+# The COMMIT is load-bearing — do not "simplify" this to @v2.4.136. A tag is
+# mutable, and four docpluck versions are live on this machine simultaneously
+# (PyPI 2.4.135, this pin 2.4.136, tag v2.4.137, an uncommitted 2.4.138 tree).
+# A tag reproduces the LABEL; the commit reproduces the LIBRARY. Recovered from
+# .venv/.../docpluck-2.4.136.dist-info/direct_url.json, which records the exact
+# revision pip resolved. The repo is public, so a clean checkout needs no
+# credentials.
+# BUMPED 2026-08-29, and the ORDER was the fix. `players/registry.yaml` was
+# bumped to `docpluck-2.4.137-*` in 585cffb and all 362 docpluck records were
+# written at 2.4.137 (checked: declared == resolved_tool_version on every one,
+# 0 mislabelled) -- but THIS FILE still pinned the 2.4.136 commit and `.venv`
+# still had 2.4.136 installed. So the label, the lock and the runtime disagreed
+# three ways, and `conductor-identity.py --project arena` was correctly red.
+# Pinned to the commit behind tag v2.4.137, verified present on the public
+# remote and a DESCENDANT of the old pin (moving forward, not sideways).
+# NOT pinned to 2.4.138: that is an uncommitted, dirty working tree in the
+# DocPluck repo, not a release, and nothing has ever run against it.
+# BUMPED 2026-09-11 to the commit behind tag v2.4.141, on Gilad's decision, in the
+# commit IMMEDIATELY PRECEDING the re-run that makes its numbers real (2bc6954, then
+# the 222 re-scored rows in db5f376) -- nothing was published in between, and neither
+# commit was pushed alone. An earlier draft of this paragraph said "in the same
+# commit"; that was written before the split and was FALSE for ~85 minutes. Caught by
+# a peer session reading the history against the prose. THE EXPOSURE WAS SMALLER THAN
+# I FIRST WROTE, and the correction is worth more than the original claim: this file
+# is listed in contract/public_manifest.txt, and I wrote that the false sentence had
+# therefore reached the public mirror. MEASURED instead of assumed -- mirror HEAD is
+# 698faa3, "sync: mirror from private source", 2026-09-07, FOUR DAYS OLDER than any
+# of this, and 0 occurrences of the false sentence in the public copy (4,866 lines
+# actually fetched and read, still declaring the 2.4.137 labels). The sync is MANUAL,
+# so "listed in the manifest" says a file is eligible to ship, never that today's
+# content has shipped. The mirror is stale but internally coherent -- 2.4.137 labels
+# beside 2.4.137 records -- which is why it states nothing false; a PARTIAL sync,
+# taking this file without the 222 re-scored rows and the archive moves, is the state
+# that would. WHY THE SPLIT, since it is the one thing a reader will query:
+# `_code_version_for` stamps `<sha>-dirty` whenever ANY tracked file is modified, and
+# this working tree is shared with other sessions. Running from a clean worktree at
+# 2bc6954 stamped every new record with the sha of the commit whose lock and registry
+# actually produced it, instead of a dirty marker naming a tree nobody can rebuild.
+# WHY, and it is not
+# tidiness: docpluck <= 2.4.138 rewrote a printed digit `3` into a multiplication
+# sign wherever the surrounding words looked like an interaction term (rules W0i,
+# W0k, W0l), destroying real published tokens -- dataset names, an affiliation, a
+# deposition DATE. 2.4.141 retires all three and MOVES THE VERSION STRINGS
+# (normalization 1.9.64 -> 1.9.65, table extraction 2.4.13 -> 2.4.14) so stored
+# text can be told apart; without that move, pre-fix and post-fix output would be
+# indistinguishable in the records. The rest of the fleet had already gone:
+# Two other downstream consumers had already pinned @v2.4.141. This arena was the
+# LAST one still on 2.4.137.
+#
+# WHAT THE BUMP COSTS, measured BEFORE it was taken, over all 222 current-board
+# docpluck rows, each set re-run at the ceiling ITS published run recorded in
+# `provenance.request_timeout_s`: 48 rows move, every arena mean moves UP or not at
+# all, and the largest single move is +0.0474. The load-bearing half is the
+# control -- the same isolated harness at 2.4.137 reproduced the published records
+# BYTE-IDENTICALLY (0 primary diffs, 0 full-score diffs) on four sets, which is
+# what makes the deltas attributable to the LIBRARY rather than to the harness.
+#
+# Verified present on the public remote and a DESCENDANT of the old pin:
+#   git merge-base --is-ancestor 56b67b06 3f035f5  -> yes
+#   git ls-remote origin "refs/tags/v2.4.141^{}"   -> 3f035f5a2ef5...
+# THE PEELED TAG IS WHAT WAS CHECKED. `refs/tags/v2.4.141` on its own returns the
+# annotated TAG object (d7c3e128...), which is not a commit and never matches the
+# pin -- a check against it would have "failed" for a purely cosmetic reason.
+#
+# REPOINTED 2026-09-24, SAME LIBRARY. docpluck's public history was rewritten and
+# force-pushed (owner-approved) and every SHA from v2.4.54 on changed; the old pin
+# 3f035f5a is on NO remote branch or tag any more, so a fresh install from it could
+# fail. v2.4.141 is now 25c33c7c. Verified, not assumed:
+#   git ls-remote origin "refs/tags/v2.4.141^{}"   -> 25c33c7ccab1...
+#   git rev-parse 3f035f5:docpluck 25c33c7:docpluck -> 2422515878af... (IDENTICAL tree)
+# Only CHANGELOG.md, scripts/ and tests/ differ, so no published docpluck record is
+# re-attributed: the library that produced them is byte-identical.
+#
+# BUMPED 2026-09-28 to v2.4.146 (c5d29cae), requested by docpluck
+# (M-docpluck-arena-20260927T102722Z) and by QA gate G2. Verified, not assumed:
+#   git ls-remote origin "refs/tags/v2.4.146"      -> c5d29cae68ed... (lightweight tag)
+#   git merge-base --is-ancestor 25c33c7 c5d29cae  -> yes
+# 2.4.146 changes no extraction code relative to 2.4.145 per its CHANGELOG; the
+# arena's own 145-vs-146 comparison on the revealed sets is in
+# communications/2026-09-28-docpluck-version-comparison-REPLY.md. The adapter
+# withholds 2.4.145's uncaptioned table candidates (db6bb00).
+#
+# BUMPED 2026-09-29 to v2.4.147 (f0237bae, owner decision; QA G2 flagged 2.4.146 as
+# one release behind). Verified, not assumed:
+#   git ls-remote origin "refs/tags/v2.4.147^{}"   -> f0237baeb537... (annotated tag, peeled)
+#   git merge-base --is-ancestor c5d29cae f0237bae -> yes
+# Runtime dependencies unchanged vs 2.4.146 (pyproject diff adds only hatchling for
+# docpluck's own distribution test). Extraction DOES change (normalization 1.9.70,
+# tables 2.4.18); the four docpluck boards are re-run in the next commit.
+#
+# BUMPED 2026-10-06 to v2.4.150 (60517fa8, owner decision B on debt d-1a4968).
+# Verified, not assumed:
+#   git ls-remote origin "refs/tags/v2.4.150^{}"   -> 60517fa80200... (annotated tag, peeled)
+#   git merge-base --is-ancestor f0237bae 60517fa8 -> yes
+# NEW RUNTIME DEPENDENCY: 2.4.150 declares pypdf>=4.0 (glyph_names.py, the Linotype
+# Pi repair). Before, it arrived only through camelot-py, and our camelot 2.0.0 does
+# not pull it in. Without it the repair raises ImportError inside a broad except and
+# docpluck silently reads the unrepaired bytes, so pypdf is pinned below.
+# Extraction changes: tables 2.4.18 -> 2.4.21, normalization 1.9.70 -> 1.9.71.
+# ALSO BUMP the operator's dependency map (arena -> docpluck `pin:`) in the same pass.
+docpluck @ git+https://github.com/giladfeldman/docpluck.git@60517fa80200e7854b7d99fd9519d5be12fb40d0
+pypdf==6.19.0
+
+# --- optional extra: pdf-docling -------------------------------------------
+# Not installed by a bare `pip install -r requirements.lock` consumer unless they
+# want the Docling players. Pinned as a STACK, not one package: Docling swapped
+# its default layout model between releases (+23.5% mAP on DocLayNet), so the
+# `docling` version alone does not identify the instrument a score came from.
+# torch is the CPU build -- install with
+#   --extra-index-url https://download.pytorch.org/whl/cpu
+# docling==2.120.3
+# docling-core==2.92.0
+# docling-ibm-models==3.14.0
+# docling-parse==7.14.0
+# torch==2.13.0+cpu

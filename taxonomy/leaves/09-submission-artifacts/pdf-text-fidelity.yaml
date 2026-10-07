@@ -1,0 +1,47 @@
+id: pdf-text-fidelity
+name: PDF text fidelity (Layer 1)
+lifecycle_stage: 09-submission-artifacts
+order: 10
+description: |
+  Given a scientific PDF, return clean linear text — abstract + body
+  paragraphs in strict logical reading order, with figure/table captions
+  inline at first reference and footnotes emitted as a separate array.
+  Title/authors block, references, and acknowledgments are excluded
+  (they belong to sibling arenas pdf-section-structure and
+  pdf-reference-parsing). Headers, footers, watermarks, page numbers,
+  and table cells are stripped.
+
+  Two gold profiles ship per task: preserve_greek (η, χ², α kept) and
+  ascii_greek (η→eta, χ→chi, sub/superscript digits flattened). Each
+  player declares its gold_target so Greek-handling becomes a tool-level
+  choice, not an arena-level prejudice.
+
+  v1 ground truth is 24 synthetic tasks: 6 hand-curated mini-JATS
+  documents rendered to PDF via reportlab at 4 corruption profiles
+  (1-col vs 2-col, ligature font, header/footer, watermark, dropped
+  decimals). Real PMC OA pairs (30 papers, post-2024) ship behind an
+  opt-in fetcher that augments the task set when run.
+input_artifact: pdf_or_docx_manuscript
+output_to_judge: pdf_clean_text_with_pages
+existing_solutions:
+  - {id: docpluck-academic,    type: platform, owner: gilad}
+  - {id: docpluck-standard,    type: platform, owner: gilad}
+  - {id: pdftotext-raw,        type: tool,     owner: third-party}
+  - {id: grobid-text-only,     type: tool,     owner: third-party}
+  - {id: claude-haiku-4-5-pdf, type: ai-model, owner: anthropic}
+  - {id: gemini-2-5-flash-pdf, type: ai-model, owner: google}
+  - {id: gpt-4o-mini-pdf,      type: ai-model, owner: openai}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Difficulty axes: source_kind (synthetic vs real PMC), column_count
+  (1/2/3), corruption_intensity (0-3 for synthetic).
+
+  Scoring: 0.5 * Levenshtein-normalized-similarity + 0.5 * token-F1 on
+  the whole full_text. Per-page F1 and footnote-recall surface in the
+  breakdown.
+
+  See arenas/pdf-text-fidelity-v1/ for the running arena and
+  docs/superpowers/specs/2026-05-06-pdf-extraction-arena-family-design.md
+  for the family-level rationale.

@@ -1,0 +1,285 @@
+arena_id: stats-extraction-v1
+title: "Stats Extraction"
+taxonomy_leaf_id: nhst-stats-and-effect-size-extraction
+version: 0.1.0
+owner: gilad
+license: MIT
+input_artifact: plain_text_section
+output_to_judge: list_of_effect_size_records
+difficulty_axes:
+  - {id: tier,           min: 1, max: 6, description: "Injection-difficulty tier 1..6 (tier 6 = full results section)"}
+  - {id: density,        min: 1, max: 5, description: "Stats per unit text"}
+  - {id: deception_rate, min: 0, max: 5, description: "Fraction of items that are deception (0=none, 5=>=50%)"}
+task_set_versions:
+  # n_tasks = the revealed single-seed count actually generated and committed to
+  # task_sets/v1/_ground_truth.json (6 tiers x 3 densities x 2 = 36); the
+  # leaderboard displays the real committed count. Was a stale 60.
+  #
+  # Which version the board builds from is decided by `status: current`, never by
+  # position in this list (framework/discovery.py::resolve_task_set_version,
+  # mirrored by build-data.mjs::versionLadder).
+  - version: v1
+    n_tasks: 36
+    released_on: "2026-04-29"
+    status: superseded
+    superseded_by: v2
+    # generator_fingerprint covers BOTH splits and resolves the private seed from
+    # the gitignored .private_seed. A machine WITHOUT that seed computes a
+    # different, revealed-only hash and will report DRIFT THAT IS NOT DRIFT.
+    # `framework audit` says so in the DRIFT output too. Do not "fix" a mismatch
+    # by rewriting this value until you have confirmed the seed is present.
+    generator_fingerprint: "sha256:8d5f889578a719721f61f7b10fbb1116aa7fddfffb73346cce60691da2239282"
+    rationale: >-
+      The original task set. Kept and still served: its published scores were
+      computed on these exact tasks, and the audit gate checks the generator
+      still reproduces them.
+  - version: v2
+    generator_fingerprint: "sha256:a52734dcdfe6182cf82e5762e1175fdb2029feca830e9f34a2e7da85b4fa0deb"
+    n_tasks: 36
+    released_on: "2026-08-09"
+    status: superseded
+    superseded_by: v3
+    supersedes: v1
+    # MEASURED, not assumed, 2026-08-21. The previous comment here said "the
+    # revealed split is unchanged (seed 0, same 36-task matrix); only the private
+    # seed is new". That is not what the generator does:
+    # `_pins_labels(task_set_version)` returns False for v1 and True for v2, so v2
+    # also applies item D (the statistic is drawn to match the template's label).
+    # Re-generating both versions at seed 0 and hashing `input.text` gives 0 of 36
+    # revealed texts in common. The task CONTENT changed on both splits, so the
+    # two versions' scores are not on the same instrument.
+    comparable_with_previous: false
+    rationale: >-
+      v2 rotates the private seed that v1 leaked through its run-record task_ids,
+      and switches the task_id discriminator to a truncated SHA-256 so the new
+      seed cannot leak the same way. It also pins each statistic to its
+      template's label (item D), which changes the revealed task text as well —
+      measured, all 36 revealed tasks differ from v1 — so v1 and v2 scores are
+      not directly comparable.
+  - version: v3
+    generator_fingerprint: "sha256:662b1c7afd9a70aeadbf54d290779cae823822d0f4d18d3e5ff17deb62a6a5a5"
+    n_tasks: 36
+    released_on: "2026-08-21"
+    status: superseded
+    superseded_by: v4
+    supersedes: v2
+    comparable_with_previous: false
+    rationale: >-
+      v2 measured transcription and called it verification. Three defects, all
+      MEASURED on v2 before this change. (1) The generator drew each truthful
+      NHST item's p independently of its statistic, so 37 of 84 were real
+      statcheck decision errors labelled truthful - while the player prompt
+      ordered players to recompute p and flag exactly those, so the better a
+      player followed our own instructions the worse it scored. (2) Tier 6
+      stamped deception_rate 3 and contained ZERO deception, because
+      sub_tier = (i modulo 5) + 1 over four section titles never reaches 5 -
+      66 of 144 gold items carrying a false difficulty label. (3) No effect
+      size anywhere in the arena appeared beside its own test statistic, and
+      the canonical APA form occurred zero times in 9,201 characters, so a
+      verification tool was scored exclusively on the one form it is designed
+      not to answer.
+      v3 fixes all three. Truthful NHST items now report the p their statistic
+      implies (measured, alpha-crossing truthful items 37 to 0); tier 6 gains a
+      fifth section title so its deception branch is reachable and COMPUTES its
+      stamp from the items (0 to 12 deception items); tier 1 gains templates
+      pairing an effect size with its statistic (4 to 20 effect sizes reported
+      with one). Scores are NOT comparable with v2 - both the task text and the
+      scoring changed. The scoring change alone was also applied to v2 and is
+      separable; see docs/reports/2026-08-21-stats-arena-coverage-gaps.md.
+  - version: v4
+    generator_fingerprint: "sha256:b1d169cd40ae289dea1d7006ca02dd46c7755133e8526344c5a42e7cf74ff6ea"
+    n_tasks: 36
+    released_on: "2026-08-28"
+    status: superseded
+    superseded_by: v5
+    supersedes: v3
+    comparable_with_previous: false
+    rationale: >-
+      v3 was MANUFACTURING the reporting errors it graded. generator._round_p
+      clamps any true p below .0005 to print "p = .001" and any above .999 to
+      print "p = .999". Both are false statements about the statistic, so a tool
+      that recomputes p is RIGHT to flag them. Measured on v3 revealed - of the
+      45 truthful NHST items labelled incoherent, 44 sit at one of those two
+      clamps and exactly ONE is a genuine precision mismatch (p = .049 against a
+      true .0499503). Because the scorer forgave all 44, statcheck was graded on
+      39 of its 73 checkable items while escimate was graded on 70 of 72, on the
+      same published row - which is what produced their near-tie.
+      v4 prints the inequality APA requires and a real paper uses - "p < .001"
+      and "p > .999" - so v4 stimulus text is MORE realistic than v3, not less.
+      The rule is NOT "replace every clamp with an inequality": a p that
+      genuinely rounds to .001 keeps its point value, because "p < .001" would be
+      false of it. Converting blindly turned 11 correct items incoherent, so
+      _apa_p_rel keys on the TRUE p, never the printed one.
+      MEASURED: truthful items with coherent=False fall 45 to 0, so the scorer's
+      forgiveness cell has no cases and is inert by construction rather than
+      deleted - v3 records therefore score exactly as they always did. The clean
+      control class is 89 of 91 against a floor of 40, recovered with no
+      threshold edited. The deception taxonomy is unchanged and was checked, not
+      assumed: 24 deceptions across all 8 kinds and 15 inconsistent items in BOTH
+      versions. v4 removes the accidental error class, not the deliberate one.
+      NOT comparable with v3: the task text changed, and _seed_int includes the
+      task-set version, so v4 is a fresh draw rather than a re-render.
+  - version: v5
+    generator_fingerprint: "sha256:d01ead82ccecf11625d4f7abd91d2c2f0dbc978fe60122069d4b47110ac7090b"
+    n_tasks: 36
+    released_on: "2026-08-29"
+    status: current
+    supersedes: v4
+    comparable_with_previous: false
+    rationale: >-
+      v4's ANSWER KEY GRADED A CLAIM THE PASSAGE NEVER PRINTED. v4 stamped the
+      APA relation onto every truthful NHST gold item as fields.p_rel, but three
+      templates never interpolated it. tier2_notation "*t*(df) = v, *p* = .001"
+      hardcodes "=", so gold could record "p < .001" while the text said
+      "p = .001". Worse, tier2 and tier3 each carry a "p < {p_threshold}" form
+      where p_threshold is the CONSTANT ".05" that _instantiate_template
+      supplies - the drawn p is never rendered at all, so the gold graded a
+      number the reader cannot see.
+      MEASURED on v4 revealed with all 112 nhst gold items located (an earlier
+      survey located 55 and reported its count as a lower bound): 7 items print
+      a relation the gold does not record, 11 print the .05 threshold rather
+      than the gold p, and 5 print a claim that is FALSE of their own recomputed
+      p while the key says expected_verdict "ok". Private split: 6, 13 and 5. On
+      v3 the same locator finds 44 and 41 - the clamp defect v4 was minted to
+      remove - which is how the locator is known to work rather than merely to
+      return zero.
+      Those 5 invert the scoring. "t(44) = -0.02, p < .05" against a true p of
+      .984 is a decision error, exactly what statcheck exists to find; the key
+      says ok, so the tool that flags it is charged a false_alarm and the tool
+      that misses it is credited a hit.
+      THE FIX IS NOT A RELABEL. Marking those 5 inconsistent needs no re-run and
+      leaves the passage printing "p = .001" for a true p of 7.3e-06, which is
+      precisely the manufactured error v4 exists to remove. v5 changes the TEXT:
+      the inequality now reaches the reader, and the threshold form renders the
+      relation measured against alpha ("<" below .05, ">" above) with the gold p
+      set to the .05 that is actually printed. "p > .05" is ordinary APA prose,
+      so the notation variation tier 2 exists to test is preserved rather than
+      deleted. v5 wording lives under a separate nhst_v5 template key, the same
+      shape as tier 6's section_titles_v3, and all four earlier task sets
+      reproduce their committed gold byte-for-byte on both splits - envelope
+      text AND every gold field.
+      MEASURED on v5: 0 relation mismatches, 0 number mismatches, 0 false claims
+      graded ok, on both splits. coherent=False stays at 0, so the scorer's
+      forgiveness cell still has no cases. The clean control class is 80 against
+      a floor of 40. The deception taxonomy is unchanged and was checked, not
+      assumed: 24 deceptions across all 8 kinds and 15 inconsistent items,
+      identical to v3 and v4.
+      KNOWN AND NOT FIXED HERE: from v4 onward a printed INEQUALITY is a
+      near-perfect signal that an item is truthful (v5 revealed: 47 such items,
+      0 deceptions), because a deception's whole point is that its printed p is
+      wrong. Closing that means changing what the deception class looks like,
+      which is a separate decision and would confound this measurement.
+      NOT comparable with v4: the task text changed, and _seed_int includes the
+      task-set version, so v5 is a fresh draw rather than a re-render (161 gold
+      items -> 163).
+benchmark_splits:
+  # revealed seed 0 matches the gold already committed in task_sets/v1 (registry +
+  # _ground_truth.json), so adding splits does not invalidate existing artifacts.
+  revealed: {seed: 0, published: true}
+  private:
+    seed_source: secret_file   # task_sets/v1/.private_seed (gitignored)
+  parity:
+    match_axes: [tier, density]   # deception_rate is a deterministic function of tier
+    match_categories: true        # every deception_kind must appear in both splits
+    count_tolerance: 0.0          # identical matrix => exact per-cell counts
+    # The eight DECLARED deception kinds stay at count_tolerance 0.0 above, and
+    # that is not aspirational: generating v5 over 40 seeds gives exactly 24
+    # injected items on every single one, because kind assignment is index-cycled
+    # and seed-independent. Per-cell TASK counts are likewise exactly 2 everywhere.
+    #
+    # WHAT IS *NOT* MATCHED, and why this declaration exists.
+    # The two splits do not carry the same item-KIND composition. In generator.py's
+    # `_build_task`, the frozen v1-v5 branch draws `rng.choice(["nhst", "effect_size"])`
+    # per clause and fires `rng.random() < 0.5` (`with_es`, from v3) to emit a
+    # second item, so BOTH the kind mix and the item
+    # count depend on the seed. The scorer charges every unmatched gold item as a
+    # false negative (`scorer.py:463`), so a player that reads only NHST statistics
+    # -- statcheck -- has its per-task recall capped at nhst_items/all_items.
+    #
+    # MEASURED on v5 with the real seeds, mean over 36 tasks:
+    #     NHST-only recall ceiling   revealed 0.6516   private 0.6901   gap 0.0385
+    #     per-tier nhst/all:  t1 11/28 vs 11/26   t2 8/12 vs 7/12   t3 5/12 vs 7/12
+    #                         t4 18/18 both       t5 9/12 both      t6 53/81 vs 51/81
+    # Tiers 2 and 3 have IDENTICAL item counts and still differ in composition, so
+    # no count-based or rate-based check can detect this. An earlier fix tried a
+    # `clean_rate_tolerance` on the clean residual; it was REMOVED as a false green,
+    # because the v5 asymmetry sits in tier 1 where the clean rate is 1.0000 on both
+    # splits and therefore no tolerance at any value -- including 0 -- can see it.
+    #
+    # So the arena DECLARES the gap instead of pretending to gate it. The report
+    # prints PARITY PARTIAL, names what it did not enforce, and shows the per-cell
+    # composition table. Do NOT convert this back into a tolerance.
+    #
+    # THE VERSION LIST IS EXPLICIT AND EXHAUSTIVE. v6 is deliberately absent: when
+    # the generator fix lands behind a v6 flag, v6 gets the FULL STRICT check with
+    # nobody editing this file. An exemption phrased as "until the generator is
+    # fixed" would never expire, because nothing forces anyone to notice that it
+    # has been. Adding a version here is a deliberate, reviewable act.
+    composition_unmatched:
+      versions: [v3, v4, v5]
+      reason: >-
+        the v1-v5 `kind` and `with_es` draws in generator.py `_build_task`
+        (item kind and item cardinality) are both drawn from the seed, so the revealed and private splits are not the same
+        instrument for a player that reads only one item kind. MEASURED on v5:
+        an NHST-only extractor's recall ceiling is 0.6516 revealed vs 0.6901
+        private. A cross-split comparison on these versions is only safe for
+        players that read every item kind. Fixed in v6.
+error_categories:
+  - id: extraction_missed
+    description: A gold item has no matching player extraction (false negative).
+    severity: major
+  - id: extraction_extra
+    description: A player extraction has no matching gold item (false positive).
+    severity: minor
+  - id: kind_mismatch
+    description: An unmatched player extraction overlaps a gold span but disagrees on kind (e.g. labelled an effect_size as nhst_stat).
+    severity: major
+  - id: value_off
+    description: A matched extraction's numeric value differs from gold by ≥ 0.01.
+    severity: major
+  - id: deception_missed
+    description: A non-truthful gold item was matched but the extraction did not flag it as suspicious.
+    severity: major
+  - id: deception_false_alarm
+    description: >-
+      A matched item whose reported values genuinely cohere was called inconsistent.
+      NOTE (2026-08-21) - this used to fire on any flagged truthful item, which was
+      wrong. 37 of 84 truthful NHST gold items are real statcheck decision errors, so
+      a checker was charged for being right. It now fires only where the gold verdict
+      is "ok".
+    severity: minor
+  - id: abstain_on_checkable
+    description: >-
+      The player declined to verify an item that IS checkable from what is printed
+      (verdict "unverifiable"). It is surfaced AND charged: a declined item stays in
+      the verification denominator as a non-hit, so declining costs the same as
+      getting it wrong. That is what stops a tool which abstains everywhere from
+      showing a perfect verification score. The mechanism is the accumulation loop
+      at scorer.py:481-483 - `if cell == "abstain": continue` and then
+      `v_total += 1` - so it is the separate `abstain` cell, for genuinely ambiguous
+      items, that leaves the denominator, and it emits no finding at all.
+      CORRECTED 2026-09-22: this text previously said a decline "is scored as
+      neither and leaves the verification denominator", which is the opposite of
+      what the scorer does and would have explained the only published difference
+      between ESCImate 0.7.6 and 0.7.10 exactly backwards.
+    severity: minor
+  - id: calibration_overconfident
+    description: An incorrect extraction (matched-but-wrong, or unmatched FP) carried confidence ≥ 0.9.
+    severity: minor
+
+display_columns:
+  - {id: composite,   source: score.primary,                 label: Composite,   description: "The headline score (higher is better) for pulling statistics and effect sizes out of a results section. It multiplies how accurate the extractions are (precision), how complete they are (recall), and how well the player judges whether a reported result is internally consistent (verification), so being weak at any one drags the whole score down (formula: precision × recall × verification).", direction: higher, format: f3, primary: true}
+  - {id: precision,   source: score.breakdown.precision,     label: Precision,   description: "Of the statistics the player reported, the fraction that matched the ground truth. Low precision means it invented or misread numbers.", direction: higher, format: f2, primary: false}
+  - {id: recall,      source: score.breakdown.recall,        label: Recall,      description: "Of the statistics actually present in the text, the fraction the player found. Low recall means it missed real numbers.",     direction: higher, format: f2, primary: false}
+  - {id: verification, source: score.breakdown.verification_score, label: Verification, description: "Of the reported results that CAN be checked from what is printed, the fraction the player judged correctly — spotting a statistic that contradicts its own p-value, and equally, leaving a correctly-reported result alone. Saying \"I cannot check this\" is an abstention: it is neither credited nor penalised.", direction: higher, format: f2, primary: false}
+  - {id: calibration, source: score.breakdown.calibration,   label: Calibration, description: "How honest the player's confidence is — a well-calibrated player that says it is 90% sure is right about 90% of the time. REPORTED ONLY, never ranked: for a tool with no confidence of its own this framework derives the number itself, so ranking on it would rank our own adapter.", direction: higher, format: f2, primary: false}
+tier_pivot:
+  axis: tier
+  composite_formula: "precision × recall × verification"
+  values:
+    - {value: 1, label: T1, sub: baseline}
+    - {value: 2, label: T2, sub: notation}
+    - {value: 3, label: T3, sub: OCR-noise}
+    - {value: 4, label: T4, sub: density}
+    - {value: 5, label: T5, sub: catch-deception}
+    - {value: 6, label: T6, sub: multi-section}

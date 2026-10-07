@@ -1,0 +1,7 @@
+{
+  "tool": "spss2rmarkdown",
+  "tool_version": "0.1.0",
+  "captured_from": "pipeline_select_model.sps",
+  "r_code": "library(dplyr)\nlibrary(jmv)\ndata <- data |>\n  dplyr::filter(HOURS >= 20)\n# EXECUTE (Implicit in R)\njmv::linReg(\n  data = data,\n  dep = \"SCORE\",\n  covs = c('AGE', 'GROUP'),\n  blocks = list(list(\"AGE\", \"GROUP\")),\n  refLevels = list(),\n  r = TRUE,\n  r2 = TRUE,\n  r2Adj = TRUE,\n  aic = TRUE,\n  bic = TRUE,\n  rmse = TRUE,\n  modelTest = TRUE,\n  anova = TRUE,\n  ci = TRUE,\n  stdEst = TRUE,\n  ciStdEst = TRUE,\n  collin = TRUE,\n  cooks = TRUE,\n  durbin = TRUE,\n  norm = TRUE,\n  qqPlot = TRUE,\n  resPlots = TRUE\n)",
+  "note": "verbatim convert_all_commands() output"
+}

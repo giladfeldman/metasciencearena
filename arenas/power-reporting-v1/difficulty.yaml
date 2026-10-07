@@ -1,0 +1,39 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clean-simple
+    description: >-
+      a complete, clearly-labelled power analysis (a-priori, sensitivity, or
+      post-hoc). All six fields present. No injected mistake.
+  2:
+    label: false-alarm-trap
+    description: >-
+      excerpts that LOOK suspicious but are clean: a methods paragraph that
+      mentions sample size and alpha yet reports NO power analysis (must not
+      be flagged as having one), plus correctly-labelled complete post-hoc /
+      sensitivity analyses (must not be relabelled a-priori).
+  3:
+    label: single-injected-mistake
+    description: >-
+      exactly one of {posthoc_as_apriori, missing_fields, no_power_analysis},
+      cycling through all three.
+  4:
+    label: subtle
+    description: >-
+      the headline trap (a post-hoc power analysis worded as if a-priori),
+      plus a subtle missing-fields variant. The borderline discriminations.
+  5:
+    label: multiple-injected-mistakes
+    description: >-
+      each mistake kind exercised again at a higher index (different
+      missing-field subset and wording).
+  6:
+    label: full-composition
+    description: >-
+      one clean control plus the full array of injected mistakes in a single
+      tier (clean + posthoc_as_apriori + missing_fields + no_power_analysis).
+
+n_fields: Count of the six structured fields (test, sample, alpha, power,
+  effect_size, software) the excerpt actually reports. 0 when there is no power
+  analysis; reduced by the missing_fields mistake.

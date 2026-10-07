@@ -1,0 +1,59 @@
+{
+  "$comment": [
+    "MEASURED maximum output length per hosted model, as a boundary PROBE rather than a",
+    "configured value. Each row records the largest max_tokens the provider ACCEPTED and",
+    "the smallest it REFUSED, so the row is falsifiable: re-run the probe and the two",
+    "numbers either still bracket the limit or they do not.",
+    "",
+    "WHY THIS FILE EXISTS SEPARATELY FROM players/registry.yaml. C6 in",
+    "scripts/qa_coverage_checks.py must decide whether a truncated answer was cut off by",
+    "OUR configuration or by the model's own limit. Comparing the registry's ceiling to",
+    "the registry's ceiling cannot fail -- a check that derives its reference from the",
+    "value being checked is not a check. This file is the independent reference: it comes",
+    "from hitting the live endpoint, not from what we chose to send.",
+    "",
+    "A row is EVIDENCE, not a permission. It does not exempt any player from C6; it only",
+    "lets C6 tell 'we throttled it' apart from 'the model ran to its own limit'. A record",
+    "that does not say what ceiling it sent still fails, whatever this file says.",
+    "",
+    "HOW TO ADD OR REFRESH A ROW. Send one trivial prompt at max_tokens = N against the",
+    "real endpoint, bisecting until the HTTP 400 boundary is found:",
+    "    accepted -> HTTP 200",
+    "    refused  -> HTTP 400 'too many tokens: max tokens must be less than or equal to X'",
+    "Record BOTH numbers, the endpoint, and the date. Never copy a number from a docs page:",
+    "measured 2026-09-09, docs.cohere.com/docs/models implied 8000/4000/4000 for these three",
+    "models and every one of those was BELOW the true limit. That 96-token shortfall on",
+    "command-r-plus published a perfect 1.000 as 0.0."
+  ],
+  "checked_on": "2026-09-09",
+  "max_age_days": 180,
+  "measured": {
+    "command-a-03-2025": {
+      "provider": "cohere",
+      "endpoint": "https://api.cohere.ai/compatibility/v1",
+      "max_output_tokens": 8192,
+      "largest_accepted": 8192,
+      "smallest_refused": 8193,
+      "refusal_text": "too many tokens: max tokens must be less than or equal to 8192, the maximum output length for this model",
+      "measured_on": "2026-09-09"
+    },
+    "command-r-plus-08-2024": {
+      "provider": "cohere",
+      "endpoint": "https://api.cohere.ai/compatibility/v1",
+      "max_output_tokens": 4096,
+      "largest_accepted": 4096,
+      "smallest_refused": 8000,
+      "refusal_text": "too many tokens: max tokens must be less than or equal to 4096, the maximum output length for this model",
+      "measured_on": "2026-09-09"
+    },
+    "command-r7b-12-2024": {
+      "provider": "cohere",
+      "endpoint": "https://api.cohere.ai/compatibility/v1",
+      "max_output_tokens": 4096,
+      "largest_accepted": 4096,
+      "smallest_refused": 8000,
+      "refusal_text": "too many tokens: max tokens must be less than or equal to 4096, the maximum output length for this model",
+      "measured_on": "2026-09-09"
+    }
+  }
+}

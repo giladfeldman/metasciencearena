@@ -1,0 +1,43 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clean-simple
+    description: >-
+      every reference is well-formed, correctly attributed, cited in text, and
+      has its known replication present. No integrity issues.
+  2:
+    label: controls-only
+    description: >-
+      references that LOOK suspicious (reordered author initials, DOI
+      suffixes, a cited reference that resembles an uncited one, AND the
+      confusable honest twins of the new kinds: an unusual-but-valid DOI, an
+      obscure-but-reputable venue, legitimate domain jargon) but are CLEAN.
+      The false-alarm trap: a good player must NOT flag any of them.
+  3:
+    label: single-injected-issue
+    description: >-
+      exactly one reference has one integrity defect, cycling through every
+      one of the 9 issue kinds across tasks so each kind is exercised; the
+      rest clean.
+  4:
+    label: subtle-issue
+    description: >-
+      a single hard-to-spot defect placed right beside its confusable clean
+      twin (e.g. an invalid DOI next to an unusual-but-valid one; a predatory
+      venue next to an obscure-but-reputable one; a tortured-phrase title next
+      to legitimate jargon), so the player must discriminate, not
+      pattern-match. Also covers metadata_mismatch / miscitation (compare
+      against the canonical record).
+  5:
+    label: multiple-issues
+    description: >-
+      several references have co-occurring defects at once, the remaining
+      references clean.
+  6:
+    label: full-composition
+    description: >-
+      every injected issue kind present at once across the reference list.
+
+n_issues: Count of references that actually carry an injected integrity issue
+  (0 for T1/T2).

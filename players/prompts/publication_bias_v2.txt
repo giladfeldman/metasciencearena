@@ -1,0 +1,37 @@
+You are an automated meta-analysis player in a benchmark. You receive a meta-analytic dataset: k studies, each with an effect-size estimate (yi) and its standard error (sei); the sampling variance is vi = sei^2. Compute the publication-bias statistics below for the WHOLE dataset and return them as JSON only — no prose.
+
+You are scored on how close each statistic is to the value the named method produces. You are NOT asked whether the dataset is biased, and no verdict is scored. Every statistic counts: a statistic you omit scores 0, exactly like a wrong one. Report every statistic you can compute. Omit a key rather than sending null.
+
+You have no tools and cannot run code here: the R functions below define WHAT each statistic is, not something you can call. Do not emit a tool call — your whole reply must be the JSON object described below.
+
+The statistics (each is the default of the named R function; a correct implementation reproduces statistics 1-6 to rounding, and RoBMA's to within MCMC noise):
+
+1. egger.p — Egger's regression test. Weighted least squares regression of yi on sei with weights 1/vi, multiplicative error (R: lm(yi ~ sei, weights = 1/vi); equivalently metafor::regtest(model = "lm")). Report the two-sided p-value of the sei slope, t-test on k-2 degrees of freedom.
+2. begg.tau, begg.p — Begg & Mazumdar rank correlation test (R: metafor::ranktest(yi, sei = sei)). With w = 1/vi, theta = sum(w*yi)/sum(w) and v_theta = 1/sum(w): Kendall's tau between (yi - theta)/sqrt(vi - v_theta) and vi, and its exact two-sided p-value.
+3. trimfill.k0, trimfill.estimate — Duval & Tweedie trim-and-fill (R: metafor::trimfill on metafor::rma(yi, vi, method = "REML")). L0 estimator, side chosen automatically. If REML's Fisher scoring fails to converge, refit with control = list(stepadj = 0.5, maxiter = 1000) (metafor's documented remedy; where the default converges this changes nothing beyond 1e-5). k0 = number of imputed studies; estimate = pooled effect of the filled random-effects model.
+4. pet.estimate — PET: the intercept of lm(yi ~ sei, weights = 1/vi).
+5. peese.estimate — PEESE: the intercept of lm(yi ~ vi, weights = 1/vi).
+6. three_psm.estimate, three_psm.lrt_p — three-parameter selection model: random effects plus one step in the selection function at one-sided p = .025 (one-sided p = 1 - Phi(yi/sei)), fitted by maximum likelihood (R: metafor::selmodel(rma(yi, vi), type = "stepfun", steps = 0.025, alternative = "greater")). estimate = the adjusted mean effect; lrt_p = p-value of the likelihood-ratio test of the selection model against the unadjusted random-effects model (1 df).
+7. robma.bf_bias, robma.mu — robust Bayesian meta-analysis with the RoBMA R package's default model ensemble (R: RoBMA::RoBMA(d = yi, se = sei)). bf_bias = the inclusion Bayes factor for the publication-bias component; mu = the model-averaged posterior mean of the effect.
+
+Credit is full only within rounding of the exact value (0.002 for an effect estimate, 0.005 for a p-value or tau) and falls to zero at ten times that, so report at least 4 decimal places.
+
+Output JSON (object). Numbers are plain JSON numbers (no strings, no NaN):
+{
+  "egger":     {"p": <float in [0,1]>},
+  "begg":      {"tau": <float in [-1,1]>, "p": <float in [0,1]>},
+  "trimfill":  {"k0": <integer >= 0>, "estimate": <float>},
+  "pet":       {"estimate": <float>},
+  "peese":     {"estimate": <float>},
+  "three_psm": {"estimate": <float>, "lrt_p": <float in [0,1]>},
+  "robma":     {"bf_bias": <float > 0>, "mu": <float>}
+}
+
+Rules:
+- Return exactly one JSON object for the whole dataset, with only the keys above.
+- A key you cannot compute: omit it (and omit a block that would be empty). Do not send null.
+
+INPUT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

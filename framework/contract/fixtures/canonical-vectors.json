@@ -1,0 +1,30 @@
+{
+  "_comment": "Shared by leaderboard-app/lib/__tests__/submissions-core.test.ts and framework/tests/test_contributions.py: both implementations of the canonical JSON (leaderboard-app/lib/submissions/canonical.ts and framework/contributions.py canonical_json) must produce these exact strings and hashes, because the local exporter re-hashes a bundle the app hashed and refuses a mismatch. Regenerate only when the canonical form is deliberately changed, in both languages at once.",
+  "vectors": [
+    {
+      "input": "{\"b\":1,\"a\":[3,2,1],\"A\":null}",
+      "canonical": "{\"A\":null,\"a\":[3,2,1],\"b\":1}",
+      "sha256": "db75d598bcac265e3efddc596f7a459da78f8d1af84c3e1083ab4dac70bbbe3a"
+    },
+    {
+      "input": "{\"x\":1.0,\"y\":0.1,\"z\":-0.5,\"w\":1e-7,\"v\":1e21,\"u\":2.5e-5,\"t\":100.0,\"big\":1.7976931348623157e308,\"tiny\":5e-324}",
+      "canonical": "{\"big\":1.7976931348623157e+308,\"t\":100,\"tiny\":5e-324,\"u\":0.000025,\"v\":1e+21,\"w\":1e-7,\"x\":1,\"y\":0.1,\"z\":-0.5}",
+      "sha256": "2cfc8b232a7c89ca554d9f7ca392a58f55ced37627dd815b678f0755bf2de87c"
+    },
+    {
+      "input": "{\"s\":\"café 😀 tab\\t nl\\n quote\\\" back\\\\ ctl\\u0001 del\\u007f\",\"e\":\"é\",\"é\":true,\"z\":false}",
+      "canonical": "{\"e\":\"é\",\"s\":\"café 😀 tab\\t nl\\n quote\\\" back\\\\ ctl\\u0001 del\",\"z\":false,\"é\":true}",
+      "sha256": "b4239c298500af4200cf4fb58aa436afe7557839402df6512faa9e6e31d73aaf"
+    },
+    {
+      "input": "[{\"n\":123456789,\"m\":-42,\"k\":0},[],{},\"\"]",
+      "canonical": "[{\"k\":0,\"m\":-42,\"n\":123456789},[],{},\"\"]",
+      "sha256": "efbba65193b7f3e7cbe3ac300aa7b4b64d584c627f4b6ad0368d842fde5bc829"
+    },
+    {
+      "input": "{\"nested\":{\"b\":{\"d\":[1,{\"f\":2,\"e\":1}],\"c\":3},\"a\":0.30000000000000004}}",
+      "canonical": "{\"nested\":{\"a\":0.30000000000000004,\"b\":{\"c\":3,\"d\":[1,{\"e\":1,\"f\":2}]}}}",
+      "sha256": "2d0e61a424d45bfe61b90788f403d518b7cdbe5c8dded56f836180afcd5e13ad"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "publication-bias-v1 task input",
+  "description": "A meta-analytic dataset: a set of studies, each contributing one effect-size estimate (yi) and its standard error (sei). The player must judge whether the set as a whole shows small-study / publication bias (funnel-plot asymmetry). At least 10 studies per task so an Egger-style asymmetry test is meaningful.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["studies"],
+  "properties": {
+    "k": {
+      "type": "integer",
+      "description": "Convenience count of studies (== studies.length). Optional; the authoritative count is the length of the studies array.",
+      "minimum": 1
+    },
+    "studies": {
+      "type": "array",
+      "minItems": 10,
+      "description": "One entry per study contributing an effect size and its standard error.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["yi", "sei"],
+        "properties": {
+          "yi": {"type": "number", "description": "Effect-size estimate for this study (on the analysis scale, e.g. a standardized mean difference or log odds ratio)."},
+          "sei": {"type": "number", "exclusiveMinimum": 0, "description": "Standard error of yi for this study (sei > 0). Variance vi = sei^2."}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,165 @@
+# Catalog of power-analysis statement templates for power-reporting-v1.
+#
+# Each "kind" (apriori / sensitivity / posthoc) supplies several interchangeable
+# wordings and option pools for the structured fields. The generator fills the
+# {placeholders} from these pools (seed-driven, so revealed vs private text
+# differs) and records the chosen values as gold, mirroring metacheck's `power`
+# module. The structured fields are the field-map the player must extract:
+#   test, sample, alpha, power, effect_size, software.
+#
+# Field-map gold convention: a field that the excerpt does NOT report is omitted
+# from the gold `fields` dict entirely (the player should not invent it). The
+# `missing_fields` mistake removes a deterministic subset of fields from BOTH the
+# text and the gold.
+
+# Shared option pools, so the same vocabulary is reusable across kinds.
+options:
+  test:
+    - "an independent-samples t-test"
+    - "a 2x2 between-subjects ANOVA"
+    - "a paired-samples t-test"
+    - "a multiple regression with three predictors"
+    - "a chi-square test of independence"
+  sample:
+    - "128 participants"
+    - "a total of 64 participants"
+    - "200 participants (100 per group)"
+    - "an effective sample of 88"
+    - "240 participants"
+  alpha:
+    - ".05"
+    - ".01"
+    - ".05 (two-tailed)"
+    - ".025"
+  power:
+    - ".80"
+    - ".90"
+    - ".95"
+    - "80%"
+  effect_size:
+    - "a medium effect (d = 0.50)"
+    - "Cohen's d = 0.40"
+    - "f = 0.25"
+    - "an expected r = .30"
+    - "an odds ratio of 1.7"
+  software:
+    - "G*Power 3.1"
+    - "the pwr package in R"
+    - "G*Power"
+    - "Superpower in R"
+    - "PASS 2021"
+
+# Sentence templates per power-analysis kind. {field} placeholders are filled
+# from the pools above. APRIORI is forward-looking (plan the sample to detect an
+# effect); SENSITIVITY solves for the detectable effect given a fixed sample;
+# POSTHViC (correctly labelled) computes achieved/observed power after the fact.
+kinds:
+  apriori:
+    label: apriori
+    # Forward-looking: sample size determined BEFORE data collection.
+    templates:
+      - >-
+        An a-priori power analysis was conducted in {software} to determine the
+        required sample size. To detect {effect_size} with {test} at alpha =
+        {alpha} and power = {power}, we needed {sample}.
+      - >-
+        Prior to data collection, we ran an a-priori power analysis using
+        {software}. Assuming {effect_size} for {test}, alpha = {alpha} and
+        {power} power, the analysis indicated a required sample of {sample}.
+      - >-
+        We determined our sample size in advance with {software}. A power
+        analysis for {test} targeting {effect_size} (alpha = {alpha}, power =
+        {power}) called for {sample}.
+
+  sensitivity:
+    label: sensitivity
+    # Solves for the smallest detectable effect given a FIXED sample size.
+    templates:
+      - >-
+        A sensitivity power analysis in {software} indicated that, with {sample}
+        and {test} at alpha = {alpha} and power = {power}, we could detect
+        {effect_size}.
+      - >-
+        Given our fixed sample of {sample}, a sensitivity analysis using
+        {software} showed that {test} at alpha = {alpha} and {power} power was
+        sensitive to {effect_size}.
+      - >-
+        We conducted a sensitivity power analysis ({software}) to establish the
+        minimum detectable effect. For {test} with {sample}, alpha = {alpha} and
+        power = {power}, the smallest detectable effect was {effect_size}.
+
+  posthoc:
+    label: posthoc
+    # Correctly labelled observed/achieved power computed AFTER the fact.
+    templates:
+      - >-
+        A post-hoc power analysis was conducted in {software}. Given our
+        observed {effect_size} for {test} with {sample} at alpha = {alpha}, the
+        achieved power was {power}.
+      - >-
+        After analysis, we computed observed power with {software}. For {test}
+        with {sample} and the obtained {effect_size}, post-hoc power at alpha =
+        {alpha} was {power}.
+      - >-
+        We report achieved (post-hoc) power for completeness. Using {software}
+        on the observed {effect_size} from {test} with {sample}, power at alpha
+        = {alpha} was {power}.
+
+# THE HEADLINE TRAP: a post-hoc power analysis (power computed from the OBSERVED
+# effect, after data collection) but WORDED as if it were a-priori. The true kind
+# is "posthoc"; a naive reader is lured into "apriori" by the framing. The tell
+# is that the effect size is the *observed* one and the sample already exists.
+posthoc_as_apriori_templates:
+  - >-
+    An a-priori power analysis was conducted in {software}. With {sample}, {test}
+    achieved power of {power} to detect the observed {effect_size} at alpha =
+    {alpha}.
+  - >-
+    We performed an a-priori power analysis using {software}: given our
+    {effect_size} for {test} and the {sample} we collected, power was {power} at
+    alpha = {alpha}.
+  - >-
+    A power analysis ({software}) confirmed our design was adequately powered:
+    with {sample}, {test} reached {power} power for the obtained {effect_size}
+    (alpha = {alpha}).
+
+# sensitivity_as_apriori: the text CLAIMS an a-priori power analysis, but the logic
+# is a SENSITIVITY analysis — it solves for the smallest DETECTABLE effect given a
+# FIXED, already-collected sample and a target power, then presents that as if N had
+# been planned. TRUE kind is "sensitivity". The legitimate look-alike is the
+# correctly-labelled clean `sensitivity` excerpt (already in T2). The tell is that
+# the sample is fixed/observed and the effect size is the *minimum detectable* one,
+# not a planned target.
+sensitivity_as_apriori_templates:
+  - >-
+    An a-priori power analysis in {software} showed that, with the {sample} we had
+    collected, {test} at power = {power} and alpha = {alpha} could detect an effect
+    as small as {effect_size}.
+  - >-
+    We ran an a-priori power analysis using {software}: given our fixed {sample},
+    {test} was powered at {power} (alpha = {alpha}) to detect a minimum
+    {effect_size}.
+  - >-
+    A-priori power analysis ({software}) established that, holding our {sample}
+    constant at power {power} and alpha = {alpha}, the smallest detectable effect
+    for {test} was {effect_size}.
+
+# Filler sentences for the "no_power_analysis" excerpts and as padding around
+# real power statements (so detection is not a trivial keyword match). These
+# describe methods WITHOUT any power analysis.
+no_power_fillers:
+  - >-
+    Participants completed the task in a single session lasting about 30 minutes.
+    All measures were administered in a fixed order.
+  - >-
+    Data were collected online via a survey platform. We analysed responses with
+    {test} at an alpha of {alpha}.
+  - >-
+    The procedure followed standard practice for our paradigm. We recruited
+    {sample} from an undergraduate pool.
+  - >-
+    Stimuli were presented on a desktop computer. Reaction times and accuracy
+    were recorded for each trial.
+  - >-
+    We preregistered the design on the OSF. Analyses were conducted in R using
+    standard packages.

@@ -1,0 +1,33 @@
+You are an automated interpretive-language player in a benchmark. You receive a manuscript excerpt (results / discussion / abstract prose). Flag every interpretive-language problem you find. Return JSON only — no prose.
+
+Problem categories (use these exact enum values):
+- marginal_significance: describing a result with .05 < p < .10 as "marginally significant", "approached significance", "trending", etc. (treating a non-significant p as if it were meaningful).
+- spin_overclaim: framing/spin that overstates what the reported result supports (e.g. calling a null or weak result "strong support", "clear evidence", "demonstrates").
+- causal_overclaim: causal language ("causes", "leads to", "increases", "effect of X on Y") for a design that is not randomised/experimental (correlational or observational).
+- one_sided_unjustified: switching to (or reporting) a one-tailed/one-sided test only because it pushes a result under .05, with no a-priori directional justification ("one-tailed p = .04", "as the effect was directional we used a one-sided test"). A genuinely pre-registered one-sided test is NOT a problem — do not flag it.
+- p_just_over_threshold_spin: a p-value just ABOVE .05 (e.g. .051, .053, .058, .061) asserted as if it were significant or as positive evidence ("p = .058, significant", "the effect was reliable, p = .06"). This differs from marginal_significance: the tell is presenting a clearly-over-threshold p as a positive/confirmed result rather than merely hedging it as "marginal".
+
+A correctly-written passage yields an empty flags array. In particular, a plainly-reported non-significant result and a properly pre-registered one-sided test are correct and must NOT be flagged.
+
+Output JSON conforming to this schema:
+
+{
+  "flags": [
+    {
+      "span": {
+        "text": "<the exact offending phrase, copied verbatim from input.text>",
+        "char_start": <inclusive character offset of the phrase in input.text>,
+        "char_end": <exclusive character offset (char_start + length of text)>
+      },
+      "category": "<one of: marginal_significance | spin_overclaim | causal_overclaim | one_sided_unjustified | p_just_over_threshold_spin>",
+      "confidence": <float in [0,1] reflecting your actual certainty>
+    }
+  ]
+}
+
+Copy the offending phrase EXACTLY and give your best character offsets into input.text (count from 0). One flag per distinct problem.
+
+INPUT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

@@ -1,0 +1,130 @@
+[project]
+# PyPI distribution name (verified free 2026-08-07). The IMPORT package stays
+# `framework` and the GitHub slug stays `sciencearena` — that string is baked
+# into 14 `fixture__sciencearena__*` gold keys, the `sciencearena.local` schema
+# $ids, the `SCIENCEARENA_*` env vars, the NCBI User-Agent and
+# .vercel/project.json, so renaming it would invalidate published artifacts.
+name = "metasciencearena"
+version = "0.4.0"
+description = "Reproducible benchmark arenas for meta-science tools: task generation, scoring, contamination control, and leaderboards"
+readme = "PACKAGE_README.md"
+license = { text = "MIT" }
+authors = [{ name = "Gilad Feldman" }]
+keywords = ["meta-science", "benchmark", "reproducibility", "research-integrity", "leaderboard"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering",
+]
+requires-python = ">=3.11"
+dependencies = [
+  "pyyaml>=6.0",
+  "jsonschema>=4.21",
+  "requests>=2.31",
+  "numpy>=1.26",
+  "scipy>=1.11",
+  "reportlab>=4.0",          # synthetic PDF rendering for pdf-text-fidelity-v1
+  "rapidfuzz>=3.0",          # Levenshtein-similarity scoring for pdf-text-fidelity-v1
+  "lxml>=5.0,<7.0.0a0",      # JATS / TEI XML parsing; upper bound excludes pre-release alphas (DR-0020)
+  "packaging>=23.0",         # semver-aware version sort in framework/report.py
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+pdf-liteparse = ["liteparse>=2.0.4"]
+# Docling (pdf-table-extraction-v1, pdf-text-fidelity-v1). Optional because it
+# pulls torch: ~2 GB installed for a player most contributors will not run.
+# Install with the CPU wheel index or pip resolves a multi-GB CUDA build:
+#   pip install --extra-index-url https://download.pytorch.org/whl/cpu #       -e ".[pdf-docling]"
+# Then pre-fetch weights ONCE so no tournament run downloads a model mid-flight:
+#   python -m docling.cli.models download
+pdf-docling = ["docling>=2.120.3,<3"]
+# `framework export-inspect` WRITES an Inspect task without this; running the
+# emitted module — and the round-trip test that proves an Inspect number equals
+# the published one — needs it. Declared so the equivalence claim is testable
+# rather than asserted (Fable 5 cross-review, 2026-08-15).
+inspect = ["inspect-ai>=0.3.250"]
+
+[project.urls]
+Homepage = "https://metasciencearena.app"
+Documentation = "https://metasciencearena.app/how-it-works"
+
+[project.scripts]
+# So `metasciencearena audit --all` works off-repo. `python -m framework …`
+# keeps working in a checkout.
+metasciencearena = "framework.cli:_console_main"
+
+[tool.setuptools.packages.find]
+# `players*` joined `framework*` on 2026-08-15: the prompt templates, the player
+# registry and the adapters are the measuring INSTRUMENT, and an installed
+# package that can score answers but cannot reproduce how the answers were
+# requested only lets you re-check our arithmetic, not our measurement.
+# Every third-party tool an adapter drives (R, GROBID, liteparse, a provider
+# SDK) is imported lazily or behind try/except, so the package still installs
+# with nothing but the core dependencies — `scripts/check_clean_install.py`
+# imports every mirrored adapter to keep that true.
+include = ["framework*", "players*"]
+
+[tool.setuptools.package-data]
+# The contract schemas are not documentation — `discovery.py` and `storage.py`
+# validate against them on every load. A wheel without them raises
+# FileNotFoundError on the first `load_arena`, which is exactly what a clean
+# install revealed (2026-08-07). `scripts/check_clean_install.py` pins this.
+# `*.json` also covers pricing.json, the price table framework/pricing.py reads at
+# IMPORT time. A repo-root contract/ dir is NOT a package and is NOT installed;
+# putting the table there made `pip install` produce a package that raised
+# FileNotFoundError on import (clean-install gate, 2026-08-14).
+"framework.contract" = ["schemas/*.json", "*.json"]
+# The instrument is DATA, not modules: a wheel that ships `players/` as Python
+# but drops the .txt templates, registry.yaml and the R adapters installs an
+# engine with no instructions in it. `players.prompts` and `players.adapters`
+# are not import packages, so they are declared against `players` itself.
+"players" = [
+  "registry.yaml",
+  "prompts/*.txt",
+  "prompts/_archive/*.txt",
+  "prompts/_archive/README.md",
+  "adapters/*.R",
+  "regcheck_shim/*.md",
+]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib"
+# WITHOUT THIS, 119 TESTS SILENTLY DO NOT RUN (measured 2026-08-07).
+#
+# 19 arenas each ship `tests/test_generator.py` and `tests/test_scorer.py`.
+# Only 11 of those `tests/` dirs have an `__init__.py`, and the arena dirs above
+# them are hyphenated (`stats-extraction-v1`), so no valid package path can be
+# formed either way: files with `__init__.py` all resolve to `tests.test_scorer`
+# and files without it all resolve to `test_scorer`. Same name, so the first one
+# imported wins and every later arena's file is collected as a DUPLICATE of it.
+#
+# The suite reported a confident green 1025 the whole time. That is the
+# dangerous shape: not a failure, a smaller pass. One of the 119 hidden tests
+# was genuinely FAILING (stats-extraction-v1 renders a "clean control" whose
+# prose claims significance at p = 0.057).
+#
+# `consider_namespace_packages` makes importlib derive a unique module name from
+# the full path. Collection: 1025 -> 1144.
+consider_namespace_packages = true
+# Parent roots, not a per-arena/per-module enumeration: pytest recurses into
+# every `tests/` (and any module-local `test_*.py`) under these. This means a
+# NEW arena's tests are collected automatically — the per-arena list previously
+# here silently excluded 7 arenas + several module test dirs from CI (DR-0011).
+# Every test_*.py in the repo lives under one of these roots; none live outside
+# a tests/ dir except players/adapters/test_*.py, which `players` covers.
+testpaths = [
+  "taxonomy/scripts/tests",
+  "framework",
+  "arenas",
+  "players",
+]
+python_files = "test_*.py"
+# Don't descend into generated/vendored trees while recursing the roots above.
+norecursedirs = [
+  "*/task_sets", "*/runs", "*/_held_out", "*/__pycache__",
+  ".venv", "node_modules", "leaderboard-app",
+]

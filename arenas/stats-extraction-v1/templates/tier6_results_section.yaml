@@ -1,0 +1,29 @@
+section_titles:
+  - "Descriptive Statistics"
+  - "Main Analyses"
+  - "Robustness Checks"
+  - "Effect-Size Reporting"
+
+# v3+ only. `_build_tier6_task` sets `sub_tier = (i % 5) + 1`, so with FOUR
+# titles `sub_tier` never reached 5 and the deception branch was unreachable
+# dead code -- while the envelope stamped `deception_rate: 3`. Measured on task
+# set v2: tier 6 held 66 of 144 gold items (46%) and contained ZERO deception,
+# and `difficulty_axes` keys the breakdown in every published player report.
+# A fifth title makes the branch reachable; v3 also COMPUTES the stamp from the
+# items rather than asserting a literal.
+section_titles_v3:
+  - "Descriptive Statistics"
+  - "Main Analyses"
+  - "Robustness Checks"
+  - "Effect-Size Reporting"
+  - "Exploratory Analyses"
+
+section_template: |
+  ### {title}
+
+  {body}
+
+cross_reference_phrases:
+  - "as reported above"
+  - "consistent with the previous section"
+  - "see the analyses earlier"

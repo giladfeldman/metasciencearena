@@ -1,0 +1,19 @@
+# Generating-regime settings per difficulty tier (informational; the generator
+# is the source of truth in generator.py#_TIERS). The arena KNOWS the gold label
+# because it controlled the generating regime — it does NOT run zcurve to label.
+#
+#   regime        : dominant generating process -> the gold label
+#                   (evidential => has_evidential_value=true;
+#                    non_evidential => has_evidential_value=false)
+#   n_studies     : size of the significant set
+#   ncp           : noncentrality of the real-effect studies (higher = higher
+#                   true power = more clearly evidential)
+#   contamination : fraction of studies drawn from the OPPOSITE process (mixing);
+#                   the gold label stays the DOMINANT regime
+tiers:
+  1: {regime: evidential,     n_studies: 40, ncp: 3.2, contamination: 0.0}
+  2: {regime: non_evidential, n_studies: 40, ncp: 0.0, contamination: 0.0}
+  3: {regime: evidential,     n_studies: 30, ncp: 2.4, contamination: 0.0}
+  4: {regime: non_evidential, n_studies: 30, ncp: 2.0, contamination: 0.2}
+  5: {regime: evidential,     n_studies: 8,  ncp: 2.6, contamination: 0.0}
+  6: {regime: non_evidential, n_studies: 8,  ncp: 0.0, contamination: 0.0}

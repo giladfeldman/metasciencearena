@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "grim-consistency-v1 task input",
+  "description": "A table of reported summary statistics. Each entry is either a MEAN (of N integer responses on a bounded single-item scale, granularity 1/N) or a PERCENTAGE (k of N respondents, granularity 100/N). The player must judge, per statistic, whether the reported value is mathematically impossible at the stated sample size (GRIM inconsistency). SD is descriptive context only; this arena is GRIM-only and never asks about SD.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["statistics"],
+  "properties": {
+    "statistics": {
+      "type": "array",
+      "description": "The reported summary statistics. One entry per reported mean or percentage.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stat_id", "label", "stat_type", "n", "decimals"],
+        "properties": {
+          "stat_id": {"type": "string", "description": "Stable id for this statistic."},
+          "label": {"type": "string", "description": "Human-readable description of the measure."},
+          "stat_type": {
+            "type": "string",
+            "enum": ["mean", "percent"],
+            "description": "Which granularity test applies. 'mean': the value sits on a 1/N grid (mean/sd/n_items/scale_min/scale_max present). 'percent': the value is a percentage of a count and sits on a 100/N grid (percent present)."
+          },
+          "mean": {"type": "number", "description": "Reported mean, as printed. Present when stat_type='mean'."},
+          "sd": {"type": "number", "description": "Reported sample standard deviation, as printed. Present when stat_type='mean'. Descriptive context only — never an injected issue."},
+          "percent": {"type": "number", "description": "Reported percentage of respondents, as printed. Present when stat_type='percent'."},
+          "n": {"type": "integer", "description": "Number of respondents the statistic is computed over."},
+          "n_items": {"type": "integer", "description": "Number of integer items summed into one respondent's score. Always 1 in this GRIM-only arena (single-item scores; mean granularity 1/N). Present when stat_type='mean'."},
+          "scale_min": {"type": "integer", "description": "Minimum value of a single item. Present when stat_type='mean'."},
+          "scale_max": {"type": "integer", "description": "Maximum value of a single item. Present when stat_type='mean'."},
+          "decimals": {"type": "integer", "description": "Number of decimals the value is reported to (means: 2; percentages: 1)."}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"stat_type": {"const": "mean"}}, "required": ["stat_type"]},
+            "then": {"required": ["mean", "sd", "n_items", "scale_min", "scale_max"]}
+          },
+          {
+            "if": {"properties": {"stat_type": {"const": "percent"}}, "required": ["stat_type"]},
+            "then": {"required": ["percent"]}
+          }
+        ]
+      }
+    }
+  }
+}

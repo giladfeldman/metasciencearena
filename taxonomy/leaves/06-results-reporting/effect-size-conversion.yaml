@@ -1,0 +1,30 @@
+id: effect-size-conversion
+name: Effect-size metric conversion (d / r / OR / eta² / f)
+lifecycle_stage: 06-results-reporting
+order: 50
+description: |
+  Given a single effect size in one metric, convert it to another across the closed
+  set {d, r, OR, eta², f}. These are exact closed-form identities — d↔r via
+  r = d/√(d²+h) (h = (n1+n2−2)(1/n1+1/n2), or 4 in the equal/large-n limit); d↔OR via
+  the logistic relation OR = exp(d·π/√3); eta²↔f via f = √(eta²/(1−eta²)); d↔f via the
+  two-group relation f = d/2. Deterministic tools compute them perfectly, while LLMs
+  routinely misremember the constants (the π/√3 odds-ratio scaling, the d²+4 vs d²+1
+  denominator, f = d/2 vs f = d). Mirrors the effectsize / esc R packages
+  (d_to_r, r_to_d, d_to_oddsratio, oddsratio_to_d, eta2_to_f, f_to_eta2). Synthetic
+  ground truth: the gold is the canonical closed-form conversion, kept far from
+  degenerate boundaries so the deterministic tool cross-validates it.
+input_artifact: effect_size_conversion_request
+output_to_judge: converted_effect_size
+existing_solutions:
+  - {id: effectsize, type: tool, owner: third-party}
+  - {id: esc, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Deterministic, ground-truth-rich (gold is exact closed-form arithmetic, not
+  judgement). Distinct from nhst-stats-and-effect-size-extraction (which EXTRACTS an
+  effect size from a paper) — this leaf CONVERTS a given effect size between metrics.
+  The conversion factor h for d↔r depends on group sizes when supplied. Arena:
+  effect-size-conversion-v1.

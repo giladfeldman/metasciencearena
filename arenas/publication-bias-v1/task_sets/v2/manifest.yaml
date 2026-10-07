@@ -1,0 +1,24 @@
+version: v2
+seed: 0
+released_on: "2026-09-30"
+n_tasks: 12       # T1..T6 x 2 (conditions: none / selection / small_study)
+generator_signature: |
+  task_set_version=v2, revealed_seed=0, task_prefix=pubbias2, tiers=[1..6],
+  conditions=[none, selection, small_study], gold=tools/build_gold_v2.py (R)
+notes: |
+  v2 scores whether a player computes each publication-bias method's statistics
+  correctly (Egger, Begg, trim-and-fill, PET-PEESE, 3PSM, RoBMA). No verdict is
+  scored: turning these statistics into "biased / not biased" is an unresolved
+  methodological question (owner decision 2026-09-17). See CHANGELOG.md#v2.
+
+  Datasets are generated from (task_set_version="v2", seed) by
+  generator._generate_v2. Gold is NOT regenerated from the seed alone: it is
+  computed in R by tools/build_gold_v2.py and stored in _r_gold.json (revealed,
+  committed) and _held_out/_r_gold.json (private, gitignored). Each entry carries
+  the sha256 of its dataset; the generator refuses a mismatch.
+
+  The private split uses the secret seed in task_sets/v2/.private_seed (a new seed,
+  not v1's; backed up with the other private seeds).
+
+  robma_stability.json holds RoBMA refits of the revealed datasets under seeds
+  other than the gold's; the scorer's RoBMA bands are sized from it.

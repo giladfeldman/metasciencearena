@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "publication-bias-v1 player output",
+  "description": "A single verdict per task: whether the meta-analytic set shows small-study / publication bias (funnel-plot asymmetry), with a confidence and optional supporting statistics.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["bias_detected", "confidence"],
+  "properties": {
+    "bias_detected": {"type": "boolean", "description": "True if the set shows small-study / publication bias (funnel asymmetry); false if it is symmetric / unbiased."},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the bias_detected verdict."},
+    "egger_p": {"type": "number", "minimum": 0, "maximum": 1, "description": "Optional. The Egger regression-test p-value the player computed, if any. Omit (do not send null) when not computed."},
+    "n_missing_trimfill": {"type": "integer", "minimum": 0, "description": "Optional. Number of studies trim-and-fill imputes as missing, if the player ran it. Omit when not computed."}
+  }
+}

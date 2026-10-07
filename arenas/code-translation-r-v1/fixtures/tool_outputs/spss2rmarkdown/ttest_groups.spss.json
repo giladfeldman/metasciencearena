@@ -1,0 +1,7 @@
+{
+  "tool": "spss2rmarkdown",
+  "tool_version": "0.1.0",
+  "captured_from": "ttest_groups.sps",
+  "r_code": "library(jmv)\njmv::ttestIS(\n  data = data,\n  vars = c(\"SCORE\"),\n  group = \"GROUP\",\n  students = TRUE,\n  welchs = TRUE,\n  mann = FALSE,\n  meanDiff = TRUE,\n  ci = TRUE,\n  effectSize = TRUE,\n  desc = TRUE,\n  plots = TRUE\n)",
+  "note": "verbatim convert_all_commands() output"
+}

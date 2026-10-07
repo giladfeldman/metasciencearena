@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "transparency-statements-v1 player output",
+  "description": "The extracted transparency field map. present/absent for COI + funding; available / on_request / url for the open-practices fields; a real repository URL (string) or null. confidence is the player's overall confidence in the extraction.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["coi", "funding", "data", "code", "materials", "prereg"],
+  "properties": {
+    "coi": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present"],
+      "properties": {
+        "present": {"type": "boolean", "description": "True if a competing-interests/COI statement is present."},
+        "statement": {"type": "string", "description": "The COI statement text (empty if absent)."}
+      }
+    },
+    "funding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present"],
+      "properties": {
+        "present": {"type": "boolean", "description": "True if a funding statement is present."},
+        "statement": {"type": "string", "description": "The funding statement text (empty if absent)."}
+      }
+    },
+    "data": {"$ref": "#/$defs/open_field"},
+    "code": {"$ref": "#/$defs/open_field"},
+    "materials": {"$ref": "#/$defs/open_field"},
+    "prereg": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": {"type": "boolean", "description": "True if the preregistration is openly available at a real link."},
+        "url": {"type": ["string", "null"], "description": "The preregistration URL (a real registry link), or null."}
+      }
+    },
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's overall confidence in the extracted field map."}
+  },
+  "$defs": {
+    "open_field": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": {"type": "boolean", "description": "True only if openly available at a REAL repository link (not on-request, not a placeholder/broken URL)."},
+        "on_request": {"type": "boolean", "description": "True if the manuscript says the artifact is 'available on request' rather than giving a real link."},
+        "url": {"type": ["string", "null"], "description": "The repository URL the manuscript quotes (may be a placeholder/broken link), or null."}
+      }
+    }
+  }
+}

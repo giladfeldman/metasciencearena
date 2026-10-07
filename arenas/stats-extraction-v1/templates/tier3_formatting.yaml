@@ -1,0 +1,21 @@
+# Tier 3: formatting noise — OCR-style char swaps, HTML entities, line breaks, parens-in-parens.
+nhst:
+  - "(see also t({df1}) = {value}, p {p_rel} {p})"
+  - "t({df1})\n= {value}, p &lt; {p_threshold}"
+  - "t({df1_ocr}) = {value_ocr}, p {p_rel} {p_ocr}"   # e.g. O instead of 0
+
+# --- v5+ only (task set v5, 2026-08-29) --------------------------------------
+# Same defect as tier2_notation.yaml's `nhst_v5`, in the HTML-escaped form:
+# `p &lt; {p_threshold}` hardcodes `<` and prints the constant `.05`, so the gold
+# graded a number the passage never showed. MEASURED on v4 revealed: 2 of the 5
+# items whose printed claim is false while the key says `ok` come from this line
+# (`p < .05` against true p of .21 and .87).
+#
+# `{p_alpha_rel_html}` is `&lt;` / `&gt;` / `=` -- the HTML entity, because this
+# tier's whole point is that the text arrives entity-escaped.
+nhst_v5:
+  - "(see also t({df1}) = {value}, p {p_rel} {p})"
+  - "t({df1})\n= {value}, p {p_alpha_rel_html} {p_threshold}"
+  - "t({df1_ocr}) = {value_ocr}, p {p_rel} {p_ocr}"   # e.g. O instead of 0
+effect_size:
+  - "(es: {es_label} = {es}, 95% CI [{ci_lo},{ci_hi}])"

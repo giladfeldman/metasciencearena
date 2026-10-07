@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "publication-bias-v1 player output, task set v2",
+  "description": "The publication-bias statistics for one meta-analytic dataset, one block per method. There is no verdict: v2 scores whether each statistic is computed correctly, not whether the player concludes the set is biased. Every block and every field is optional; a statistic that is omitted scores 0 for that statistic, exactly as a wrong one does, so omitting is never cheaper than computing. Never send null. The schema checks SHAPE only (which keys, numeric types); it sets no value ranges. An impossible value — a p-value above 1, a Bayes factor of 0, a negative count — is scored 0 for that one statistic by the scorer, exactly like any other wrong value, rather than voiding the player's other statistics.",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "num": {
+      "type": "number"
+    }
+  },
+  "properties": {
+    "egger": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Egger's regression test: weighted least squares of yi on sei with weights 1/sei^2 (multiplicative error, as lm). p is the two-sided t-test of the sei slope on k-2 df.",
+      "properties": {
+        "p": {
+          "$ref": "#/$defs/num"
+        }
+      }
+    },
+    "begg": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Begg & Mazumdar rank correlation: Kendall's tau between (yi - theta_FE)/sqrt(vi - 1/sum(1/vi)) and vi, with its exact two-sided p (metafor::ranktest).",
+      "properties": {
+        "tau": {
+          "$ref": "#/$defs/num"
+        },
+        "p": {
+          "$ref": "#/$defs/num"
+        }
+      }
+    },
+    "trimfill": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Duval & Tweedie trim-and-fill on the REML random-effects model, L0 estimator, side chosen automatically (metafor::trimfill defaults).",
+      "properties": {
+        "k0": {
+          "type": "integer"
+        },
+        "estimate": {
+          "$ref": "#/$defs/num"
+        }
+      }
+    },
+    "pet": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "PET: the intercept of the weighted least squares regression of yi on sei (weights 1/sei^2).",
+      "properties": {
+        "estimate": {
+          "$ref": "#/$defs/num"
+        }
+      }
+    },
+    "peese": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "PEESE: the intercept of the weighted least squares regression of yi on sei^2 (weights 1/sei^2).",
+      "properties": {
+        "estimate": {
+          "$ref": "#/$defs/num"
+        }
+      }
+    },
+    "three_psm": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Three-parameter selection model: random effects, one step at one-sided p = .025, fitted by maximum likelihood (metafor::selmodel type = 'stepfun'). estimate = adjusted mean effect; lrt_p = likelihood-ratio test of the selection model against the unadjusted model.",
+      "properties": {
+        "estimate": {
+          "$ref": "#/$defs/num"
+        },
+        "lrt_p": {
+          "$ref": "#/$defs/num"
+        }
+      }
+    },
+    "robma": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Robust Bayesian meta-analysis with the RoBMA R package's default ensemble (RoBMA-PSMA). bf_bias = inclusion Bayes factor for the publication-bias component; mu = model-averaged posterior mean of the effect.",
+      "properties": {
+        "bf_bias": {
+          "$ref": "#/$defs/num"
+        },
+        "mu": {
+          "$ref": "#/$defs/num"
+        }
+      }
+    }
+  }
+}

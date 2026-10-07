@@ -1,0 +1,36 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+# GRIM-only arena: every issue is a GRIM-inconsistent (off-granularity) reported mean.
+
+tier:
+  1:
+    label: clean-simple
+    description: >-
+      every reported mean is GRIM-consistent (computed from real integer
+      data). No granularity issues.
+  2:
+    label: controls-only
+    description: >-
+      means that LOOK suspicious (small N, many decimals) but ARE
+      GRIM-consistent. The false-alarm trap: a good player must NOT flag any
+      of them.
+  3:
+    label: single-grim-error
+    description: >-
+      exactly one reported mean is off the 1/N granularity grid; the rest
+      consistent.
+  4:
+    label: subtle-grim-error
+    description: >-
+      a single hard-to-spot defect: a mean perturbed by only one ULP at many
+      decimals, visually indistinguishable from a consistent value.
+  5:
+    label: multiple-grim-errors
+    description: >-
+      several reported means are off-grid at once, the remaining means
+      consistent.
+  6:
+    label: maximum-grim-density
+    description: >-
+      every reported mean in the table is off the granularity grid.
+
+n_issues: Count of reported means that are actually GRIM-inconsistent (0 for T1/T2).

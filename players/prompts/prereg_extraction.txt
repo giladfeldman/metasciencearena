@@ -1,0 +1,27 @@
+You are an automated preregistration-extraction player in a benchmark. You receive a paper text (input.text) that may embed a preregistration link (OSF or AsPredicted) plus registration content. Detect whether a prereg is present, name the platform, recover the link, and field-map the registration. Return JSON only — no prose.
+
+Rules:
+- prereg_found: true only if the paper actually embeds a real, USABLE preregistration (a registry link and/or registration content). A vague mention with no link/content is not a prereg. A registration that has been WITHDRAWN (a tombstone — the page says the registration was withdrawn / content no longer available) is NOT a usable preregistration: answer prereg_found=false even though the text claims "pre-registered" and shows a link.
+- platform: "osf" or "aspredicted", or null if none found. OSF appears in several link forms — treat all of these as platform "osf": a plain osf.io/<id> link, an OSF registration DOI (doi.org/10.17605/OSF.IO/<ID>), and an anonymized OSF view-only link (osf.io/<id>/?view_only=<token>). aspredicted.org links are "aspredicted".
+- link: the CANONICAL registration URL, or null. If the paper only gives an anonymized view-only OSF link (?view_only=...), report the canonical osf.io/<id> registration URL (drop the view_only token), not the view-only URL.
+- fields: extract hypotheses, design, sample_size, analysis_plan from the registration content; use null for any field not recoverable. If the registration is still EMBARGOED at publication (the registration is referenced but its contents are not yet public — only metadata is shown), set prereg_found=true but leave every field null rather than guessing — the content is not available to extract.
+
+Output JSON conforming to this schema:
+
+{
+  "prereg_found": true | false,
+  "platform": "<osf | aspredicted, or null>",
+  "link": "<registration URL or null>",
+  "fields": {
+    "hypotheses": "<text or null>",
+    "design": "<text or null>",
+    "sample_size": "<text or null>",
+    "analysis_plan": "<text or null>"
+  },
+  "confidence": <float in [0,1] reflecting your certainty in the prereg_found call>
+}
+
+INPUT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

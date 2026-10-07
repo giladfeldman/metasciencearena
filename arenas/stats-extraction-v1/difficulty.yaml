@@ -1,0 +1,61 @@
+# Human-readable mirror of arena.yaml#difficulty_axes.
+#
+# The tier ladder is ordered by how hard it is to read the numbers correctly —
+# first the surface form of the text degrades (notation, then OCR-style noise),
+# then the density rises, and only at T5 does the text start actively lying.
+# Tiers are sourced from generator.py: T1-T3 select a template family
+# (baseline / notation / formatting), T4 raises density, T5 injects deception,
+# T6 composes a full results section out of T1-T5 paragraphs.
+
+tier:
+  1:
+    label: baseline
+    description: >-
+      Clean APA prose. Every statistic is correctly reported and internally
+      coherent, and the clean look-alike controls live here (an NHST result whose
+      p really does match its test statistic, and an effect size whose estimate
+      really is its CI midpoint). No trap — this separates "cannot extract at
+      all" from "extracts but is fooled later".
+  2:
+    label: notation
+    description: >-
+      The same statistics rendered in alternative notation — different symbols,
+      spacing and separators for the same quantities. Nothing is wrong; only the
+      surface form moved, so an extractor keyed to one spelling starts missing
+      values.
+  3:
+    label: ocr-noise
+    description: >-
+      Formatting noise of the kind a PDF text layer introduces: comma/period
+      confusion and OCR-style character damage around the numbers. The values are
+      still truthful, but they no longer match a naive numeric pattern.
+  4:
+    label: density
+    description: >-
+      Many statistics packed into a short span of text. Nothing is deceptive; the
+      trap is purely one of recall and of binding each number to the right test
+      when several sit side by side.
+  5:
+    label: catch-deception
+    description: >-
+      The text now contains statistics that are internally INCONSISTENT — a
+      reported p that disagrees with its own test statistic, or an effect size
+      re-rounded so it no longer matches its confidence interval. Each deceptive
+      item is paired with the confusable clean look-alike from T1, so a player
+      that flags everything scores no better than one that flags nothing. This is
+      where detection, not extraction, is measured.
+  6:
+    label: multi-section
+    description: >-
+      A full multi-paragraph results section composed of T1-T5 material with
+      cross-referencing phrases between sections. Everything the lower tiers test
+      at once, at length, where context must be carried across paragraphs.
+
+density: >-
+  Statistics per unit of text (1-5): how densely the numbers are packed. Higher
+  values stress recall and make it easier to bind a value to the wrong test.
+
+deception_rate: >-
+  Fraction of items that are deceptive rather than truthful (0=none,
+  5=at least half). Only T5/T6 are non-zero; the lower tiers are entirely
+  truthful by construction.

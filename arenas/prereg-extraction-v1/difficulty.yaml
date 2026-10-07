@@ -1,0 +1,56 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clean-structured-registrations
+    description: >-
+      well-formed OSF / AsPredicted blocks with labelled fields and a valid
+      link, PLUS the three confusable clean look-alikes for the integrity
+      abuses (a canonical OSF registration DOI link, an
+      embargo-that-lifted-before-publication reg, and a
+      live-registration-cited -correctly reg). No injected mistake; all easy
+      to field-map.
+  2:
+    label: decoy-false-alarm-trap
+    description: >-
+      the paper DISCUSSES preregistration (mentions OSF / AsPredicted / "open
+      science") but embeds no registration link or content. A good player must
+      answer prereg_found=False; flagging it is a false alarm.
+  3:
+    label: single-injected-mistake
+    description: >-
+      exactly one of the six injected kinds, cycling so every kind is covered
+      once.
+  4:
+    label: subtle
+    description: >-
+      each integrity abuse placed immediately beside its confusable CLEAN twin
+      (viewonly↔DOI, embargoed↔embargo-lifted, withdrawn↔live-cited), plus the
+      UNSTRUCTURED plain-text registration (prereg_plaintext) whose fields are
+      present but unlabelled. This adjacency is where the realism lives.
+  5:
+    label: multiple-injected-mistakes
+    description: >-
+      schema mismatches in both directions plus the viewonly / embargoed /
+      withdrawn abuses and a no_prereg, in a denser tier.
+  6:
+    label: full-composition
+    description: >-
+      one task per injected kind plus every clean form, spanning the entire
+      surface-form space.
+
+mistake_kinds: >-
+  Injected-mistake labels present in a task. Empty (clean control)
+  for T1 clean regs and the T2 decoy trap. The six injected kinds are:
+  no_prereg (no registration present),
+  prereg_plaintext (unstructured plain-text reg, hard to field-map),
+  wrong_platform_schema (AsPredicted fields under an OSF link or vice versa),
+  viewonly_instead_of_doi (registration linked only via an anonymized OSF
+    view-only URL instead of the canonical link; reg still readable — recover the
+    canonical osf.io link and name the platform "osf"),
+  embargoed_at_publication (registration referenced but still embargoed; found is
+    True but the four fields are unrecoverable -> null),
+  withdrawn_still_cited (a withdrawn tombstone registration still cited as
+    pre-registered; no usable plan -> prereg_found=False).
+  The matched clean look-alikes (never flagged) are: doi_clean, embargo_lifted,
+  live_cited (plus the structured osf/aspredicted regs and the T2 decoy).

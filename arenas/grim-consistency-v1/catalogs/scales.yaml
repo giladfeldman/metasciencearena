@@ -1,0 +1,80 @@
+# Catalog of measurement-scale templates for grim-consistency-v1 (GRIM-only).
+#
+# Each entry describes a realistic single-item Likert measurement context the
+# generator draws from. A reported MEAN is derived from N integer responses on a
+# bounded scale (one item => one integer per respondent), so the mean has
+# granularity 1/N — exactly the convention scrutiny::grim() models. The arena KNOWS
+# the GRIM truth because it constructs the mean from integer data (clean) or
+# perturbs it to a provably off-granularity value (injected).
+#
+# This arena is GRIM-only: every scale is single-item (n_items=1). SD is reported
+# as descriptive context only and is never the subject of an injected issue
+# (SD range-plausibility is covered by the separate sprite-plausibility-v1 arena).
+#
+# Percentages: the same entry also backs a reported PERCENTAGE statistic (k of N
+# respondents, printed as a % to 1 dp). A percentage of a count lies on a 100/N
+# granularity grid, so it is GRIM-testable by exactly the same logic as a mean —
+# this is `scrutiny::grim(percent = TRUE)`, still GRIM, still in scope.
+#
+# Fields:
+#   label         : human-readable description of the measure (shown to the player).
+#   percent_label : description used when this entry is rendered as a PERCENTAGE
+#                   statistic instead of a mean.
+#   scale_min  : minimum value of the single item.
+#   scale_max  : maximum value of the single item.
+#   n_items    : always 1 in this arena (kept for input-schema parity).
+#   typical_n  : a representative sample size (the generator may vary around it).
+#   decimals   : number of decimals the mean/SD are reported to.
+- id: scale_satisfaction_1item
+  label: "Single-item life satisfaction (1-7 Likert)"
+  percent_label: "Percentage of respondents satisfied with life (% of N)"
+  scale_min: 1
+  scale_max: 7
+  n_items: 1
+  typical_n: 40
+  decimals: 2
+
+- id: scale_mood_1item
+  label: "Single-item current mood (1-9 Likert)"
+  percent_label: "Percentage of respondents reporting positive mood (% of N)"
+  scale_min: 1
+  scale_max: 9
+  n_items: 1
+  typical_n: 28
+  decimals: 2
+
+- id: scale_agreement_1item
+  label: "Single-item agreement rating (1-5 Likert)"
+  percent_label: "Percentage of respondents who agreed with the statement (% of N)"
+  scale_min: 1
+  scale_max: 5
+  n_items: 1
+  typical_n: 52
+  decimals: 2
+
+- id: scale_confidence_1item
+  label: "Single-item confidence rating (0-10 slider, integer)"
+  percent_label: "Percentage of respondents confident in their answer (% of N)"
+  scale_min: 0
+  scale_max: 10
+  n_items: 1
+  typical_n: 35
+  decimals: 2
+
+- id: scale_likelihood_1item
+  label: "Single-item likelihood rating (1-7 Likert)"
+  percent_label: "Percentage of respondents rating the outcome likely (% of N)"
+  scale_min: 1
+  scale_max: 7
+  n_items: 1
+  typical_n: 24
+  decimals: 2
+
+- id: scale_attention_1item
+  label: "Single-item attention check rating (1-5 Likert)"
+  percent_label: "Percentage of respondents who passed the attention check (% of N)"
+  scale_min: 1
+  scale_max: 5
+  n_items: 1
+  typical_n: 31
+  decimals: 2

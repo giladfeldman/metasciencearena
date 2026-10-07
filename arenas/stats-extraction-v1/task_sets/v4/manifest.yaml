@@ -1,0 +1,50 @@
+version: v4
+seed: 0
+released_on: "2026-08-28"
+n_tasks: 36       # 6 tiers x 3 densities x 2 = 36 (revealed, seed 0), same matrix as v1-v3.
+generator_signature: |
+  task_set_version=v4, seed=0, n_per_cell=2, densities=[1,2,3], tiers=[1..6]
+notes: |
+  v4 exists because the arena was MANUFACTURING the reporting errors it graded.
+
+  `generator._round_p` clamps: any true p below .0005 printed as `p = .001`, any
+  above .999 printed as `p = .999`. Both are FALSE STATEMENTS about the
+  statistic, and a tool that recomputes p is right to flag them. Measured on v3
+  revealed: of the 45 truthful NHST items labelled incoherent, 44 sit at one of
+  those two clamps and exactly ONE is a genuine precision mismatch
+  (`p = .049` against a true .0499503).
+
+  The consequence was not cosmetic. Because those 44 were forgiven by the
+  scorer's `abstain` cell, statcheck was graded on 39 of its 73 checkable items
+  while escimate was graded on 70 of 72 -- 53% against 97%, on the same
+  published leaderboard row. That is what produced their 0.3332 / 0.3352
+  near-tie.
+
+  v4 prints the INEQUALITY that APA requires and that a real paper prints:
+  `p < .001` and `p > .999`. Measured on v4 revealed: `p < .001` x 41,
+  `p > .999` x 4, an unchanged point value x 46.
+
+  THE RULE IS NOT "REPLACE EVERY CLAMP WITH AN INEQUALITY". A p that genuinely
+  rounds to .001 (true p in [.0005, .0015)) must keep printing `p = .001`;
+  `p < .001` would be false of it. A first attempt that converted every clamp
+  blindly turned 11 correct items incoherent. `generator._apa_p_rel` therefore
+  keys on the TRUE p, never on the printed value.
+
+  MEASURED RESULT: truthful NHST items with `coherent=False` fall 45 -> 0, so
+  the scorer's forgiveness cell has NO cases on v4 (v3: 45). The forgiveness
+  rule is inert by construction rather than deleted, which leaves v3 records
+  scoring exactly as they always did. The clean control class is 89 of 91
+  truthful checkable items against a floor of 40, recovered without any
+  threshold being edited.
+
+  The deception taxonomy is UNCHANGED and was checked, not assumed: 24
+  deceptions across all 8 kinds in both v3 and v4, 12 of them in tier 6, and 15
+  items labelled `inconsistent` in both. v4 removes the accidental error class,
+  not the deliberate one.
+
+  NOT comparable with v3: the task TEXT changed, and `_seed_int` includes the
+  task-set version, so v4 is a fresh draw rather than a re-render of v3 (166
+  gold items -> 161). Scores on the two versions are not on the same instrument.
+
+  The private seed is inherited and gitignored. Tasks are generated on-the-fly
+  from the seed; nothing is materialized here except the committed revealed gold.

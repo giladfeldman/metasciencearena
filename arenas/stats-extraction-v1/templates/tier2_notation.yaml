@@ -1,0 +1,38 @@
+# Tier 2: notation variation — periods/commas, leading-zero, italic markers, p < .05 vs p = 0.048.
+nhst:
+  - "*t*({df1}) = {value}, *p* = {p_no_lead}."
+  - "t({df1}) = {value}, p < {p_threshold}."
+  - "t({df1}) = {value_comma}, p {p_rel} {p_comma}."
+
+# --- v5+ only (task set v5, 2026-08-29) --------------------------------------
+# THE ANSWER KEY GRADED A CLAIM THE PASSAGE NEVER PRINTED. Two of the three
+# templates above hardcode the p-relation, so `_apply_apa_p`'s `p_rel` stamp
+# never reached the text:
+#
+#   [0] `*p* = {p_no_lead}`   prints `=` whatever the gold stamped. On v4 gold
+#       said `p < .001` while the passage said `*p* = .001` for a true p of
+#       7.3e-06 -- a FALSE printed claim graded `expected_verdict: ok`.
+#   [1] `p < {p_threshold}`   prints `p < .05` ALWAYS, and `.05` is a constant
+#       that `_instantiate_template` supplies. The drawn p is never rendered at
+#       all, so gold recorded a number the reader cannot see: on v4,
+#       `t(44) = -0.02, p < .05` against a true p of .984, again graded `ok`.
+#
+# MEASURED on v4 revealed, all 112 nhst gold items located: 7 items print a
+# relation the gold does not record, 11 print the `.05` threshold instead of the
+# gold p, and 5 print a claim that is FALSE of their own recomputed p while the
+# key says `ok`. A tool that recomputes p and flags one is charged a false alarm.
+#
+# The repair is one rule: THE GOLD MUST GRADE THE CLAIM THE PASSAGE PRINTS.
+#   [0] renders `{p_rel}`, so the inequality reaches the reader.
+#   [1] renders `{p_alpha_rel}` -- `<` when the true p is below .05, `>` when it
+#       is above -- and the gold's `p` becomes the .05 that is actually printed.
+#       `p > .05` is ordinary APA prose, so the notation variation this tier
+#       exists to test is preserved rather than deleted.
+nhst_v5:
+  - "*t*({df1}) = {value}, *p* {p_rel} {p_no_lead}."
+  - "t({df1}) = {value}, p {p_alpha_rel} {p_threshold}."
+  - "t({df1}) = {value_comma}, p {p_rel} {p_comma}."
+effect_size:
+  - "{es_label} = {es_no_lead}, [{ci_lo_no_lead}, {ci_hi_no_lead}]"
+ci_only:
+  - "M_diff = 0,42, 95% CI [{ci_lo_comma}; {ci_hi_comma}]"

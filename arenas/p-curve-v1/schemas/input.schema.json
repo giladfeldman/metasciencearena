@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "p-curve-v1 task input",
+  "description": "A SET of independent statistically-significant findings (p < .05), each supplied as a test statistic. The player must judge whether the set has evidential value by the p-curve method (Simonsohn, Nelson & Simons, 2014): do the significant p-values show the right-skew expected from real, well-powered effects? At least 5 findings per task so the p-curve is meaningful.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["findings"],
+  "properties": {
+    "findings": {
+      "type": "array",
+      "minItems": 5,
+      "description": "One entry per significant finding, given as a test statistic.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "value"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["t", "F", "z", "chi2", "r"],
+            "description": "Kind of test statistic. p-curve only accepts F with df1 == 1; chi2 is on 1 df."
+          },
+          "value": {"type": "number", "description": "The observed test-statistic value (e.g. t, F, z, chi-square, or r)."},
+          "df1": {"type": "number", "description": "Numerator df for F (must be 1); for t this carries the t df; for chi2 it is 1. Omit for z and r."},
+          "df2": {"type": "number", "description": "Denominator df for F, or the t df when supplied separately. Omit for z, chi2, r."},
+          "n": {"type": "number", "description": "Sample size, REQUIRED for type 'r' (so df = n - 2 for the exact p-value). Omit for other types."}
+        }
+      }
+    }
+  }
+}

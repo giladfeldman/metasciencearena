@@ -1,0 +1,33 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: verbatim-consistent
+    description: >-
+      paper restates the prereg almost word-for-word. No deviations.
+  2:
+    label: paraphrase-consistent
+    description: >-
+      paper rewords every dimension but deviates on none. The false-alarm
+      trap: a good player must NOT flag rewording as a deviation.
+  3:
+    label: single-clear-deviation
+    description: >-
+      exactly one dimension genuinely deviates; the rest are
+      verbatim-consistent.
+  4:
+    label: subtle-deviation
+    description: >-
+      exactly one dimension partially/borderline deviates, hidden amid
+      paraphrased (reworded) consistent dimensions.
+  5:
+    label: multiple-deviations
+    description: >-
+      several dimensions deviate at once, amid paraphrased others.
+  6:
+    label: full-composition
+    description: >-
+      every dimension present, mixed across consistent / paraphrase / subtle /
+      deviated.
+
+n_deviations: Count of dimensions that actually deviate in the pair (0 for T1/T2).

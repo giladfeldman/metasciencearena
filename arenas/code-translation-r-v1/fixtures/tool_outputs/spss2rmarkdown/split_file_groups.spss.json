@@ -1,0 +1,7 @@
+{
+  "tool": "spss2rmarkdown",
+  "tool_version": "0.1.0",
+  "captured_from": "split_file_groups.sps",
+  "r_code": "library(dplyr)\nlibrary(jmv)\ndata <- data |>\n  dplyr::arrange(GROUP)\n# SPLIT FILE BY GROUP\n# Note: In SPSS, SPLIT FILE runs subsequent analyses separately per group.\n# In R/jmv, use the splitBy argument in analysis functions, or filter manually.\n# Grouping variable: GROUP\njmv::descriptives(\n  data = data,\n  vars = c('SCORE'),\n  freq = FALSE,\n  mean = TRUE,\n  median = TRUE,\n  sd = TRUE,\n  min = TRUE,\n  max = TRUE,\n  skew = TRUE,\n  kurt = TRUE,\n  missing = TRUE\n)\n# SPLIT FILE OFF\n# Subsequent analyses apply to the full dataset (no grouping)",
+  "note": "verbatim convert_all_commands() output"
+}

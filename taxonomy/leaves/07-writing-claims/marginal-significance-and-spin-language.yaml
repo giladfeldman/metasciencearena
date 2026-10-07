@@ -1,0 +1,24 @@
+id: marginal-significance-and-spin-language
+name: Marginal-significance & spin / overclaim language detection
+lifecycle_stage: 07-writing-claims
+order: 10
+description: |
+  Flag interpretive-language problems in a manuscript: "marginally significant",
+  "trend toward", "approaching significance" applied to p in (.05, .10); spin
+  where the abstract overclaims relative to the results; and causal claims made
+  without a randomised design. Mirrors metacheck's `marginal` and `causal_claims`
+  modules. Synthetic ground truth by injecting flagged phrasings interleaved with
+  matched non-marginal / non-causal controls (the trap is NOT flagging legitimate
+  hedging).
+input_artifact: plain_text_section
+output_to_judge: list_of_flagged_spans
+existing_solutions:
+  - {id: metacheck, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Arena: significance-language-v1. Causal-claim detection folded in here rather
+  than a separate leaf for now.

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "open-practices-repro-v1 task input",
+  "description": "A MOCKED repository snapshot (no live fetch). The player must flag reproducibility / open-practices defects per target: hard-coded absolute paths, uncommented code, load()s of files absent from files[], broken/placeholder repository links, and data/code/materials availability statements whose open-practices claim is false (a dead/placeholder data link, data offered only 'upon request', or a materials claim with no link and no materials present).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["repo_url", "files", "targets"],
+  "properties": {
+    "repo_url": {"type": "string", "description": "The repository link (a real link, or a placeholder/404-style broken link)."},
+    "files": {
+      "type": "array",
+      "description": "The mocked file listing of the repository.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "type", "content"],
+        "properties": {
+          "name": {"type": "string", "description": "File name / relative path inside the repo."},
+          "type": {"type": "string", "description": "File type label (code / data / doc)."},
+          "content": {"type": "string", "description": "The file's full text content."}
+        }
+      }
+    },
+    "targets": {
+      "type": "array",
+      "description": "The closed set of candidate targets to assess (every file name plus the repo_url), so scoring is well-defined. The player should return one record per target.",
+      "items": {"type": "string"}
+    }
+  }
+}

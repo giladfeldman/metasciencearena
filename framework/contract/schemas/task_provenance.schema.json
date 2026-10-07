@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciencearena.local/contract/task_provenance.json",
+  "title": "Task provenance record (sidecar, one per task)",
+  "description": "Where a task came from, what real-world failure it imitates, who contributed it and their declared relationship to any player, and the task-set version it entered. Field names fixed 2026-09-27 in docs/design/2026-09-arena-expansion/task-provenance.md; a rename is a cross-track change and updates that file in the same commit. This is NEVER part of the player envelope: `injected_issues` is the answer key. Stored next to the gold; only framework.provenance.public_projection() output may reach a public ledger for the private split.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "arena_id", "introduced_in", "origin", "basis", "license"],
+  "properties": {
+    "task_id": {"type": "string", "minLength": 1, "description": "As in the task envelope."},
+    "arena_id": {"type": "string", "minLength": 1},
+    "introduced_in": {
+      "type": "string",
+      "pattern": "^v[0-9]+$",
+      "description": "Task-set version the task first entered, so a leaderboard can be recomputed with and without any set of tasks."
+    },
+    "origin": {"enum": ["generated", "contributed", "real-heldout"]},
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["module", "generator_fingerprint", "split"],
+      "properties": {
+        "module": {"type": "string", "pattern": "^arenas/[^/]+/.+\\.py$"},
+        "generator_fingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "split": {"enum": ["revealed", "private"]},
+        "realism_profile": {"type": ["string", "null"], "description": "T4 realism profile, e.g. full-paper/osf-template/apa-2col."}
+      }
+    },
+    "basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "refs"],
+      "properties": {
+        "summary": {"type": "string", "minLength": 1, "description": "One or two sentences. Public."},
+        "refs": {
+          "type": "array",
+          "description": "What the task is modelled on. DOIs and URLs only, never article text (article-custody rule).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "value"],
+            "properties": {
+              "kind": {"enum": ["doi", "url", "tool-issue", "catalog"]},
+              "value": {"type": "string", "minLength": 1, "maxLength": 500},
+              "note": {"type": ["string", "null"]}
+            }
+          }
+        }
+      }
+    },
+    "injected_issues": {
+      "type": "array",
+      "description": "Catalog ids of the injected issues. LEAKS GOLD: never public for the private split.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["catalog", "id"],
+        "properties": {
+          "catalog": {"type": "string", "minLength": 1},
+          "id": {"type": "string", "minLength": 1},
+          "location": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "contributor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["orcid", "display", "pseudonym", "declared_relationships"],
+      "properties": {
+        "orcid": {"type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9X]$"},
+        "display": {"enum": ["identified", "pseudonymous"]},
+        "pseudonym": {"type": "string", "minLength": 1},
+        "declared_relationships": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["player_family", "relation"],
+            "properties": {
+              "player_family": {"type": "string", "minLength": 1},
+              "relation": {"enum": ["developer", "affiliated", "funded", "competitor", "none"]}
+            }
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["submission_id", "triage_report_sha256", "moderator", "decision", "decided_at"],
+      "properties": {
+        "submission_id": {"type": "string", "minLength": 1},
+        "triage_report_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "moderator": {"type": "string", "minLength": 1},
+        "decision": {"enum": ["accepted", "accepted-with-edits"]},
+        "decided_at": {"type": "string", "format": "date-time"}
+      }
+    },
+    "license": {"const": "CC-BY-4.0"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"origin": {"const": "generated"}}},
+      "then": {"required": ["generator"], "not": {"anyOf": [{"required": ["contributor"]}, {"required": ["review"]}]}}
+    },
+    {
+      "if": {"properties": {"origin": {"const": "contributed"}}},
+      "then": {"required": ["contributor", "review"]}
+    }
+  ]
+}

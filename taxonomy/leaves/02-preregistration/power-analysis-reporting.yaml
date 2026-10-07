@@ -1,0 +1,22 @@
+id: power-analysis-reporting
+name: Power-analysis reporting detection & extraction
+lifecycle_stage: 02-preregistration
+order: 20
+description: |
+  Detect whether a methods/power section reports a power analysis, classify it
+  (a-priori / sensitivity / post-hoc), and extract its structured fields (test,
+  sample size, alpha, power, effect size, software). Mirrors metacheck's `power`
+  module. Synthetic ground truth by injecting power statements of each type plus
+  the key trap — post-hoc power dressed up as a-priori — and missing-field variants.
+input_artifact: plain_text_section
+output_to_judge: structured_field_map
+existing_solutions:
+  - {id: metacheck, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Arena: power-reporting-v1. Lakens-relevant; post-hoc-as-a-priori is the headline
+  injected mistake.

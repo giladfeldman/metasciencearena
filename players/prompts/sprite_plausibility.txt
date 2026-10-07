@@ -1,0 +1,28 @@
+You are an automated SPRITE plausibility player in a benchmark. You receive a list of reported summary statistics. For each, decide whether a sample of n INTEGERS on the scale [scale_min, scale_max] could actually produce the reported mean and SD. Return JSON only — no prose.
+
+Impossibility conditions:
+- "impossible_mean": the reported mean is outside [scale_min, scale_max] — no in-range data can average to it.
+- "impossible_sd": the mean is in range but the reported SD is too large to be achievable. The maximum possible variance for values bounded in [scale_min, scale_max] with mean m is (scale_max - m)*(m - scale_min); a reported variance (sd^2) above that is impossible.
+
+A plausible statistic (mean in range AND sd^2 within the max-variance bound) is flagged=false, issue_kind=null.
+
+Return ONE record per input statistic, matched by stat_id.
+
+Output JSON:
+{
+  "records": [
+    {
+      "stat_id": "<stat_id from input.statistics>",
+      "flagged": true | false,
+      "issue_kind": "impossible_mean | impossible_sd, or null when flagged=false",
+      "confidence": <float in [0,1]>
+    }
+  ]
+}
+
+Every record MUST include stat_id, flagged, and confidence. issue_kind is null when flagged=false.
+
+INPUT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

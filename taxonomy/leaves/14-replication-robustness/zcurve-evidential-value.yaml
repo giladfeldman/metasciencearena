@@ -1,0 +1,26 @@
+id: zcurve-evidential-value
+name: Z-curve evidential value of a findings set
+lifecycle_stage: 14-replication-robustness
+order: 20
+description: |
+  Given a SET of significant test results (their z-scores, all |z|>1.96), decide
+  whether the set reflects real underlying effects (evidential value) or is
+  consistent with selection-for-significance over null/weak effects (p-hacking /
+  publication bias). Mirrors the z-curve method (zcurve R package), which fits a
+  mixture over observed significant z-values to estimate the expected discovery and
+  replication rates. Synthetic ground truth: each set is generated from a known
+  regime (real effects with high true power vs. selected nulls), so the
+  evidential-value label is the controlled generating process, not a tool output.
+input_artifact: significant_test_statistics_set
+output_to_judge: evidential_value_verdict
+existing_solutions:
+  - {id: zcurve, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: high
+arena_status: live
+scope_tier: A
+notes: |
+  Set-level (not per-study) evidential-value classification. Distinct from
+  per-result reporting checks — this leaf judges a body of significant findings.
+  Arena: zcurve-evidential-v1.

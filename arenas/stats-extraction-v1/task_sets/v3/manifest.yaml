@@ -1,0 +1,44 @@
+version: v3
+seed: 0
+released_on: "2026-08-21"
+n_tasks: 36       # 6 tiers x 3 densities x 2 = 36 (revealed, seed 0), same matrix as v1/v2.
+generator_signature: |
+  task_set_version=v3, seed=0, n_per_cell=2, densities=[1,2,3], tiers=[1..6]
+notes: |
+  v3 exists because v2 measured TRANSCRIPTION and called it VERIFICATION.
+
+  Three defects, each measured on v2 before this task set was minted:
+
+  1. `_build_nhst_fields` drew each truthful NHST item's p independently of its
+     statistic, so 37 of 84 truthful `nhst_stat` items were real statcheck
+     decision errors labelled `truthful: true` (74 of 84 differ at the reported
+     precision; only 10 were genuinely coherent). Meanwhile
+     `players/prompts/stats_extraction.txt` ORDERED every player to recompute p
+     and flag exactly those. The better a player followed our own instructions,
+     the worse it scored.
+     v3: truthful NHST items report the p their statistic implies.
+     MEASURED alpha-crossing truthful items: 37 -> 0.
+
+  2. Tier 6 stamped `deception_rate: 3` and contained ZERO deception, because
+     `sub_tier = (i % 5) + 1` over FOUR section titles never reaches 5 and the
+     branch was dead code. 66 of 144 gold items (46%) carried a false stamp, and
+     `difficulty_axes` keys the breakdown in every published player report.
+     v3: a fifth title makes the branch reachable, and the stamp is COMPUTED
+     from the items. MEASURED tier-6 deception items: 0 -> 12.
+
+  3. No effect size anywhere in the arena appeared beside its own test
+     statistic; the canonical APA form `t(48) = 2.31, p = .025, d = 0.65`
+     occurred ZERO times in all 9,201 characters. Probed against live
+     effectcheck 0.7.6: all six bare forms this arena emitted return zero rows,
+     while all three paired forms parse and PASS. The arena was scoring a
+     verification tool exclusively on the form it is designed not to answer.
+     v3: tier 1 gains `nhst_with_es` templates.
+     MEASURED effect sizes reported with their statistic: 4 -> 20.
+
+  NOT comparable with v2: both the task text and the scoring changed. The
+  SCORING change alone was applied to v2 as well and is separable — see
+  docs/reports/2026-08-21-stats-arena-coverage-gaps.md.
+
+  The private seed is freshly minted and gitignored. Tasks are generated
+  on-the-fly from the seed; nothing is materialized here except the committed
+  revealed gold.

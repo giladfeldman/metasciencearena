@@ -1,0 +1,57 @@
+# CLEAN-CONTROL look-alike pools for reference-integrity-v1 (NOT mistakes).
+#
+# Used by the generator's controls (T2) and subtle (T4) tiers to render
+# references that LOOK suspicious to a naive checker but are perfectly valid, so
+# flagging them is a FALSE ALARM (the realism / discrimination test). Each pool
+# is the honest twin of one new mistake kind:
+#   * legit_unusual_doi : a VALID DOI that legally contains parentheses, angle
+#     brackets, mixed case, or colons — a naive "looks malformed" heuristic
+#     over-flags it, yet every one of these resolves. (Twin of invalid_doi.)
+#   * obscure_venue : a small or mega-journal that is fully LEGITIMATE and
+#     indexed, whose generic name can resemble a predatory title to a heuristic.
+#     (Twin of predatory_source.)
+#   * legit_jargon_title : real domain terminology — eponyms, method names,
+#     deliberately whimsical-but-real paper titles — that a paper-mill
+#     tortured-phrase dictionary would over-flag. (Twin of tortured_phrase.)
+#
+# Shape mirrors references.yaml entries (id/authors/year/title/doi/venue) so the
+# generator renders them with the identical canonical-record path.
+legit_unusual_doi:
+  - id: cc_doi_sici
+    authors: ["Hennig, J.", "Nauerth, A.", "Friedburg, H."]
+    year: 1986
+    title: "RARE imaging: A fast method for clinical MR"
+    doi: "10.1002/(SICI)1522-2594(199608)36:2<300::AID-MRM18>3.0.CO;2-Z"
+    venue: "Magnetic Resonance in Medicine"
+  - id: cc_doi_colon
+    authors: ["Knuth, D. E."]
+    year: 1976
+    title: "Big Omicron and big Omega and big Theta"
+    doi: "10.1145/1008328.1008329"
+    venue: "ACM SIGACT News"
+obscure_venue:
+  - id: cc_venue_heliyon
+    authors: ["Okafor, C. N.", "Whitley, R."]
+    year: 2019
+    title: "Community resilience and mental health outcomes after flooding"
+    doi: "10.1016/j.heliyon.2019.e02035"
+    venue: "Heliyon"
+  - id: cc_venue_plosone
+    authors: ["Ramirez, S.", "Liu, X.", "Tonegawa, S."]
+    year: 2013
+    title: "Creating a false memory in the hippocampus"
+    doi: "10.1371/journal.pone.0078055"
+    venue: "PLOS ONE"
+legit_jargon_title:
+  - id: cc_jargon_naive_bayes
+    authors: ["Hand, D. J.", "Yu, K."]
+    year: 2001
+    title: "Idiot's Bayes: Not so stupid after all?"
+    doi: "10.1111/j.1751-5823.2001.tb00465.x"
+    venue: "International Statistical Review"
+  - id: cc_jargon_hungarian
+    authors: ["Kuhn, H. W."]
+    year: 1955
+    title: "The Hungarian method for the assignment problem"
+    doi: "10.1002/nav.3800020109"
+    venue: "Naval Research Logistics Quarterly"

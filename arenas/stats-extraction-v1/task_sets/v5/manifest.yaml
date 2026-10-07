@@ -1,0 +1,108 @@
+version: v5
+seed: 0
+released_on: "2026-08-29"
+n_tasks: 36       # 6 tiers x 3 densities x 2 = 36 (revealed, seed 0), same matrix as v1-v4.
+generator_signature: |
+  task_set_version=v5, seed=0, n_per_cell=2, densities=[1,2,3], tiers=[1..6]
+notes: |
+  v5 exists because the ANSWER KEY GRADED A CLAIM THE PASSAGE NEVER PRINTED.
+
+  v4 fixed the printing of p itself: a true p beyond the 3-dp APA grid is printed
+  as `p < .001` / `p > .999` instead of being clamped to a false point value. It
+  stamped the relation onto every truthful NHST gold item as `fields.p_rel`. But
+  three templates never interpolated that stamp:
+
+    tier2_notation.yaml   `*t*({df1}) = {value}, *p* = {p_no_lead}.`
+    tier2_notation.yaml   `t({df1}) = {value}, p < {p_threshold}.`
+    tier3_formatting.yaml `t({df1})\n= {value}, p &lt; {p_threshold}`
+
+  The first hardcodes `=`, so gold could say `p < .001` while the passage said
+  `*p* = .001`. The other two are worse: `p_threshold` is the CONSTANT ".05" that
+  `_instantiate_template` supplies, so the drawn p is never rendered at all and
+  the gold graded a number the reader cannot see.
+
+  MEASURED on v4 revealed, with all 112 nhst gold items located (an earlier
+  survey located 55 and reported its count as a lower bound):
+    * 7 items print a relation the gold does not record;
+    * 11 print the `.05` threshold rather than the gold p;
+    * 5 print a claim that is FALSE of their own recomputed p while the answer
+      key says `expected_verdict: ok`.
+  On the private split: 6, 13 and 5. On v3 the same locator finds 44 and 41 --
+  the clamp defect v4 was minted to remove, which is how the locator is known to
+  work rather than merely to return zero.
+
+  The 5 are the ones that corrupt a score. `t(44) = -0.02, p < .05` against a
+  true p of .984 is a decision error, exactly what statcheck exists to find; the
+  key says `ok`, so the tool that flags it is charged a `false_alarm` and the
+  tool that misses it is credited a `hit`. The scoring is inverted against the
+  competence the arena measures.
+
+  THE FIX IS NOT A RELABEL, and the rejected option is the tempting one.
+  Re-labelling those 5 `inconsistent` needs no re-run and leaves the passage
+  printing `p = .001` for a true p of 7.3e-06 -- precisely the manufactured error
+  v4 exists to remove. v5 changes the TEXT so the printed claim is true and the
+  key grades that claim.
+
+  WHAT CHANGED, exactly:
+    * `*p* {p_rel} {p_no_lead}` -- the inequality now reaches the reader.
+    * `p {p_alpha_rel} {p_threshold}` (and its `&lt;`-escaped tier-3 twin) --
+      the relation is measured against alpha, `<` when the true p is below .05
+      and `>` when it is above, and the gold's `p` becomes the .05 that is
+      actually printed. `p > .05` is ordinary APA prose, so the notation
+      variation tier 2 exists to test is preserved rather than deleted.
+  v5 wording lives under a separate `nhst_v5` key in each template file, the same
+  shape as tier 6's `section_titles_v3`, so v1-v4 keep rendering byte-identical
+  text. Verified: all four reproduce their committed `_ground_truth.json` exactly
+  -- envelope text AND every gold field -- on BOTH splits.
+
+  ONE SCORING RULE MOVED, and it is a correctness fix rather than a tuning
+  change: `_label_verification` read a `p < X` claim's significance as `X < .05`,
+  which is False for `X == .05` and would have read the commonest significance
+  claim in psychology as a null one. Now `X <= .05`. Provably inert for v1-v4 --
+  a `<` relation there requires the true p below .0005, and `_round_p`'s floor
+  then prints .001, never .05 -- and the byte-for-byte regeneration is the proof.
+
+  MEASURED RESULT on v5 revealed: 0 relation mismatches, 0 number mismatches, 0
+  false claims graded `ok`, on both splits. Truthful NHST items with
+  `coherent=False` stay at 0 (v4: 0, v3: 45), so the scorer's forgiveness cell
+  still has no cases. The clean control class is 80 against a floor of 40.
+
+  The deception taxonomy is UNCHANGED and was checked, not assumed: 24 deceptions
+  across all 8 kinds and 15 items labelled `inconsistent`, identical to v3 and
+  v4. v5 removes an accidental error class, not the deliberate one.
+
+  KNOWN, MEASURED, AND NOT WORTH A TASK SET -- recorded so nobody re-derives it.
+  From v4 onward a printed INEQUALITY is a perfect signal that an item is
+  truthful (v5 revealed: 47 inequality-printing items, 0 of them deceptions;
+  private 49 and 0), because `_apply_apa_p` is called only on truthful items and
+  every deception falls through to `p = <value>`.
+
+  THAT SOUNDS WORSE THAN IT MEASURES. The cue is perfectly precise and buys
+  nothing. Scored over all 36 revealed tasks with a perfect extractor, across all
+  16 constant strategies the cue's partition admits, the best cue-USING strategy
+  is `inequality -> ok, else -> ok` at 0.8077 -- which IS always-ok, the best
+  strategy that ignores the cue entirely. The gain is +0.0000. The reason is
+  structural: the cue marks items where `ok` is correct, and a player maximising
+  without recomputation already answers `ok` everywhere because the gold is
+  `ok`-dominated. It cannot point at a deception; it is constant across the
+  bucket holding all of them.
+
+  What it does buy is narrower and bounded: it concentrates the deceptions. The
+  prior rises from 21/104 (20.2%) over all NHST items to 21/57 (36.8%) inside the
+  `=` bucket -- 1.82x. That is a construct-validity dilution, not a score defect,
+  and it cannot let a weaker tool outrank a stronger one.
+
+  Pinned by `tests/test_printed_relation_is_not_a_shortcut.py`, which asserts no
+  cue-based strategy beats ignoring the cue, bounds the concentration at 3x, and
+  carries a positive control (a partition on the gold's own truthfulness must
+  show a clear gain) so a collapse in the comparison cannot satisfy it silently.
+  If a future task set shifts the class balance enough for the cue to start
+  paying, that test goes red and the leak earns a task set of its own.
+
+  NOT comparable with v4: the task TEXT changed, and `_seed_int` includes the
+  task-set version, so v5 is a fresh draw rather than a re-render of v4 (161 gold
+  items -> 163). Scores on the two versions are not on the same instrument.
+
+  The private seed is inherited from v4 and gitignored. Tasks are generated
+  on-the-fly from the seed; nothing is materialized here except the committed
+  revealed gold.

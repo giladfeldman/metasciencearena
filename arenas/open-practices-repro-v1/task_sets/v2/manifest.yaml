@@ -1,0 +1,62 @@
+version: v2
+seed: 0
+released_on: "2026-09-17"
+n_tasks: 20       # T1:2 + T2:2 + T3:7 + T4:5 + T5:2 + T6:2 (7 issue kinds) — the v1 matrix, unchanged.
+generator_signature: |
+  task_set_version=v2, revealed_seed=0, issue_kinds=7, tiers=[1..6]
+notes: |
+  v2 exists for ONE reason: one of the absolute-path placeholders v1 generated
+  tasks around was not an invented placeholder.
+
+  The arena teaches the `absolute_path` defect by rendering a script whose data
+  path points at "the author's own machine", drawn from a pool of four strings in
+  `catalogs/repo_templates.yaml`. They are meant to be fabricated. One was not.
+  It is not a credential and not a security hole; it is a real personal directory
+  on a public site, and it should not be there.
+
+  WHAT v2 CHANGES. v2 draws from a NEW pool, `abs_dirs_v2` — same length, same
+  platform mix, same flavour of path, with the one string replaced by a
+  fabricated sibling. The task is exactly as realistic as it was. MEASURED
+  2026-09-17 with a positive control on every search, so a zero could not come
+  from a broken search: 0 of 20 revealed and 0 of 20 private v2 tasks contain the
+  replaced string, while 4 of 20 revealed and 8 of 20 private contain its
+  replacement, and 3 of 20 revealed and 4 of 20 private v1 tasks still contain
+  the original — which is how the locator is known to work rather than merely to
+  return zero.
+
+  WHAT v2 DOES NOT CHANGE, and this is the honest part. It removes nothing that
+  is already published:
+    * v1's pool is append-only and stays in the catalog, because v1's committed
+      gold and its published run records were computed from those exact strings;
+    * the 27 published v1 run records, across 12 players, are untouched;
+    * a superseded version that has runs keeps being built into
+      `public/data/<arena>/versions/<v>/` by `leaderboard-app/scripts/
+      build-data.mjs`, records and gold included — MEASURED on stats-extraction-v1,
+      whose superseded v4 publishes 5 record files and a full ground_truth.json.
+  Minting v2 is a fix going forward. It is not a retraction and not a removal,
+  and nothing here should be read as saying the earlier string has been taken
+  down.
+
+  SHAPE IS UNCHANGED, and that was checked rather than assumed. v1 and v2 agree
+  exactly on the 20 task_ids, the tier histogram, the n_issues histogram, the
+  injected-kind counts, the per-task file counts and the per-task gold-record
+  counts — on BOTH splits. `_render_script` still spends exactly one
+  `rng.choice` on the pool, and `_abs_dirs_for` refuses a pool of a different
+  length precisely so that stays true.
+
+  NOT COMPARABLE WITH v1. `_seed_int` hashes the task-set version into every
+  cell's rng, so v2 is a fresh draw rather than a re-render of v1: 19 of 20
+  revealed and 19 of 20 private tasks differ in text. The single match is
+  `or-t5-1-s0`, which injects `no_comment` + `missing` and two link-free
+  availability statements, leaving a 4-way choice of broken repo_url as its only
+  seed-driven element — a collision, not a re-render. Scores on v1 and v2 are not
+  on the same instrument and must not be compared.
+
+  v1 IS UNTOUCHED AND STILL REPRODUCES. Its committed `_ground_truth.json`
+  regenerates byte-for-byte (66,567 characters, identical), and its recorded
+  generator_fingerprint is unchanged across all 40 tasks of both splits.
+
+  The private seed is INHERITED from v1 and gitignored. That does not make the
+  two versions sample alike: the version string is hashed into every cell's seed,
+  which is why 19 of 20 private tasks differ. Tasks are generated on-the-fly from
+  the seed; nothing is materialized here except the committed revealed gold.

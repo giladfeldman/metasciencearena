@@ -1,0 +1,39 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+
+tier:
+  1:
+    label: clean-simple
+    description: >-
+      a short, correctly-written excerpt built from clean controls. No
+      problems to flag.
+  2:
+    label: controls-only-paraphrase
+    description: >-
+      the false-alarm TRAP. The excerpt is built ENTIRELY from legitimate
+      phrasings that look suspicious: honest hedging ("did not reach
+      significance"), exact-significant claims (p < .001), and causal claims
+      that DO cite randomisation. A good player must flag NOTHING here.
+  3:
+    label: single-injected-mistake
+    description: >-
+      exactly one genuine problem (marginal_significance, spin_overclaim, or
+      causal_overclaim), surrounded by clean controls.
+  4:
+    label: subtle
+    description: >-
+      one injected mistake placed right next to its look-alike clean control
+      (a marginal phrasing beside a legitimate hedge; a causal overclaim
+      beside a randomised causal claim), so the discrimination is hard.
+  5:
+    label: multiple-mistakes
+    description: >-
+      several problems co-occur in one excerpt, interleaved with clean
+      controls.
+  6:
+    label: full-composition
+    description: >-
+      a deterministic mix of every mistake kind and every clean flavour across
+      many slots (hardest discrimination).
+
+n_flags: Count of genuine interpretive-language problems present in the excerpt
+  (0 for T1/T2).

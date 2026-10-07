@@ -1,0 +1,79 @@
+# Human-readable mirror of arena.yaml#difficulty_axes.
+#
+# The tier ladder is ordered by how easy it is to get the translation SILENTLY
+# wrong, not by how long the source script is. T1 is mechanical; by T5 a
+# translator can set the right SS type and still be wrong because it kept R's
+# default contrasts.
+
+tier:
+  1:
+    label: descriptives
+    description: >-
+      Means, SDs and valid N for three continuous variables. No cross-language
+      trap — this is the clean control that separates "cannot translate at
+      all" from "translates but mishandles a default".
+  2:
+    label: ttest-pooled-vs-welch
+    description: >-
+      Independent-samples t-test. SPSS T-TEST and Stata `ttest` headline the
+      POOLED test; R's t.test() defaults to Welch. Omitting var.equal = TRUE
+      changes df and p while the code still runs.
+  3:
+    label: regression-listwise
+    description: >-
+      OLS regression with listwise deletion across model variables. lm()
+      matches SPSS REGRESSION here — but SPSS CORRELATIONS defaults to
+      PAIRWISE, so a translator that applies one missing-data convention
+      everywhere is wrong somewhere.
+  4:
+    label: recode-user-missing
+    description: >-
+      Recode plus a declared user-missing code (99) plus a computed index. The
+      99 stays a literal number in R until converted to NA, and SPSS MEAN.3
+      requires >= 3 valid values where rowMeans(na.rm = TRUE) requires none.
+  5:
+    label: anova-ss-type
+    description: >-
+      Two-way factorial ANOVA on unbalanced cells. SPSS/Stata report TYPE III
+      sums of squares; anova(lm()) gives TYPE I. Type III additionally
+      requires sum-to-zero contrasts — setting type = 3 alone is still wrong,
+      which makes this the subtlest tier.
+  6:
+    label: pipeline-order
+    description: >-
+      Filter cases, then model the survivors. SELECT IF / keep drop cases
+      PERMANENTLY, so hoisting the model above the filter, or applying the
+      filter only inside the model call, analyses a different N.
+  7:
+    label: corr-pairwise-vs-listwise
+    description: >-
+      A correlation matrix with missing data. SPSS CORRELATIONS defaults to
+      PAIRWISE deletion while R's cor() defaults to failing on NA, and the
+      obvious repair (use = "complete.obs") is LISTWISE — the opposite
+      convention. The PAIR is the trap: each cell of the matrix can legitimately
+      rest on a different N, so a single global setting is wrong for the matrix
+      as a whole.
+  8:
+    label: weight-by-state
+    description: >-
+      Frequency weighting. WEIGHT BY is a persistent piece of dataset STATE in
+      SPSS — once set, every later command silently honours it — whereas base R
+      has no weighting state at all and each call must be told separately. A
+      translation that drops the weight still runs and still reports plausible
+      numbers, computed on the wrong effective N.
+  9:
+    label: split-file-state
+    description: >-
+      SPLIT FILE: stateful per-group execution with no R equivalent. Every
+      subsequent command runs once per group until the split is switched off, so
+      the translation has to restructure the whole downstream pipeline into an
+      explicit per-group iteration. Emitting the ungrouped analysis produces one
+      pooled result where the source produced several.
+
+source_language:
+  1:
+    label: spss
+    description: SPSS syntax (.sps).
+  2:
+    label: stata
+    description: Stata do-file (.do).

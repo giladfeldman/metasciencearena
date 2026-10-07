@@ -1,0 +1,7 @@
+{
+  "tool": "spss2rmarkdown",
+  "tool_version": "0.1.0",
+  "captured_from": "descriptives.sps",
+  "r_code": "library(jmv)\njmv::descriptives(\n  data = data,\n  vars = c('AGE', 'SCORE', 'HOURS'),\n  freq = FALSE,\n  mean = TRUE,\n  median = TRUE,\n  sd = TRUE,\n  min = TRUE,\n  max = TRUE,\n  skew = TRUE,\n  kurt = TRUE,\n  missing = TRUE\n)",
+  "note": "verbatim convert_all_commands() output"
+}

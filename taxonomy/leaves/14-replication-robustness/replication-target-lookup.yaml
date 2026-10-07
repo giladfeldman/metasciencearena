@@ -1,0 +1,23 @@
+id: replication-target-lookup
+name: Replication / target DOI lookup
+lifecycle_stage: 14-replication-robustness
+order: 10
+description: |
+  Bidirectional replication-study <-> original-study lookup. Given a DOI and a
+  direction (targets | replications), return verified DOI pairs with evidence
+  and provenance. Covers RRR cases, Many Labs, multi-target replications, and
+  non-article DOI traps (datasets, methods, model/cell replication).
+input_artifact: replication_doi_query
+output_to_judge: list_of_doi_pair_records
+existing_solutions:
+  - {id: fred, type: platform, owner: third-party}
+  - {id: forrt, type: platform, owner: third-party}
+  - {id: gpt-frontier-zero-shot, type: ai-model, owner: anthropic-or-openai}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: medium
+arena_status: live
+scope_tier: A
+notes: |
+  v0 ground truth seeded from FRED + FORRT and adjudicated by Gilad.
+  Day-2 will move to panel-verified labels (Opus 4.7 + Codex 5.5
+  generation+verification, Gemini Pro 3.1 mediator).

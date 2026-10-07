@@ -1,0 +1,504 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciencearena.local/contract/run_record.json",
+  "title": "Provenance record for a single player run on a single task",
+  "description": "Stored by the framework. Arena code never writes these directly.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "run_id",
+    "arena_id",
+    "task_set_version",
+    "task_id",
+    "player_id",
+    "player_version",
+    "player_type",
+    "input_hash",
+    "output",
+    "score",
+    "timestamp_utc"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "arena_id": {
+      "type": "string"
+    },
+    "task_set_version": {
+      "type": "string",
+      "pattern": "^v[0-9]+$"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "player_id": {
+      "type": "string"
+    },
+    "player_version": {
+      "type": "string"
+    },
+    "resolved_tool_version": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional. The actual installed version of the underlying tool, detected at runtime by the adapter (e.g. 'docpluck-2.4.84'). null when no underlying tool is detectable (e.g. an LLM, whose version is the model id in player_version). Lets the leaderboard rank on the version a score was produced with rather than the static registry label."
+    },
+    "player_type": {
+      "type": "string",
+      "enum": [
+        "platform",
+        "tool",
+        "human-baseline",
+        "ai-model"
+      ]
+    },
+    "input_hash": {
+      "type": "string",
+      "description": "SHA-256 of the canonicalized task envelope."
+    },
+    "output": {
+      "description": "Player's response, conforming to the arena's output schema."
+    },
+    "score": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "primary"
+      ],
+      "properties": {
+        "primary": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "null = task excluded from scoring (e.g., unverifiable ground truth)."
+        },
+        "breakdown": {
+          "type": "object"
+        },
+        "findings": {
+          "type": "array",
+          "description": "Optional. Structured failure-mode annotations. See contract/schemas/findings.schema.json for the per-item shape. Held-out task findings are redacted by the runner before persistence — only category + count survive.",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "task_visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "held_out"
+      ],
+      "description": "Optional. Copied from the task envelope by the runner. Defaults to 'held_out' (fail-safe) when the envelope did not declare visibility. Drives report-engine redaction logic."
+    },
+    "split": {
+      "type": "string",
+      "enum": [
+        "revealed",
+        "private"
+      ],
+      "description": "Optional. Copied from the task envelope by the runner. 'revealed' records are published un-redacted in the Open Benchmark; 'private' records keep findings redaction. Mirrors task_visibility (revealed<->public, private<->held_out) but names the benchmark suite explicitly for leaderboard partitioning."
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cost_usd": {
+      "type": "number",
+      "minimum": 0
+    },
+    "latency_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional. How/when/with-what this record was produced. Populated by the runner. Command is sanitized of any secrets before write.",
+      "properties": {
+        "tested_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "host": {
+          "type": "string",
+          "description": "Operator-facing NAME of the machine that produced this score. Overridable with SCIENCEARENA_HOST; otherwise derived from the hardware. Before v6 this was the literal 'win11-local' on every record ever published, because the default was hardcoded and the environment variable was never set — a field that looked like provenance and encoded nothing."
+        },
+        "host_fingerprint": {
+          "type": ["object", "null"],
+          "description": "The EVIDENCE behind `host`: measured hardware facts plus a digest over them that renaming the machine cannot forge. Present from schema v6 (2026-08-21); its ABSENCE means the record predates the field and the machine is unrecorded, which is a third answer and not a match. Carries no hostname, username or path — every provenance field is copied into the public bundle. Matters because a local GGUF player's byte-for-byte reproducibility is a property of one CPU and one llama.cpp backend, and both leaderboard engines group on player_id alone.",
+          "properties": {
+            "cpu": {"type": ["string", "null"]},
+            "arch": {"type": ["string", "null"]},
+            "os": {"type": ["string", "null"]},
+            "os_release": {"type": ["string", "null"]},
+            "cpu_logical": {"type": ["integer", "null"]},
+            "ram_gb": {"type": ["integer", "null"]},
+            "accelerator": {"type": ["string", "null"], "description": "Display adapter name(s), pipe-separated. Part of the digest: two boxes with the same CPU, core count and RAM are the same instrument only if they also share a GPU, since that is what selects llama.cpp's backend."},
+            "fingerprint": {"type": "string"},
+            "fingerprint_version": {"type": "integer"},
+            "label": {"type": "string"}
+          },
+          "required": ["fingerprint", "fingerprint_version", "label"],
+          "additionalProperties": false
+        },
+        "adapter_class": {
+          "type": "string"
+        },
+        "command": {
+          "type": "string"
+        },
+        "tool_version_detail": {
+          "type": "string"
+        },
+        "resolved_tool_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trials": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "seed": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "split": {
+          "type": "string",
+          "enum": [
+            "revealed",
+            "private"
+          ]
+        },
+
+        "code_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "git SHA of THIS repo when the record was produced. tool_version_detail pins the third-party tool; this pins the framework and scorer that computed the number, so a later scoring fix does not silently make old and new records look alike."
+        },
+        "prompt_template_sha256": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Hash of the prompt template actually used. task_id pins the TASK, not the instructions wrapped around it — and those get edited. Differing hashes on the same task_id mean the records are not comparable."
+        },
+        "request_temperature": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Sampling temperature sent, when applicable."
+        },
+        "request_timeout_s": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Per-call timeout sent. Companion to finish_reason and to timeout-classified errors."
+        },
+        "request_max_tokens": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The output ceiling WE put on the wire for this call — the adapter's default with the player's openai_extra_body.max_tokens override already applied, read off the finished request body rather than re-derived from the registry (those diverge for every overriding player). The direct companion to response_meta.finish_reason: 'length' without this number cannot be attributed to our configuration or to the model's own limit, which is the 'publishing OUR max_tokens as THEIR incapability' failure. Added v9 (2026-09-11) after Cohere Catalyst records truncated at a ceiling the record did not name, so answering 'ours or theirs?' required bisecting the live provider API — which found the registry ceilings sat 192/96/96 tokens BELOW the true maxima of 8192/4096/4096, and that shortfall had published a perfect 1.000 as 0.0. Deliberately no count here: the number of affected records moved 7 -> 5 -> 3 within two days as those records were re-run at the corrected ceiling, and a specific tally in a schema description is a claim a later session will cite without re-deriving. null means the player sends NO ceiling (CLI players, R tools, docpluck, GROBID) — a first-class answer, never a placeholder for an unrecorded one; absence of the key means the record predates v9. Carries no information about the task document (it is a number we chose), so unlike usage token counts it deliberately survives held-out redaction, where it is most needed because a held-out record has no output to inspect."
+        },
+        "containment": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "description": "How an agentic-CLI player was contained when this record was produced. null for players with no ambient environment to inherit (HTTP/API, R, library calls). ABSENT on a CLI record means the record predates containment entirely (before 2026-08-19), when the player ran inside the repo with its full tool set and could read the answer key — that absence is the ONLY signal distinguishing those records, so they are never backfilled. See framework/hermetic.containment_state.",
+          "properties": {
+            "profile_version": {
+              "type": "string"
+            },
+            "cli": {
+              "type": "string"
+            },
+            "cli_version": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "The CLI is part of the instrument and auto-updates."
+            },
+            "allow_tools": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "verified": {
+              "type": "boolean",
+              "description": "A live nonce probe confirmed containment for this binary."
+            },
+            "flags_insufficient": {
+              "type": "boolean",
+              "description": "Measured reading outside its workspace despite every flag it offers; containable only by an OS-level boundary."
+            },
+            "verified_note": {
+              "type": "string"
+            },
+            "fingerprint": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "profile_version",
+            "cli",
+            "verified"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Token counts reported by a metered API for this task, when the player is one. ABSENT means one of FOUR different things, and they must not be blurred: (a) a local tool player consumed no tokens; (b) a CLI-subscription player is not billed per token; (c) the record is held-out, where prompt_tokens is a near-exact proxy for input document length and is stripped; or (d) the record predates instrumentation on 2026-08-13, when the adapter began reading the `usage` block every provider had been returning all along. Use timestamp_utc and player_type to tell (d) from (a)-(c) — see framework/pricing.py:classify_missing_usage. Absent must never be read as zero. Tokens are persisted rather than a dollar figure because tokens are a measured fact that stays true, while a price is a claim about a list that changes without notice; cost is derived at report time from a dated price table. NOT COMPARABLE ACROSS TRANSPORTS. A CLI-wrapped player (claude --print) is measured at ~46k prompt_tokens for a task an HTTP player does in ~650, because the CLI prepends its own system context and prompt cache. Those tokens are real and really billed on a metered account, but comparing them to a direct API call measures the harness, not the model. Compare tokens only within a transport, and read cross-transport cost with that caveat stated.",
+      "properties": {
+        "prompt_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "completion_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cache_read_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Anthropic splits the input side into fresh / cache-read / cache-write. prompt_tokens is their SUM; this is the cache-read part, kept separately because it is billed at a different rate and materially changes cost."
+        },
+        "cache_creation_tokens": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Input tokens written to the prompt cache. Billed above the base input rate."
+        }
+      }
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Run-record shape version. Bumped whenever fields are added. Lets a reader distinguish a field's ABSENCE ('this run predates the field') from its omission ('not applicable to this run') — without it, every gap looks the same. v2 (2026-08-13) added usage, response_meta, and the provenance code_version / prompt_template_sha256 / request_* fields. v3 (2026-08-19) added provenance.containment: an agentic CLI player runs with an ambient environment, and until v3 nothing recorded what that environment was. v4 (2026-08-20) added the nine response_meta fields a local llama.cpp GGUF player needs to be auditable (endpoint, engine_build, gguf_file, gguf_sha256, max_tokens, model_ftype, quant, sampling, server_defaults). response_meta is a CLOSED object, so that WAS a shape change even though it is nested. v5 (2026-08-20) added response_meta.speculative_active / speculative_accept_rate, because the DECLARED speculative config in server_defaults was found to be false. v6 (2026-08-21) added provenance.host_fingerprint and the four response_meta server_* fields. Until v6 provenance.host was a hardcoded constant that read identically on every machine (all 3,924 records published before that date say the same thing), and the local server's GPU-offload configuration -- which selects a different compute kernel and therefore a different completion -- was recorded nowhere at all. CORRECTION, recorded so the edit is auditable: the 58 gpt-oss-20b pilot records were produced before this constant was bumped and were written carrying schema_version 3 while physically having the v4 shape; only that integer was corrected afterwards, no scored content was touched, which is why their provenance.code_version names a commit whose RECORD_SCHEMA_VERSION reads 3. v7 (2026-08-25) added the top-level instrument block: the scoring FORMULA and the exact scorer, gold and output a score was computed from. Until v7 a record said what was run but not what computed the number, so a rescore under a changed formula was indistinguishable from the original -- which is precisely what happened on 2026-08-22, moving a published mean from 0.3980 to 0.3887 with nothing in the record to show it. instrument is NOT in top-level required[], deliberately: 5,386 of 8,748 records predate schema_version entirely, and requiring it would assert retroactively that 62% of the corpus was always invalid AND would make RunRecordWriter reject every historical record on rewrite (measured: 72/72 valid -> 0/72). The requirement is expressed as a conditional on schema_version >= 7 instead, so it binds new records without condemning old ones. v8 (2026-09-05) added the top-level adherence block -- see its own description. Like instrument it is NOT in top-level required[]: every record written before today lacks it, and its ABSENCE means 'this run predates the field', never 'this answer conformed'. v9 (2026-09-11) added provenance.request_max_tokens: the output ceiling we sent. Until v9 the block carried request_temperature and request_timeout_s but not the ceiling, even though the adjacent comment had claimed since 2026-08-13 that the limit we sent was recorded 'so nobody can confirm whether a truncation was our configuration error'. Measured over every run file the day it was added: 11,709 records, 0 with a request ceiling in provenance, and only the 542 written by the local llama.cpp adapter carrying one anywhere at all. provenance is additionalProperties:false, so this WAS a shape change. v10 (2026-09-17) added the top-level player_identity block -- see its own description. Until v10 nothing on a record said which INSTRUMENT produced the answer: player_version labels weights, and the same weights file run with thinking on and thinking off declared one identical string while differing by +0.24 to +0.28 mean score. Like instrument and adherence it is NOT in top-level required[]: every one of the 5,316 published records predates it, and its ABSENCE means 'this run predates the field', never 'this player had no configuration'. The requirement is expressed as a conditional on schema_version >= 10."
+    },
+    "instrument": {
+      "type": "object",
+      "description": "WHAT COMPUTED THE NUMBER, as opposed to what produced the answer. A record already says which player ran and against which task; this says which scoring formula was applied and to exactly which scorer, gold and output. Added v7 after an in-place rescore under a changed formula proved indistinguishable from the run it replaced.",
+      "additionalProperties": false,
+      "required": ["formula_id", "scorer_sha256"],
+      "properties": {
+        "formula_id": {
+          "type": "string",
+          "description": "Names the scoring FORMULA, not the code. Two records with different formula_id are not comparable and must never be averaged into one leaderboard row. Change it when the formula changes; never when the code merely moves."
+        },
+        "scorer_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of the arena's scorer.py as it existed at scoring time. formula_id says what was intended; this says what actually ran, and the two can disagree."
+        },
+        "gold_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of the canonical JSON of the ground truth used for THIS task. A gold regeneration that silently changes an answer is otherwise invisible to every downstream reader."
+        },
+        "output_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of the canonical JSON of the player output the score was computed from, before any re-normalization. Anchors the score to the exact answer, so a re-scored record can be proved to have re-scored the SAME output rather than a changed one."
+        }
+      }
+    },
+    "adherence": {
+      "type": "object",
+      "description": "STRUCTURAL ADHERENCE: did the arena's output SCHEMA accept this answer, as opposed to was the answer right. Added v8 (2026-09-05). Everything here is derivable from score.breakdown.error for a PUBLIC record; the block exists for the held-out case, where holdout.sanitize_error reduces the message to its exception type and the diagnosis is lost forever. Measured on the Innsbruck marathon (2026-09-04, 2,325 local-GGUF records): EVERY scoring error the local models produced was a schema rejection and none was a conceptual failure -- 17 of 35 put `not_a_stat`, a legal value of stats-extraction-v1's `verdict` enum, into `kind` -- at rates from 0.0 % (deterministic tools, Claude models) to 25-33 % (Qwen3.6-35B-A3B, thinking disabled) on the SAME prompt. A rejected answer scores 0.0 and is otherwise indistinguishable from a wrong one. This block does not change any score; it sits beside it. SURVIVES held-out redaction: both fields are bounded categoricals from a fixed vocabulary and encode nothing about the document.",
+      "additionalProperties": false,
+      "required": ["outcome", "classes"],
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": ["conformant", "violation", "unattributed"],
+          "description": "conformant = the schema accepted the answer (says NOTHING about whether it was right). violation = the schema rejected it; attributable to the player. unattributed = something else stopped a score existing (timeout, HTTP 429, CLI quota refusal, a task the arena excluded) -- not attributable in either direction, so it leaves the adherence denominator and is reported on its own."
+        },
+        "classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["enum_swap", "envelope_shape", "enum_value", "missing_required", "extra_property", "type_error", "redacted", "unclassified"]
+          },
+          "description": "Every diagnosis present in the rejection, sorted; empty for a non-violation. A CLOSED enum on purpose -- an open string here would be an unbounded channel out of a held-out task, which is exactly the hole holdout.sanitize_error was written to close. `enum_swap` = a value legal SOMEWHERE in this schema offered in the wrong field. `envelope_shape` = a container was expected and something else given (or the reverse) -- the nesting failures. `redacted` = a held-out record whose message body was stripped, so the verdict is known and the diagnosis is not; never folded into another class."
+        }
+      }
+    },
+    "player_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instrument", "inference_config", "inference_config_sha256"],
+      "description": "WHICH INSTRUMENT PRODUCED THE ANSWER, as opposed to which label was on it. NOT to be confused with the sibling top-level `instrument` block, which is about the SCORER: that one says what computed the number, this one says what produced the answer. Added v10 (2026-09-17). WHY: `player_version` labels WEIGHTS and records no inference configuration, and inference configuration is the largest single effect in this corpus -- on the second machine 35 builds collapse to 18 `player_version` strings because the same weights file with thinking on and thinking off declares one identical string, and the q3/q3think pair differs by +0.24 to +0.28 mean score. `instrument` is the DECLARED name from players/registry.yaml, copied here so a record can be checked against the registry without holding the registry that produced it; null means the entry declared none, and is never inferred from the id or the version. `inference_config` is the score-affecting request knobs WE sent (temperature plus openai_extra_body, minus max_tokens, which has its own field in provenance and would otherwise split an instrument every time a ceiling is corrected). `inference_config: null` is a FIRST-CLASS ANSWER meaning this player exposes no inference settings to us -- an R tool, a library parser, a CLI whose reasoning mode is baked into its own argv -- never 'we did not look'; a CLI player's reasoning mode therefore does NOT appear here and is carried by convention in player_version, which this block deliberately does not pretend to cover. `inference_config_sha256` is null when the config is null, deliberately NOT the hash of the string 'null', so 'sends no settings' stays distinguishable. ABSENCE of the whole block means the record predates v10 (all 5,316 published records do) and is NEVER backfilled by parsing an old string -- absence means not recorded. SURVIVES held-out redaction: every field is a configuration WE chose and encodes nothing about the document.",
+      "properties": {
+        "instrument": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "Declared instrument name from the registry. Slug-safe BY CONSTRUCTION so familySlug() is the identity on it and two instruments can never collapse to one /models/<slug> url -- the collision `familySlug` produces for `local-gguf/GLM-4.7-Flash/UD-Q4_K_XL` and `local-gguf/GLM-4.7-Flash-UD-Q4_K_XL` (same url, non-thinking and thinking arms of one weights file) is unconstructible here."
+        },
+        "inference_config": {
+          "type": ["object", "null"],
+          "description": "The knobs sent, canonicalised. null = this player sends none (see the block description)."
+        },
+        "inference_config_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 over the canonical JSON of inference_config. The audit key: one instrument appearing with two digests means one name is covering two instruments in published data."
+        }
+      }
+    },
+    "response_meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Provider-reported metadata about the call that produced this score. Two independent reviews ranked `finish_reason` the single most important field on the record: a completion truncated at the token limit fails JSON parsing, scores 0.0, and is otherwise indistinguishable from genuine incapability — the benchmark would publish OUR configuration as THEIR failure. Absent for local tool players and for runs before schema v2. SURVIVES held-out redaction (nothing here encodes document length), EXCEPT provider_request_id, which is a pointer into provider logs that do retain the source document.",
+      "properties": {
+        "gguf_file": {
+          "type": "string",
+          "description": "Basename of the GGUF the LOCAL server reported it had loaded (llama-server /props model_path). Evidence, not intent: read from the running server rather than from registry.yaml, so a server left on a different model cannot be published under the declared one. Deliberately a basename \u2014 the absolute path would carry the operator's home directory into published data."
+        },
+        "gguf_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$",
+          "description": "sha256 of the weights file that produced this answer. The only identifier a re-quantized or renamed GGUF cannot fake; filenames and model ids are both just labels."
+        },
+        "quant": {
+          "type": "string",
+          "description": "Quantization label taken from the SERVED filename (e.g. Q8_0, UD-Q3_K_XL). The quant is part of the player identity: the same model at UD-IQ3_S and at Q8_0 are different instruments and must never share a leaderboard row."
+        },
+        "model_ftype": {
+          "type": "string",
+          "description": "Quant as the server read it out of the GGUF's own header. Independent of the filename, so a renamed file is still described correctly and the two can be compared after the fact."
+        },
+        "engine_build": {
+          "type": "string",
+          "description": "The llama.cpp build that ran the model, e.g. llama.cpp-b10472-7a556b8f9. Kept whole, commit hash included: two builds can share a release tag and differ by commit, and a local player exists to be re-runnable to the same numbers later. 'llama.cpp-unknown' when the server reported none \u2014 LABELLED rather than omitted, because a missing engine reads as 'no engine'."
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "The loopback URL actually dialled. The same string the held-out egress gate classifies on, so the gate's decision and the request path cannot diverge."
+        },
+        "sampling": {
+          "type": "object",
+          "description": "Sampling parameters WE sent. Part of what produced the number: a reproducible anchor whose sampling nobody recorded is not one."
+        },
+        "speculative_active": {
+        "type": "boolean",
+        "description": "Whether speculative decoding actually ran for this task, read from the response's own timings block. MEASURED, not declared: llama-server's /props reports speculative.types from the slot defaults, and on 2026-08-20 it said \"none\" for a run whose server log carried 77 MTP draft-acceptance lines. server_defaults copies that verbatim, so this field is the one to believe when the two disagree."
+      },
+      "speculative_accept_rate": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Fraction of drafted tokens the target model accepted. A RATE and never the raw draft counts, which scale with completion length and would leak an output-length proxy into a field that survives held-out redaction. Greedy speculative decoding is output-exact, so this describes speed, not correctness."
+      },
+      "server_defaults": {
+          "type": "object",
+          "description": "What the local server would apply to anything we did not send. llama-server's out-of-the-box temperature is 0.8 with a random seed, which is why two runs of one prompt can differ by hundreds of tokens."
+        },
+        "server_n_ctx": {
+          "type": ["integer", "null"],
+          "description": "Context size the local server was started with. Half of the slot geometry that ends byte-for-byte reproduction past ~2400 tokens: llama.cpp selects a slot by prefix similarity and reuses part of a previous request's KV, so batch composition varies with slot count and per-slot context."
+        },
+        "server_total_slots": {
+          "type": ["integer", "null"],
+          "description": "Concurrent slots the local server was started with. The other half of the slot geometry above."
+        },
+        "server_argv": {
+          "type": ["string", "null"],
+          "description": "The local server's own command line, with directory components stripped. THE ONLY PLACE the GPU-offload configuration is observable: /props reports build_info, model_path, model_ftype, model_alias, total_slots and sampling params, and nothing about -ngl, threads or the compute backend (measured against llama.cpp b10472, 2026-08-21). Offload is not a footnote — measured on the reference laptop, -ngl 99 sustains 8.1-8.5 tok/s decode against 4.7-5.5 for -ngl 0, which are different kernels and therefore different instruments."
+        },
+        "server_argv_source": {
+          "type": ["string", "null"],
+          "enum": ["os-process", "unavailable", null],
+          "description": "How server_argv was obtained, or 'unavailable' when the process could not be read. Labelled rather than omitted so 'we could not look' never reads as 'not applicable'."
+        },
+        "max_tokens": {
+          "type": "integer",
+          "description": "Output ceiling WE set, the companion to finish_reason. Without it nobody can tell whether a truncation was our configuration error. Local runs use a far lower ceiling than hosted ones because an over-long completion costs minutes, not cents."
+        },
+        "finish_reason": {
+          "type": "string",
+          "description": "'stop' = complete. 'length' = TRUNCATED by the token limit; any score on such a record measures our budget, not the model. 'content_filter' = refused."
+        },
+        "served_model": {
+          "type": "string",
+          "description": "The model the provider says it ACTUALLY ran. Intent lives in player_version; this is evidence. Never merge them."
+        },
+        "served_by": {
+          "type": "string",
+          "description": "The BACKEND that served the call, when the endpoint is a router. OpenRouter fans one model id (openai/gpt-oss-120b) out over CoreWeave, DeepInfra, Novita, Amazon Bedrock and Google, which differ in quantization and serving stack, so served_model alone does not identify what ran. Absent for a direct provider, which is not the same as unknown. Like served_model this is evidence, never intent, and it survives held-out redaction because it encodes nothing about the document."
+        },
+        "model_mismatch": {
+          "type": "boolean",
+          "description": "served_model differs from what we requested — the record is then evidence about a different artifact than its player_id claims."
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "HTTP attempts including retries. >1 means a transient failure was absorbed; a retried call may have hit a different backend replica, so latency and determinism claims weaken."
+        },
+        "system_fingerprint": {
+          "type": "string",
+          "description": "Provider backend build id. Two runs with different fingerprints are not strictly comparable."
+        },
+        "service_tier": {
+          "type": "string",
+          "description": "e.g. on_demand vs flex — affects latency and price."
+        },
+        "provider_seed": {
+          "type": "integer",
+          "description": "The seed the PROVIDER used, which may differ from the one we requested (provenance.seed). Diagnostic only — it is not sufficient to reproduce an output."
+        },
+        "provider_request_id": {
+          "type": "string",
+          "description": "Provider-side id for support and dispute resolution. STRIPPED on held-out records."
+        },
+        "provider_reported_cost_usd": {
+          "type": "number",
+          "description": "A cost figure the provider's own CLI computed. PROVIDER-REPORTED, never money spent: Claude players run on a Claude Max subscription where a task has no per-token marginal cost, so this is an API-EQUIVALENT figure. Useful for comparing against metered players; misleading if read as spend."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "The generation ratchet, in the schema. New records must carry an instrument block; records that predate v7 are not retroactively invalid. Expressed as a conditional rather than a required[] entry because a required[] entry would assert that 62% of the existing corpus was always malformed, and would make every historical record unwritable through RunRecordWriter.",
+      "if": {
+        "properties": {"schema_version": {"type": "integer", "minimum": 7}},
+        "required": ["schema_version"]
+      },
+      "then": {"required": ["instrument"]}
+    },
+    {
+      "$comment": "The same generation ratchet for player_identity. New records must name the instrument that produced the answer; records that predate v10 are not retroactively invalid. A conditional rather than a required[] entry for the identical reason: a required[] entry would assert that every published record was always malformed and would make RunRecordWriter reject every historical record on rewrite.",
+      "if": {
+        "properties": {"schema_version": {"type": "integer", "minimum": 10}},
+        "required": ["schema_version"]
+      },
+      "then": {"required": ["player_identity"]}
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+id: image-duplication-detection
+name: Image duplication and manipulation detection in figures
+lifecycle_stage: 06-results-reporting
+order: 60
+description: |
+  Given the figures of one or more (synthetic) papers — Western blots and gels,
+  fluorescence and brightfield microscopy, flow-cytometry (FACS) plots, SEM
+  micrographs — find inappropriately duplicated or manipulated image content:
+  which panels or regions duplicate which, where exactly (a region), what kind of
+  problem it is (Bik, Casadevall & Fang 2016 categories I simple duplication,
+  II duplication with repositioning, III duplication with alteration, plus
+  splicing, AI-generated content and paper-mill template reuse), and whether
+  legitimately similar images (a loading control reused for the same experiment,
+  a labelled zoom inset, technical replicates) are correctly left alone.
+
+  Every base image is procedurally generated — no image from any real article is
+  used — so each manipulation is injected on purpose with pixel-mask gold.
+  Scoring: pair-level precision/recall/F1, mask IoU on matched pairs, category
+  accuracy, clean-figure false-alarm rate, and a known-vs-new manipulation gap.
+
+  Design only. See docs/design/2026-09-arena-expansion/t7-image-duplication-design.md.
+input_artifact: scientific_figure_set
+output_to_judge: list_of_image_integrity_records
+existing_solutions:
+  - {id: proofig,                type: platform,       owner: third-party}
+  - {id: imagetwin,              type: platform,       owner: third-party}
+  - {id: figcheck,               type: platform,       owner: third-party}
+  - {id: forensically,           type: tool,           owner: third-party}
+  - {id: ori-forensic-droplets,  type: tool,           owner: third-party}
+  - {id: monet,                  type: ai-model,       owner: third-party}
+  - {id: biotampernet,           type: ai-model,       owner: third-party}
+  - {id: human-image-sleuth,     type: human-baseline, owner: community}
+ground_truth_feasibility: high
+arena_status: design
+scope_tier: B
+notes: |
+  Closes the TODO.md "Text / image integrity" gap ("image-duplication detection is
+  commercial-only (Imagetwin/Proofig) — open gap; document, don't build yet").
+  Gold feasibility is high only because inputs are synthetic; realism against real
+  figures is the open risk, measured without storing any article image (design §3.4).
+  The two leading tools are cloud services, so private/sealed tasks cannot be sent
+  to them without an agreement (design §8.3).

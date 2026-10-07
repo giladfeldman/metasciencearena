@@ -1,0 +1,43 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+# Computed-gold p-curve arena: each finding-set is constructed with a KNOWN
+# evidential-value label far from the right-skew decision boundary, so the
+# deterministic R p-curve reference agrees with the constructed label.
+
+tier:
+  1:
+    label: small-k-baseline-k-5
+    description: >-
+      an evidential set (real d≈0.6 effect, n=60, strong right skew) vs a
+      true-null set (uniform significant p, flat curve). t-statistics.
+  2:
+    label: controls
+    description: >-
+      an unmistakably-evidential set (F(1,df), d≈0.7) vs an unmistakably-FLAT
+      true-null set (z-statistics). The clearest separation, k=12.
+  3:
+    label: p-hacking-trap
+    description: >-
+      an evidential set (z) vs an intensely P-HACKED set (z) whose p-values
+      bunch just under .05 (LEFT skew). Left skew must NOT be read as
+      evidential value. k=15.
+  4:
+    label: chi-square-1-findings-k-20
+    description: >-
+      evidential vs true-null. Exercises the chi2 path.
+  5:
+    label: correlations-r-with-n-supplied-k-25
+    description: >-
+      evidential vs P-HACKED. Exercises the r path and the harder p-hacked
+      mechanism at larger k.
+  6:
+    label: largest-k-k-30
+    description: >-
+      evidential (t, d≈0.5, n=100) vs true-null. The most powered comparison.
+
+k: Number of significant findings entering the p-curve (5 -> 30). All tasks have
+   k >= 5 so the right-skew (Stouffer) test is meaningful.
+label: Constructed ground-truth evidential-value label — "evidential" (findings from a
+  real, well-powered effect → significant p-values cluster near 0 → right-skewed
+  p-curve → right_skew_p ≪ .01) or "no-evidential" (either true-null false positives
+  with a FLAT curve, or intense p-hacking with a LEFT-skewed curve → right_skew_p
+  ≫ .5).

@@ -1,0 +1,7 @@
+{
+  "tool": "SPSStoR",
+  "tool_version": "0.3.0",
+  "captured_from": "correlations_pairwise.sps",
+  "r_code": "",
+  "note": "verbatim spss_to_r() output (captured from stdout)"
+}

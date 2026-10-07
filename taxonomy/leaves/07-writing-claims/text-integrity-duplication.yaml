@@ -1,0 +1,22 @@
+id: text-integrity-duplication
+name: Text integrity (duplicated content, tortured phrases, incompatible text)
+lifecycle_stage: 07-writing-claims
+order: 20
+description: |
+  Given a synthetic manuscript, and optionally an earlier synthetic paper by the
+  same team, flag duplicated passages or tables, tortured phrases, and text that
+  is incompatible with the study (wrong species, design or population, leftover
+  template text). Mirrors INSPECT-SR check 3.1 (doi:10.1136/bmj-2026-100611).
+  Synthetic inputs, gold by construction.
+input_artifact: pdf_or_docx_manuscript
+output_to_judge: list_of_flagged_spans
+existing_solutions:
+  - {id: torturedcheck, type: tool, owner: gilad}
+  - {id: tortured-phrase-list-lookup, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+ground_truth_feasibility: high
+arena_status: design
+scope_tier: B
+notes: |
+  Arena: text-integrity-v1 (design only). torturedcheck is a maintainer tool
+  (conflict of interest). paper-mill-signal-detection extends this leaf.

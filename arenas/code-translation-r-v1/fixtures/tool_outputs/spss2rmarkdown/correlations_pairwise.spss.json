@@ -1,0 +1,7 @@
+{
+  "tool": "spss2rmarkdown",
+  "tool_version": "0.1.0",
+  "captured_from": "correlations_pairwise.sps",
+  "r_code": "library(jmv)\njmv::corrMatrix(\n  data = data,\n  vars = c('AGE', 'HOURS', 'SCORE'),\n  pearson = TRUE,\n  spearman = FALSE,\n  kendall = FALSE,\n  sig = TRUE,\n  flag = TRUE,\n  ci = TRUE,\n  plots = TRUE,\n  plotDens = TRUE,\n  plotStats = TRUE\n)\njmv::corrMatrix(\n  data = data,\n  vars = c('AGE', 'HOURS', 'SCORE'),\n  pearson = TRUE,\n  spearman = FALSE,\n  kendall = FALSE,\n  sig = TRUE,\n  flag = TRUE,\n  ci = TRUE,\n  plots = TRUE,\n  plotDens = TRUE,\n  plotStats = TRUE\n)",
+  "note": "verbatim convert_all_commands() output"
+}

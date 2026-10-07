@@ -1,0 +1,29 @@
+You are extracting the section structure of a scientific PDF.
+
+PDF path: {{PDF_PATH}}
+Pages: {{N_PAGES}}
+
+Read the PDF. Identify each top-level section (the conventional ones —
+title block, abstract, introduction, methods, results, discussion,
+conclusion, references, acknowledgments, appendix — plus anything else
+labeled "other"). For each section, emit the canonical label, the literal
+heading text as it appears in the PDF, and the section's ordinal index.
+If you can compute char offsets into a reconstructed normalized text,
+include `char_start` and `char_end`; otherwise omit them. If you know
+the section's start page, include `page` (1-indexed). Do not invent
+sections that don't appear in the PDF.
+
+Output ONLY a JSON object, no prose, no markdown fences. Schema:
+
+{
+  "sections": [
+    {
+      "label": "introduction",   // one of: title, abstract, introduction, methods, results, discussion, conclusion, references, acknowledgments, appendix, other
+      "heading_text": "1. Introduction",
+      "section_index": 0,
+      "char_start": 1284,        // optional
+      "char_end": 4501,          // optional
+      "page": 2                  // optional
+    }
+  ]
+}

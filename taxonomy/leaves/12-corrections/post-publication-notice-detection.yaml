@@ -1,0 +1,32 @@
+id: post-publication-notice-detection
+name: Post-publication notice detection (retraction, expression of concern)
+lifecycle_stage: 12-corrections
+order: 10
+description: |
+  Given a paper's DOI, report whether it has an associated retraction, an
+  expression of concern or another relevant post-publication notice, with the
+  notice DOIs; an author-level variant asks whether other studies by the same
+  team carry such notices. Mirrors INSPECT-SR checks 1.1-1.3
+  (doi:10.1136/bmj-2026-100611).
+
+  Unlike most arenas this one needs real DOIs, because the task is a lookup
+  against live registries. Gold is notice status frozen from a dated Crossref
+  snapshot (bibliographic metadata only, no article text), held outside this
+  repository. Controls: corrected-but-not-retracted, retracted-and-replaced,
+  retraction for honest error. A disagreement caused by a notice issued after
+  the snapshot is reported as stale gold, not charged to the player.
+input_artifact: doi_or_identifier
+output_to_judge: structured_field_map
+existing_solutions:
+  - {id: crossref-rest-api, type: platform, owner: third-party}
+  - {id: retraction-watch-database, type: platform, owner: third-party}
+  - {id: articlefinder, type: tool, owner: gilad}
+  - {id: scimeto, type: platform, owner: gilad}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+ground_truth_feasibility: medium
+arena_status: design
+scope_tier: B
+notes: |
+  Arena: post-publication-notice-v1 (design only). articlefinder and scimeto are
+  maintainer tools (conflict of interest). Distinct from reference-integrity-v1,
+  whose retracted kind concerns CITED references, not the paper under assessment.

@@ -1,0 +1,23 @@
+- player_id: stub-pass
+  player_type: tool
+  player_version: "0.0.1"
+  adapter_class: StubPassAdapter
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+- player_id: stub-fail
+  player_type: tool
+  player_version: "0.0.1"
+  adapter_class: StubFailAdapter
+  confidence_strategy: implicit-1.0
+  deterministic: true
+
+# Answers in a shape the arena's output schema rejects. Drives the
+# `output_schema_violation` branch of runner._play_one, which neither stub above
+# can reach: stub-fail raises before validation, stub-pass always conforms.
+- player_id: stub-schema-violation
+  player_type: tool
+  player_version: "0.0.1"
+  adapter_class: StubSchemaViolationAdapter
+  confidence_strategy: implicit-1.0
+  deterministic: true

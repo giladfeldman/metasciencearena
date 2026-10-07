@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "effect-size-conversion-v1 player output",
+  "description": "The result of one effect-size conversion: the converted value in the target metric plus a confidence. Optional `formula`/`note` strings may document the identity used; omit them (do not send null) when unused.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["converted", "confidence"],
+  "properties": {
+    "converted": {"type": "number", "description": "The value converted into the target metric."},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Player's confidence in the converted value."},
+    "formula": {"type": "string", "description": "Optional. The closed-form identity used. Omit when unused."},
+    "note": {"type": "string", "description": "Optional free-text note. Omit when unused."}
+  }
+}

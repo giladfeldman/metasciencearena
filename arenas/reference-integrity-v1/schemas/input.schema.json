@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "reference-integrity-v1 task input",
+  "description": "A paper's reference list plus the set of in-text citation marker ids. The player must judge, per reference, whether it has an integrity problem (retracted DOI, mismatched/miscited metadata, dangling cited-but-absent or listed-but-uncited, a missing known replication, an invalid/malformed DOI, a predatory-journal venue, or a paper-mill tortured-phrase title).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["references", "in_text_marker_ids"],
+  "properties": {
+    "references": {
+      "type": "array",
+      "description": "The bibliography. One entry per listed reference.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["reference_id", "authors", "year", "title", "doi", "venue", "cited_in_text"],
+        "properties": {
+          "reference_id": {"type": "string", "description": "Stable id for this reference."},
+          "authors": {"type": "array", "items": {"type": "string"}, "description": "Author names as listed."},
+          "year": {"type": "integer", "description": "Publication year as listed."},
+          "title": {"type": "string", "description": "Title as listed (may carry a paper-mill tortured phrase the arena injected)."},
+          "doi": {"type": "string", "description": "DOI as listed (may carry a retraction marker, or be structurally malformed, where the arena injected it)."},
+          "venue": {"type": "string", "description": "Publication outlet / journal as listed (may be a predatory outlet the arena injected)."},
+          "cited_in_text": {"type": "boolean", "description": "Whether this reference is cited somewhere in the body text."}
+        }
+      }
+    },
+    "in_text_marker_ids": {
+      "type": "array",
+      "description": "Every citation marker id that appears in the body text. A marker with no matching reference is a dangling-missing citation.",
+      "items": {"type": "string"}
+    }
+  }
+}

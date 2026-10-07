@@ -1,0 +1,41 @@
+[
+ {
+  "mistake_kinds": [
+   "grim_inconsistent"
+  ],
+  "records": [
+   {
+    "stat_id": "c1_liking",
+    "flagged": true,
+    "issue_kind": "grim_inconsistent"
+   },
+   {
+    "stat_id": "c1_trust",
+    "flagged": false,
+    "issue_kind": null
+   },
+   {
+    "stat_id": "c1_female",
+    "flagged": false,
+    "issue_kind": null
+   }
+  ]
+ },
+ {
+  "mistake_kinds": [
+   "grim_percent_inconsistent"
+  ],
+  "records": [
+   {
+    "stat_id": "c2_passed",
+    "flagged": true,
+    "issue_kind": "grim_percent_inconsistent"
+   },
+   {
+    "stat_id": "c2_effort",
+    "flagged": false,
+    "issue_kind": null
+   }
+  ]
+ }
+]

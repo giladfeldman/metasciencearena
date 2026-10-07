@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "transparency-statements-v1 task input",
+  "description": "A plain-text manuscript transparency section. The player must extract the structured transparency field map: COI/funding statements (present + text) and open-practices availability (data/code/materials/prereg) including the 'available on request' non-statement vs a real repository link, and placeholder/broken URLs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {"type": "string", "description": "The manuscript transparency-section text to extract from."}
+  }
+}

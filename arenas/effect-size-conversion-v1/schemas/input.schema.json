@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "effect-size-conversion-v1 task input",
+  "description": "A single effect-size conversion request: convert `value` from the `from` metric to the `to` metric, across the closed metric set {d, r, OR, eta2, f}. Some conversions (d<->r with group sizes) consume an optional `context` carrying n1/n2.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["value", "from", "to"],
+  "properties": {
+    "value": {
+      "type": "number",
+      "description": "The effect-size value in the `from` metric to be converted."
+    },
+    "from": {
+      "type": "string",
+      "enum": ["d", "r", "OR", "eta2", "f"],
+      "description": "Source metric. d = Cohen's d; r = correlation; OR = odds ratio; eta2 = eta-squared; f = Cohen's f."
+    },
+    "to": {
+      "type": "string",
+      "enum": ["d", "r", "OR", "eta2", "f"],
+      "description": "Target metric to convert into."
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional. Auxiliary parameters required by some conversions. For d<->r with unequal group sizes, supplies n1 and n2.",
+      "properties": {
+        "n1": {"type": "integer", "exclusiveMinimum": 0, "description": "Size of group 1 (for d<->r with group sizes)."},
+        "n2": {"type": "integer", "exclusiveMinimum": 0, "description": "Size of group 2 (for d<->r with group sizes)."}
+      }
+    }
+  }
+}

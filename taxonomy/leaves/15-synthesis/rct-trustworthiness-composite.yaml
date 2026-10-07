@@ -1,0 +1,26 @@
+id: rct-trustworthiness-composite
+name: Randomised-trial trustworthiness assessment (full INSPECT-SR)
+lifecycle_stage: 15-synthesis
+order: 10
+description: |
+  Given a full synthetic randomised-trial package (paper, registry record,
+  optional second publication of the same study, notice metadata), answer all 21
+  INSPECT-SR checks (yes / no / unclear / not applicable) and give four domain
+  judgments and an overall judgment (no / some / serious concerns)
+  (doi:10.1136/bmj-2026-100611). Per-check answers are scored against injected
+  truth. Because the tool prescribes no algorithm from checks to judgments, the
+  judgments are scored only against its floor rule (overall at least as severe
+  as the most severe domain); other judgment differences are reported, not
+  scored. The tool is not a diagnostic test for misconduct; neither is this arena.
+input_artifact: rct_report_package
+output_to_judge: trustworthiness_check_records
+existing_solutions:
+  - {id: inspect-ai, type: tool, owner: third-party}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+  - {id: human-coder-trained, type: human-baseline, owner: in-house}
+ground_truth_feasibility: medium
+arena_status: design
+scope_tier: B
+notes: |
+  Arena: inspect-sr-composite-v1 (design only). Depends on the full-paper
+  generation engine; sequenced after its pilot.

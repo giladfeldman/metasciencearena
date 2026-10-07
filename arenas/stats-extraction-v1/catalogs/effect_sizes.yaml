@@ -1,0 +1,14 @@
+- {id: cohens_d,        label: "d",            range: [-2.5, 2.5]}
+- {id: hedges_g,        label: "g",            range: [-2.5, 2.5]}
+- {id: cohens_f,        label: "f",            range: [0.0, 1.0]}
+- {id: eta2,            label: "eta2",         range: [0.0, 1.0]}
+- {id: partial_eta2,    label: "partial eta2", range: [0.0, 1.0]}
+- {id: omega2,          label: "omega2",       range: [0.0, 1.0]}
+- {id: r_effect,        label: "r",            range: [-0.95, 0.95]}
+- {id: r_squared,       label: "R2",           range: [0.0, 1.0]}
+- {id: adj_r_squared,   label: "adj R2",       range: [0.0, 1.0]}
+- {id: odds_ratio,      label: "OR",           range: [0.1, 10.0]}
+- {id: risk_ratio,      label: "RR",           range: [0.1, 5.0]}
+- {id: cohens_h,        label: "h",            range: [-1.0, 1.0]}
+- {id: cramers_v,       label: "V",            range: [0.0, 1.0]}
+- {id: glass_delta,     label: "Glass Δ",      range: [-2.5, 2.5]}

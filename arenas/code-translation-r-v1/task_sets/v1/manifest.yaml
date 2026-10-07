@@ -1,0 +1,30 @@
+version: v1
+seed: 0
+released_on: "2026-08-03"
+n_tasks: 12       # 6 analyses x 2 source languages (SPSS, Stata)
+generator_signature: |
+  task_set_version=v1, revealed_seed=0, analyses=6, languages=2, tiers=[1..6]
+notes: |
+  SPSS/Stata -> R translation, scored by EXECUTABLE EQUIVALENCE: the player's
+  emitted R is run against a fixed CSV and the statistics it prints are compared
+  to gold. Gold is itself produced by EXECUTING a hand-verified reference R
+  translation (tools/build_gold.py), so gold and players are measured by exactly
+  the same mechanism.
+
+  Unlike the mistake-injection arenas, tasks are not synthesized from the seed —
+  they are the twelve curated scripts under source_scripts/ (each analysis
+  authored in BOTH languages, so the source_language axis compares languages at
+  matched difficulty instead of confounding them). The seed is recorded in the
+  task_id for interface compatibility.
+
+  The dataset (source_scripts/data/wellbeing.csv, 180 rows) is generated
+  deterministically by tools/make_dataset.py and carries the features every trap
+  depends on: unbalanced group x condition cells (Type I vs Type III SS diverge),
+  unequal group variances (pooled vs Welch t diverge), genuine NAs (listwise vs
+  pairwise diverge), and a 99 user-missing code on item4.
+
+  Arena validity is asserted by tests, not assumed: the reference translation
+  scores exactly 1.00 on all 6 analyses (oracle check), and five naive
+  translations that carry a cross-language default over unchanged are each
+  verified to score strictly lower WHILE STILL RUNNING CLEANLY — silent semantic
+  drift is the failure mode this arena exists to measure.

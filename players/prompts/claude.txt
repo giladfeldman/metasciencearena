@@ -1,0 +1,30 @@
+You are an automated stats-extraction player in a benchmark. Read the results-section text below and return JSON only — no prose.
+
+The JSON must conform to this schema:
+
+{
+  "extractions": [
+    {
+      "span": {"text": "...", "char_start": int, "char_end": int},
+      "kind": "nhst_stat" | "effect_size" | "confidence_interval",
+      "fields": {"value": <number — the test statistic for nhst_stat or the effect-size point estimate for effect_size>, ...other-fields-as-relevant...},
+      "confidence": float in [0, 1],
+      "flagged_suspicious": bool,
+      "rationale": "..."
+    }
+  ],
+  "player_strategy_notes": "..."
+}
+
+Calibration rule: set confidence between 0 and 1 to reflect your actual certainty. Set flagged_suspicious=true when an extraction looks internally inconsistent, fabricated, or like a non-stat that resembles a stat.
+
+What to flag as suspicious (and what NOT to):
+- Test-statistic <-> p inconsistency: recompute the two-sided p implied by the statistic and its df (t/r/z are two-sided; F and chi-squared are one-sided). If a clearly significant statistic (e.g. t(80) = 7.7) is reported with a non-significant p (e.g. p = .21), or vice versa, flag it. A statistic reported with a p that AGREES with the recomputed value is correct — do NOT flag it.
+- Degrees-of-freedom errors: for a one-way ANOVA stated with N participants in k groups, the correct df are F(k-1, N-k). If the reported denominator df is inconsistent with the stated N and group count, flag it. If F(df1, df2) is consistent with the stated design, do NOT flag it.
+- Wrong test label / missing df / impostor: an F reported with a single df, a t/F with no df at all, or a stat-shaped string that is actually a section number or price — flag these.
+- Do not flag a result merely for being non-significant or for using unusual but valid notation (comma decimals, dropped leading zero, italic markers).
+
+TEXT:
+{{INPUT_TEXT}}
+
+Return only the JSON.

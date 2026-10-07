@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "reporting-completeness-v1 task input",
+  "description": "A plain-text results section reporting several statistical tests. The player must flag statistical-reporting COMPLETENESS / precision defects (e.g. a test with no effect size, an imprecise p-value, p=.000, a missing CI, a missing df, or a non-significant result framed as support) WITHOUT recomputing any statistic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {"type": "string", "description": "The results-section text to inspect."}
+  }
+}
