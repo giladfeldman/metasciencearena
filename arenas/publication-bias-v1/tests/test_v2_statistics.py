@@ -336,3 +336,10 @@ def test_an_impossible_value_costs_one_statistic_not_the_whole_task():
     b = scorer.score(out, gt)["breakdown"]
     assert b["stat_robma_bf_bias"] == 0.0 and b["stat_egger_p"] == 0.0
     assert b["method_pet_peese"] == 1.0 and b["method_three_psm"] == 1.0
+
+
+def test_an_unknown_task_set_version_is_refused_not_generated_as_v2():
+    """Review 2026-10-07: `!= "v1"` sent any other label (a future v3) down the v2 path."""
+    import pytest
+    with pytest.raises(ValueError, match="no generator for task set 'v3'"):
+        list(generator.generate("v3", 0, split="revealed"))

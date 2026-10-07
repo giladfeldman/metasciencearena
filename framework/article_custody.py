@@ -57,16 +57,20 @@ _CHUNK = 1 << 20
 
 
 def repository_root() -> Path:
-    """The article repository, honouring ARTICLE_REPOSITORY then VIBE_ROOT.
+    """The article repository, from ARTICLE_REPOSITORY.
 
-    Never a hardcoded user path: the portfolio root moved out of Dropbox on
-    2026-08-03 and may move again.
+    Never a hardcoded or guessed path: the repository has moved before, and a
+    guessed default named a private directory in the public mirror (2026-10-07).
+    Unset means no repository on this machine, which is the same condition as a
+    missing index, so it raises the same error.
     """
     explicit = os.environ.get("ARTICLE_REPOSITORY")
-    if explicit:
-        return Path(explicit)
-    vibe = os.environ.get("VIBE_ROOT") or str(Path.home() / "Vibe")
-    return Path(vibe) / "ArticleRepository"
+    if not explicit:
+        raise HeldOutPaperUnresolvable(
+            "ARTICLE_REPOSITORY is not set. Set it to the article repository root "
+            "to resolve held-out papers."
+        )
+    return Path(explicit)
 
 
 def _sha256_bytes(data: bytes) -> str:

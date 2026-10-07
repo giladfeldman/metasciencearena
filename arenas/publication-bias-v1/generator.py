@@ -275,9 +275,13 @@ def generate(task_set_version: str, seed: int, split: str = "revealed"):
     # v2 is a different task (statistics, not a verdict) with its own datasets and
     # its own task_id prefix. It branches BEFORE any v1 rng call, so v1 generation
     # is byte-identical to what its fingerprint and published records were made from.
-    if task_set_version != "v1":
+    if task_set_version == "v2":
         yield from _generate_v2(task_set_version, seed, split)
         return
+    if task_set_version != "v1":
+        # A new version needs its own branch; silently minting v2 datasets under a
+        # v3 label is the failure this guards (review 2026-10-07).
+        raise ValueError(f"publication-bias-v1 has no generator for task set {task_set_version!r}")
     visibility = "public" if split == "revealed" else "held_out"
 
     def emit(tier, idx, label, k, params):

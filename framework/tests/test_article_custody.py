@@ -45,8 +45,8 @@ ARENA = b"%PDF-1.7\nthe arena's copy, same paper, different bytes\n"
 
 
 def _write_repo(tmp_path, entries):
-    """Build a minimal ArticleRepository: fulltext/ + index.json."""
-    repo = tmp_path / "ArticleRepository"
+    """Build a minimal article repository: fulltext/ + index.json."""
+    repo = tmp_path / "article_repo"
     (repo / "fulltext").mkdir(parents=True)
     index = {}
     for doi, files in entries.items():
@@ -189,3 +189,9 @@ def test_the_recorded_size_must_agree_with_the_recorded_hash(tmp_path, monkeypat
     (d / "source.json").write_text(json.dumps(rec), encoding="utf-8")
     with pytest.raises(article_custody.HeldOutPaperUnresolvable):
         article_custody.held_out_pdf_bytes(d)
+
+
+def test_an_unset_repository_raises_unresolvable_instead_of_guessing_a_path(monkeypatch):
+    monkeypatch.delenv("ARTICLE_REPOSITORY", raising=False)
+    with pytest.raises(article_custody.HeldOutPaperUnresolvable, match="ARTICLE_REPOSITORY is not set"):
+        article_custody.repository_root()
