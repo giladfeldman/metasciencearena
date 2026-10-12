@@ -51,6 +51,7 @@ Optional extras:
 | Extra | Adds | Needed for |
 |---|---|---|
 | `[inspect]` | `inspect-ai` | running tasks emitted by `metasciencearena export-inspect` |
+| `[kaggle]` | `kaggle-benchmarks` | running modules emitted by `metasciencearena export-kaggle` |
 | `[pdf-docling]` | Docling (pulls torch, ~2 GB) | the Docling PDF players |
 | `[pdf-liteparse]` | liteparse | the liteparse PDF players |
 | `[dev]` | pytest | running the test suite |
@@ -265,8 +266,8 @@ Each run record (schema `framework/contract/schemas/run_record.schema.json`) car
 `run_id`, `arena_id`, `task_set_version`, `task_id`, `player_id`, `player_version`,
 `player_type`, `resolved_tool_version`, `input_hash` (SHA-256 of the canonical envelope),
 `output`, `score`, `task_visibility`, `split`, `timestamp_utc`, `cost_usd`, `latency_ms`,
-`provenance`, `usage`, `schema_version`, `instrument`, `adherence`, `player_identity` and
-`response_meta`. Field meanings are in the reference. Held-out records are redacted before any
+`provenance`, `usage`, `schema_version`, `instrument`, `adherence`, `player_identity`,
+`response_meta` and, only when the output schema refused the answer, `rejected_output`. Field meanings are in the reference. Held-out records are redacted before any
 public artifact is written.
 
 ## How scores and ranks are computed

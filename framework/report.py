@@ -33,6 +33,7 @@ from framework import pricing
 from framework.discovery import load_arena
 from framework.storage import read_records
 from framework import hermetic
+from framework import timeouts
 
 
 _SEMVER_PATTERN = re.compile(r"\d+(?:\.\d+){0,3}")
@@ -169,6 +170,15 @@ def apply_unscoreable_policy(all_records: list[dict]) -> tuple[list[dict], set[s
     (power-reporting-v1, prereg-deviation-v1), moving four players' means by
     -0.019 to -0.126; 4 tasks in replication-target-lookup-v1 are flagged rather
     than zeroed.
+
+    A TRANSPORT TIMEOUT IS NEVER SCORED (owner's decision 2026-10-07, d-545c62;
+    `framework/timeouts.py`). It measures the wall we set, not the player, so it
+    stays an errored record — excluded from the mean, counted in n_errored — and
+    `qa_coverage_checks.py` C11 refuses to land a run file that contains one. It
+    also does not make a task an orphan: "nobody could score this task" is a
+    claim about the TASK, and our clock says nothing about the task. Measured when
+    introduced: 0 timeout records across 270 live run files, so no published
+    number moved.
     """
     scored_tasks: set[str] = {
         r.get("task_id") for r in all_records if _is_scored(r) and r.get("task_id")
@@ -176,13 +186,15 @@ def apply_unscoreable_policy(all_records: list[dict]) -> tuple[list[dict], set[s
     unscoreable_tasks: set[str] = {
         r.get("task_id") for r in all_records
         if r.get("task_id") and not _is_scored(r)
+        and not timeouts.record_is_transport_timeout(r)
     }
     orphans = unscoreable_tasks - scored_tasks
 
     out: list[dict] = []
     for r in all_records:
         task = r.get("task_id")
-        if _is_scored(r) or not task or task in orphans:
+        if (_is_scored(r) or not task or task in orphans
+                or timeouts.record_is_transport_timeout(r)):
             out.append(r)
             continue
         # Copy deeply enough that the caller's record is untouched.

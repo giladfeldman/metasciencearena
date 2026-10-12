@@ -9,6 +9,7 @@ import ipaddress
 import json
 import logging
 import os
+import re
 import shlex
 import sys
 import time
@@ -34,7 +35,7 @@ from framework.player_adapter import build_adapter, resolve_rscript_binary
 from framework.registry import load_registry
 from framework.storage import RunRecordWriter
 from framework import adherence
-from framework import hermetic, host, identity
+from framework import hermetic, host, identity, timeouts
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +187,8 @@ def run_tournament(
     player_ids: list[str],
     output_path: Path,
     trials: int = 3,
-    timeout_s: int = 120,
+    timeout_s: int | None = None,
+    timeout_fallback_s: int = 120,
     seed: int = 0,
     public_only: bool = False,
     held_out_only: bool = False,
@@ -269,9 +271,34 @@ def run_tournament(
     # the source before acting on it, and the leak part of it was NOT real.)
     assert_heldout_egress_allowed(selected, will_play_held_out=not public_only)
 
+    # THE CLOCK, per player (d-545c62, owner's decision 2026-10-07). With no
+    # explicit timeout_s, size it from the player's DECLARED max_tokens, so the
+    # default clock can always express the output ceiling the registry configures;
+    # `timeout_fallback_s` covers players that declare none. An explicit value is
+    # honoured, but one below the declared ceiling's need is said out loud: every
+    # timeout it causes blocks the run at qa_coverage_checks C11.
+    clocks: dict[str, int] = {}
+    for entry in selected:
+        need = timeouts.timeout_for_entry(entry, timeout_fallback_s)
+        if timeout_s is None:
+            clocks[entry["player_id"]] = need
+        else:
+            clocks[entry["player_id"]] = timeout_s
+            if timeout_s < need:
+                logger.warning(
+                    "--timeout %ss is below the %ss that %s's declared max_tokens=%s "
+                    "needs; a timeout it causes is excluded from scoring and blocks "
+                    "landing (C11). Omit --timeout to size it automatically.",
+                    timeout_s, need, entry["player_id"], timeouts.declared_max_tokens(entry))
+
     adapters = [(entry, build_adapter(entry)) for entry in selected]
     for _, adapter in adapters:
         adapter.prepare()
+    # A declared label the running tool contradicts would be refused at publish
+    # time (build-data.mjs §C); refuse it here instead, before a run is spent on
+    # records that can never land (debt d-19134a).
+    for entry, adapter in adapters:
+        _refuse_version_drift(entry, adapter)
 
     written = 0
     tasks_seen = 0
@@ -311,7 +338,8 @@ def run_tournament(
                 for entry, adapter in adapters:
                     n_trials = 1 if entry["deterministic"] else max(1, trials)
                     for _ in range(n_trials):
-                        record = _play_one(envelope, gt, entry, adapter, scorer_mod, output_validator, timeout_s,
+                        record = _play_one(envelope, gt, entry, adapter, scorer_mod, output_validator,
+                                           clocks[entry["player_id"]],
                                            arena["arena_id"], trials=n_trials, seed=seed, split=split,
                                            enum_values=output_enum_values)
                         outcome = _record_outcome(record)
@@ -339,7 +367,10 @@ def run_tournament(
 # 137 (128+9) when `-k` escalates to SIGKILL. Neither string contains "Timeout",
 # so both used to be summarised as generic errors, hiding the one thing the
 # operator needs to know: the model did not fail, the wall was too tight.
-_TIMEOUT_MARKERS = ("timeout", "exited 124", "exited 137")
+# The list now lives in framework/timeouts.py, shared with the scoring policy and
+# run_health (d-545c62, 2026-10-07): this copy lacked "timed out", run_health's
+# lacked the exit codes, and the scoring rule had none at all.
+_TIMEOUT_MARKERS = timeouts.TRANSPORT_TIMEOUT_MARKERS
 
 
 # --------------------------------------------------------------------------- #
@@ -391,6 +422,18 @@ _LOCAL_ADAPTER_CLASSES: frozenset[str] = frozenset({
     # the gate classifies it from the URL (the ModelProxyAdapter precedent) --
     # it must not reuse these class names.
     "DoclingTablesAdapter", "DoclingTextAdapter",
+    # Docling sections + the out-of-process extractors (2026-10-07). REVIEWED,
+    # not assumed. None declares an `endpoint`. DoclingSectionsAdapter and the
+    # `tool_env: docling` path build the converter through the same
+    # `_docling_common.build_converter` (remote services off, in code). The
+    # Marker worker's configuration is fixed in code and never sets `use_llm`
+    # (marker's ConfigParser returns no LLM service without it). The MinerU
+    # worker never passes `--remote`, writes a config with both LLM-aided
+    # features off, and parses through a server bound to 127.0.0.1. Asserted by
+    # players/adapters/tests/test_tool_worker_egress.py.
+    "DoclingSectionsAdapter",
+    "MarkerTextAdapter", "MarkerSectionsAdapter", "MarkerTablesAdapter",
+    "MineruTextAdapter", "MineruSectionsAdapter", "MineruTablesAdapter",
     # local subprocess tools
     "AnystyleReferencesAdapter", "CermineReferencesAdapter",
     "PdftotextSubprocessAdapter", "RCliAdapter",
@@ -518,8 +561,7 @@ def _record_outcome(record: dict) -> str:
     err = breakdown.get("error") if isinstance(breakdown, dict) else None
     if not err:
         return "ok"
-    low = str(err).lower()
-    return "timeout" if any(m in low for m in _TIMEOUT_MARKERS) else "error"
+    return "timeout" if timeouts.is_transport_timeout(str(err)) else "error"
 
 
 def _log_run_summary(arena_id: str, outcomes: "Counter", written: int) -> None:
@@ -630,7 +672,7 @@ def _validate_findings(score: dict, arena_id: str, task_id: str | None) -> None:
 #: from now cannot tell a field's ABSENCE ("that run predates the field") from its
 #: omission ("not applicable to that run") — Codex and Sonnet both flagged this
 #: as the first thing a replication attempt would demand.
-RECORD_SCHEMA_VERSION = 10
+RECORD_SCHEMA_VERSION = 11
 
 
 def _code_version_for(repo_root) -> str | None:
@@ -866,16 +908,48 @@ def _build_instrument(scorer_mod, arena_id: str, ground_truth, output) -> dict:
     }
 
 
+#: Same rule as VERSION_NUM_RE in leaderboard-app/scripts/lib/fairness-gates.mjs.
+_VERSION_NUM_RE = re.compile(r"(\d+(?:\.\d+)+)")
+
+
+def _refuse_version_drift(entry: dict, adapter) -> None:
+    """Raise when the tool reports a version its registry label does not contain.
+
+    The mirror of the publish gate (fairness-gates.mjs assertVersionConsistency
+    part a), so a run that gate would reject fails before its first task. A tool
+    that reports no version before playing (None) is not checked here; the
+    publish gate still sees every record.
+    """
+    try:
+        resolved = adapter.resolved_tool_version()
+    except Exception:
+        return
+    if not resolved:
+        return
+    m = _VERSION_NUM_RE.search(str(resolved))
+    if m and m.group(1) not in str(entry.get("player_version") or ""):
+        raise RuntimeError(
+            f"version drift: {entry['player_id']} declares "
+            f"{entry.get('player_version')!r} but the running tool reports {resolved!r}. "
+            "Update players/registry.yaml (or start the declared version) and re-run; "
+            "the leaderboard build would refuse these records.")
+
+
 def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validator, timeout_s,
               arena_id, *, trials, seed, split, enum_values=frozenset()) -> dict:
     started = time.monotonic()
     visibility = envelope.get("visibility", "held_out")
+    # The answer the schema refused, kept so the violation can be diagnosed
+    # rather than guessed at (schema v11). Held-out redaction drops it.
+    rejected_output = None
     try:
         output = adapter.play_task(envelope, timeout_s=timeout_s)
         out_errors = sorted(output_validator.iter_errors(output), key=lambda e: e.path)
         if out_errors:
             score = {"primary": 0.0, "breakdown": {"error": "output_schema_violation: " + "; ".join(e.message for e in out_errors)}}
             output_to_store = {}
+            if isinstance(output, dict) and visibility != "held_out":
+                rejected_output = output
         else:
             score = scorer_mod.score(output, ground_truth)
             _validate_findings(score, arena_id, envelope.get("task_id"))
@@ -954,6 +1028,8 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
     }
     if usage:
         record["usage"] = usage
+    if rejected_output is not None:
+        record["rejected_output"] = rejected_output
     record["schema_version"] = RECORD_SCHEMA_VERSION
     # STRUCTURAL ADHERENCE, stamped at WRITE time (schema v8). Everything here is
     # derivable from `score.breakdown.error` for a public record, and this block

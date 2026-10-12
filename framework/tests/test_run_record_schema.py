@@ -108,6 +108,10 @@ SHAPE_FINGERPRINT_BY_VERSION = {
     # requirement is a schema_version>=10 conditional, because every one of the
     # published records predates it and its ABSENCE means "predates the field".
     10: "a9cb6321e0683dd0a4daba88192953e41d75de250cb4d1b8573261548eecdffd",
+    # v11 (2026-10-08) added the top-level `rejected_output`: the answer the
+    # arena's output schema refused, kept so the violation can be diagnosed
+    # (conductor F-0082). Optional; held-out redaction drops it.
+    11: "bc5fed60870a018776e567a27aaa2294223a6bc674713ba24d7de5cf42098ff0",
 }
 
 

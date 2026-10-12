@@ -16,6 +16,12 @@ task_set_versions:
   # `framework audit` says so in the DRIFT output too. Do not "fix" a mismatch
   # by rewriting this value until you have confirmed the seed is present.
   - {version: v1, generator_fingerprint: "sha256:3ae44db765fcc7bf0ab3cce6abefd4dfcd33ae5229af1184cdb0caf68872a608", n_tasks: 46, released_on: "2026-06-06"}
+  # v2 (null summaries allowed; see CHANGELOG.md) is built and its revealed runs
+  # exist, but it is NOT released: this is the human-evaluation arena, and making
+  # v2 current switches the tasks served to human evaluators and stops v1 human
+  # answers from being scored (the runner refuses a superseded set). Owner
+  # decision pending, 2026-10-08. v2 fingerprint when released:
+  # sha256:5bee83a186e2f887ec30ad1e990129b740a420011f6533a2e1fc525c71b65fe1
 benchmark_splits:
   revealed: {seed: 0, published: true}
   private:

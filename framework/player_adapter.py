@@ -108,6 +108,20 @@ def resolve_start_command(command: list[str]) -> list[str]:
     return resolved
 
 
+def _cli_envelope_error(stdout: str) -> str:
+    """The error a CLI's stdout JSON envelope reports, or '' when there is none."""
+    try:
+        env = json.loads(stdout or "")
+    except ValueError:
+        return ""
+    if not isinstance(env, dict):
+        return ""
+    parts = [f"{k}={env[k]}" for k in ("subtype", "is_error", "terminal_reason") if k in env]
+    if isinstance(env.get("result"), str) and env["result"].strip():
+        parts.append(env["result"].strip()[:300])
+    return " ".join(parts)
+
+
 def _extract_json_value(raw: str):
     """Parse the JSON value a CLI emitted, tolerating chatty model output.
 
@@ -846,6 +860,8 @@ ADAPTER_EXTRA_KWARGS = {
     "r_script", "rscript_binary", "endpoint", "start_command",
     "cli_command",
     "cli_json_envelope", "prompt_template_path",
+    # Claude CLI output ceiling, passed as CLAUDE_CODE_MAX_OUTPUT_TOKENS (d-60b28c).
+    "cli_max_output_tokens",
     "catalog_path", "api_key_env", "api_url_env",
     # pdf-text-fidelity-v1 adapters:
     "docpluck_level", "pdftotext_binary", "output_message_flag",
@@ -866,6 +882,13 @@ ADAPTER_EXTRA_KWARGS = {
     # player into a remote one -- the GROBID-endpoint hole, closed by
     # construction rather than by review.
     "docling_vlm", "docling_table_mode", "docling_artifacts_path",
+    # Out-of-process extractors in their own pinned venvs (players/tool_envs/<tool>/,
+    # added 2026-10-07): Docling 2.135, Marker 2.0, MinerU 4.0. Names WHICH venv,
+    # never a path -- the path is resolved in players/adapters/_tool_worker.py.
+    "tool_env",
+    # GROBID 0.9.1 entries send consolidateFunders explicitly; absent on the 0.8.1
+    # entries so their published request stays byte-identical.
+    "consolidate_funders",
     # pdf-reference-parsing-v1 CERMINE adapter:
     "cermine_jar", "java_binary",
     # AnyStyle / CERMINE run inside a local container (players/docker/). ADDED
@@ -944,9 +967,24 @@ class SubprocessCliAdapter(PlayerAdapter):
     prompt_template_path: Path
 
     def __init__(self, *args, cli_command: list[str], prompt_template_path: str | Path,
-                 cli_json_envelope: str | None = None, **kwargs):
+                 cli_json_envelope: str | None = None,
+                 cli_max_output_tokens: int | None = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.cli_command = list(cli_command)
+        #: The output ceiling for the `claude` CLI, sent as
+        #: CLAUDE_CODE_MAX_OUTPUT_TOKENS. Measured 2026-09-30: left unset the CLI
+        #: stops at 64000 output tokens ("exceeded the 64000 output token
+        #: maximum"), and at least four publication-bias v2 answers stopped at
+        #: exactly 64000 -- OUR ceiling, published as the model's failure. Declared
+        #: per player so it is stamped into provenance.request_max_tokens like an
+        #: API player's max_tokens (d-60b28c). Only honoured for `claude`.
+        if cli_max_output_tokens is not None and (
+                not isinstance(cli_max_output_tokens, int) or isinstance(cli_max_output_tokens, bool)
+                or cli_max_output_tokens <= 0):
+            raise ValueError(f"cli_max_output_tokens must be a positive int, got {cli_max_output_tokens!r}")
+        if cli_max_output_tokens is not None and hermetic.effective_binary(self.cli_command) != "claude":
+            raise ValueError("cli_max_output_tokens is only defined for the claude CLI")
+        self.cli_max_output_tokens = cli_max_output_tokens
         self.prompt_template_path = Path(prompt_template_path)
         #: Opt-in wrapper format that carries token usage. "claude" makes this
         #: adapter append `--output-format json`, so the CLI returns an envelope
@@ -1040,13 +1078,24 @@ class SubprocessCliAdapter(PlayerAdapter):
             else:
                 argv.append(prompt)
             stdin_payload = None
+        spawn = dict(self._spawn_kwargs)
+        if self.cli_max_output_tokens is not None:
+            env = dict(spawn.get("env") or os.environ)
+            env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = str(self.cli_max_output_tokens)
+            spawn["env"] = env
         proc = subprocess.run(
             argv, input=stdin_payload, capture_output=True, text=True,
             encoding="utf-8", errors="replace",
-            timeout=timeout_s, check=False, **self._spawn_kwargs,
+            timeout=timeout_s, check=False, **spawn,
         )
         if proc.returncode != 0:
-            raise RuntimeError(f"{self.cli_command[0]} exited {proc.returncode}: {proc.stderr.strip()[:300]}")
+            reason = proc.stderr.strip()[:300]
+            # The Claude CLI reports its own failures (usage limit, API error) in the
+            # stdout JSON envelope and leaves stderr empty (d-daa31d).
+            envelope_error = _cli_envelope_error(proc.stdout)
+            if envelope_error:
+                reason = f"{reason} | {envelope_error}" if reason else envelope_error
+            raise RuntimeError(f"{self.cli_command[0]} exited {proc.returncode}: {reason}")
         if self.cli_json_envelope == "claude":
             return _extract_json_value(self._unwrap_claude_envelope(proc.stdout))
         if self.cli_json_envelope == "cursor":
@@ -1238,6 +1287,11 @@ class SubprocessCliAdapter(PlayerAdapter):
 
     def last_response_meta(self) -> dict | None:
         return self._last_meta
+
+    def last_request_max_tokens(self) -> int | None:
+        """The declared CLI ceiling, or None when we set none (the CLI default then
+        applies, and a fabricated number would claim a limit we never chose)."""
+        return self.cli_max_output_tokens
 
 
 register_adapter_class("SubprocessCliAdapter", SubprocessCliAdapter)

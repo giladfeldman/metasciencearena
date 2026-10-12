@@ -112,3 +112,43 @@ def test_an_unmarked_envelope_is_treated_as_held_out(tmp_path, monkeypatch):
     )
     with pytest.raises(SystemExit, match="REFUSING"):
         export_kaggle.export_arena("unmarked-v1", "v1", tmp_path / "out")
+
+
+def test_the_generated_module_runs_against_the_real_sdk(exported, tmp_path, monkeypatch):
+    """Import the emitted module with the REAL kaggle_benchmarks and play one task.
+
+    Until 2026-10-08 the template emitted `import kbench` and `model.generate`,
+    neither of which exists in the SDK, and every test here passed because none
+    imported it (d-eb52f6). Skips only when the optional extra is absent.
+    """
+    kbench = pytest.importorskip("kaggle_benchmarks")
+    import importlib.util
+    import sys
+
+    module_path, tasks = exported
+    # The SDK writes one <name>.task.json per task into the CWD at import
+    # (store_task=True); keep that out of the repo root (2026-10-08: 16 strays).
+    monkeypatch.chdir(tmp_path)
+    spec = importlib.util.spec_from_file_location("kbench_export_under_test", module_path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(REPO))
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        sys.path.remove(str(REPO))
+    task_objs = [v for v in vars(mod).values() if isinstance(v, kbench.tasks.Task)]
+    assert len(task_objs) == len(tasks)
+
+    class _FakeLLM:
+        def __init__(self):
+            self.prompts = []
+
+        def prompt(self, message, **kwargs):
+            self.prompts.append(message)
+            return "not json"
+
+    llm = _FakeLLM()
+    t = task_objs[0]
+    assert t.func(llm) == 0.0  # an unparseable answer scores 0, it does not crash
+    assert llm.prompts and llm.prompts[0] in {v["prompt"] for v in tasks.values()}
+    assert not list(REPO.glob("*.task.json")), "the SDK wrote task files into the repo root"

@@ -43,9 +43,15 @@ class GrobidTablesAdapter(PlayerAdapter):
         )
     endpoint: str
 
-    def __init__(self, *args, endpoint: str = "http://localhost:8070", **kwargs):
+    def __init__(self, *args, endpoint: str = "http://localhost:8070",
+                 consolidate_funders: bool | None = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.endpoint = endpoint.rstrip("/")
+        # None = do not send the field, which keeps the 0.8.1 players' request
+        # byte-identical to the one their published records came from. The 0.9.1
+        # entries send consolidateFunders=0 explicitly (GROBID's default is also
+        # 0; stating it means a future default change cannot move the instrument).
+        self.consolidate_funders = consolidate_funders
 
     def resolved_tool_version(self) -> str | None:
         from players.adapters._tool_version import grobid_version
@@ -66,6 +72,8 @@ class GrobidTablesAdapter(PlayerAdapter):
         pdf_bytes = base64.b64decode(envelope["input"]["document_bytes_b64"])
         files = {"input": ("paper.pdf", io.BytesIO(pdf_bytes), "application/pdf")}
         data = {"consolidateHeader": "0", "consolidateCitations": "0"}
+        if self.consolidate_funders is not None:
+            data["consolidateFunders"] = "1" if self.consolidate_funders else "0"
         r = requests.post(
             f"{self.endpoint}/api/processFulltextDocument",
             files=files, data=data, timeout=timeout_s,

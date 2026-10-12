@@ -109,3 +109,41 @@ def test_records_without_a_task_id_are_left_alone():
     records, orphans = apply_unscoreable_policy([rec])
     assert orphans == set()
     assert records[0]["score"]["primary"] is None
+
+
+# --------------------------------------------------------------------------
+# A TRANSPORT TIMEOUT is our clock, never scored (owner's decision 2026-10-07,
+# d-545c62; framework/timeouts.py). Before it, the timeout below was zeroed
+# whenever another player scored the task — publishing our wall as their failure.
+# --------------------------------------------------------------------------
+
+_REAL_TIMEOUT_MESSAGES = (
+    "TimeoutExpired: Command '['claude', '--print']' timed out after 120 seconds",
+    "ReadTimeout: HTTPConnectionPool(host='127.0.0.1', port=8080): Read timed out. (read timeout=900)",
+    "RuntimeError: subprocess exited 124",
+    "RuntimeError: subprocess exited 137",
+)
+
+
+def test_a_transport_timeout_is_never_zeroed_even_when_another_player_scored():
+    for msg in _REAL_TIMEOUT_MESSAGES:
+        records, orphans = apply_unscoreable_policy(
+            [_scored("t1", "a", 0.9), _failed("t1", "b", msg)])
+        b = next(r for r in records if r["player_id"] == "b")
+        assert b["score"]["primary"] is None, msg
+        assert _is_errored(b) and not _is_policy_zero(b), msg
+        assert orphans == set(), msg
+
+
+def test_a_timeout_does_not_make_its_task_an_orphan():
+    # "Nobody could score this task" blames the TASK; our clock says nothing about it.
+    _, orphans = apply_unscoreable_policy([_failed("t1", "a", _REAL_TIMEOUT_MESSAGES[0])])
+    assert orphans == set()
+
+
+def test_the_timeout_rule_does_not_excuse_a_schema_violation():
+    # Control: the same field, a model-output failure that QUOTES the word, is zeroed.
+    msg = "output_schema_violation: 'timeout' is not one of ['a', 'b']"
+    records, _ = apply_unscoreable_policy([_scored("t1", "a", 0.9), _failed("t1", "b", msg)])
+    b = next(r for r in records if r["player_id"] == "b")
+    assert b["score"]["primary"] == 0.0 and _is_policy_zero(b)

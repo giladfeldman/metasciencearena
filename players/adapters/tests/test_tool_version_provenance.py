@@ -98,3 +98,28 @@ def test_live_pdf_tool_versions_match_their_installed_distribution(dist):
         f"{dist}: resolved_tool_version disagrees with the installed "
         f"distribution — run records would misattribute the score"
     )
+
+
+# GROBID 0.9.x answers /api/version with JSON; 0.8.1 answered plain text. The
+# probe stamped the raw JSON ('grobid-{"version":"0.9.1",...}') onto records until
+# a smoke run caught it, 2026-10-07.
+import pytest as _pytest
+
+
+@_pytest.mark.parametrize("body,ctype,expected", [
+    ("0.8.1", "text/plain", "grobid-0.8.1"),
+    ('{"version":"0.9.1","revision":"0.9.1"}', "application/json", "grobid-0.9.1"),
+    ('{"revision":"x"}', "application/json", None),
+])
+def test_grobid_version_reads_text_and_json(monkeypatch, body, ctype, expected):
+    import requests
+
+    from players.adapters import _tool_version
+
+    class _R:
+        status_code = 200
+        text = body
+        headers = {"Content-Type": ctype}
+
+    monkeypatch.setattr(requests, "get", lambda *a, **k: _R())
+    assert _tool_version.grobid_version("http://localhost:8072") == expected

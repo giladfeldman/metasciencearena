@@ -135,6 +135,41 @@ def build_converter(
     )
 
 
+def out_of_process_worker(tool_env: str | None, vlm: bool, table_mode: str):
+    """A ToolWorker for `tool_env`, or None for the in-process path.
+
+    The worker (players/tool_envs/docling/worker.py) hard-codes the standard
+    pipeline with TableFormer ACCURATE, so a registry entry asking for anything
+    else out of process is refused here rather than silently run as something
+    it did not declare.
+    """
+    if not tool_env:
+        return None
+    if tool_env != "docling":
+        raise ValueError(f"unknown Docling tool_env {tool_env!r}")
+    if vlm or table_mode != "accurate":
+        raise ValueError(
+            "the out-of-process Docling worker runs only the standard pipeline "
+            f"with TableFormer accurate; got vlm={vlm!r}, table_mode={table_mode!r}"
+        )
+    from players.adapters._tool_worker import ToolWorker
+
+    # HF_HUB_OFFLINE: weights are pre-fetched; a run must never pull new ones
+    # mid-tournament (the records either side would be different instruments).
+    return ToolWorker("docling", env={"HF_HUB_OFFLINE": "1"})
+
+
+def convert_in_worker(worker, envelope: dict, timeout_s: int) -> dict:
+    """One task through the worker: all three projections of one conversion."""
+    import base64
+
+    from players.adapters._tool_worker import pdf_on_disk
+
+    pdf_bytes = base64.b64decode(envelope["input"]["document_bytes_b64"])
+    with pdf_on_disk(pdf_bytes, envelope["input"].get("filename") or "task.pdf") as path:
+        return worker.call({"pdf_path": path, "task_id": envelope.get("task_id")}, timeout_s)
+
+
 def convert_bytes(converter, pdf_bytes: bytes, filename: str = "task.pdf"):
     """Convert in-memory PDF bytes to a `DoclingDocument`."""
     import io
@@ -299,6 +334,38 @@ def project_text(doc) -> dict:
         "pages": page_strings,
         "footnotes": footnotes,
     }
+
+
+def project_outline(doc) -> list[dict]:
+    """`DoclingDocument` -> neutral outline blocks for the sections arena.
+
+    Docling decides WHICH lines are headings (its layout model labels them
+    `title` / `section_header`); it does not say which canonical section a
+    heading is. That second step is arena code
+    (players/adapters/_outline_sections.py), so it is kept out of this function:
+    everything here is Docling's own classification, in reading order.
+
+    Block kinds: "title", "heading" (with Docling's `level`), "text". Page
+    furniture is dropped for the same reason `project_text` drops it.
+    """
+    from docling_core.types.doc.labels import DocItemLabel
+
+    furniture = {DocItemLabel.PAGE_HEADER, DocItemLabel.PAGE_FOOTER}
+    blocks: list[dict] = []
+    for item, _level in doc.iterate_items():
+        label = getattr(item, "label", None)
+        text = (getattr(item, "text", "") or "").strip()
+        if not text or label in furniture:
+            continue
+        if label == DocItemLabel.TITLE:
+            blocks.append({"kind": "title", "text": text})
+        elif label == DocItemLabel.SECTION_HEADER:
+            level = getattr(item, "level", None)
+            blocks.append({"kind": "heading", "text": text,
+                           "level": int(level) if isinstance(level, int) else None})
+        else:
+            blocks.append({"kind": "text", "text": text})
+    return blocks
 
 
 def version_stack(vlm: bool = False, table_mode: str = "accurate") -> str:

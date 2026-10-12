@@ -47,6 +47,9 @@ pdf-docling = ["docling>=2.120.3,<3"]
 # the published one — needs it. Declared so the equivalence claim is testable
 # rather than asserted (Fable 5 cross-review, 2026-08-15).
 inspect = ["inspect-ai>=0.3.250"]
+# `framework export-kaggle` WRITES a Kaggle Benchmarks module without this; the
+# round-trip test that runs it against the real SDK needs it (d-eb52f6).
+kaggle = ["kaggle-benchmarks>=0.6.1"]
 
 [project.urls]
 Homepage = "https://metasciencearena.app"

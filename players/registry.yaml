@@ -1103,6 +1103,204 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 
+# --- PDF extractor refresh, 2026-10-07 --------------------------------------
+#
+# Owner request 2026-10-07: every PDF extractor the ESCImate pilot measured, on
+# the three PDF arenas, at the versions it measured -- each re-checked as the
+# latest release on 2026-10-07 (PyPI: docling 2.135.0, marker-pdf 2.0.0, mineru
+# 4.0.10; Docker Hub: grobid/grobid 0.9.1-crf, pushed 2026-08-04). poppler
+# pdftotext and docpluck 2.4.150 were already on the boards.
+#
+# QUARANTINED BY DEFAULT (docs/recovery-regime.md, Phase 3): every entry below
+# carries `quarantine:`; the board shows it as "Provisional" beside the player
+# until a blinded audit releases it. Gate:
+# framework/tests/test_new_players_are_quarantined.py.
+#
+# player_version == the version string the adapter RESOLVES at run time, exactly,
+# so framework/tests/test_provenance_labels.py can hold every one of these to
+# "the stamp is the self-report". That is why the Docling label is the whole
+# stack: Docling changed its default layout model between releases, so the
+# package version alone does not name the instrument (see the 2026-08-19 note).
+#
+# Docling 2.135, Marker and MinerU run OUT OF PROCESS, each in its own pinned
+# venv (players/tool_envs/<tool>/requirements.lock, Python 3.12): none installs
+# beside the Docling 2.120.3 the published `docling-*` players ran, and upgrading
+# that in place would leave those labels describing a tool that no longer runs.
+#
+# `supersedes:` names the entry each one replaces; the old entries are NOT
+# relabelled (a label is fixed by a re-run, never an edit). GROBID 0.9.1 runs in
+# its own container, `grobid-sa-091` (grobid/grobid:0.9.1-crf, digest
+# sha256:223957791ac2bbe48609dcc58a689b16b60baeae13a8734ef440ae6bfb38f4cd) on
+# 127.0.0.1:8072, beside the 0.8.1 container on :8070 that another session owns.
+#
+# SECTIONS: none of Docling / Marker / MinerU says which canonical section a
+# heading is. They decide which lines ARE headings; the label comes from the
+# arena's own map (players/adapters/_outline_sections.py) -- hence
+# `tool_native: false` + `wrapper: arena-label-map`, and `+arena-label-map` in
+# the version. GROBID's sections player is unchanged: it maps GROBID's own
+# <div type> and does not use the heading text.
+- player_id: grobid-text-only-0-9-1
+  player_type: tool
+  player_version: "grobid-0.9.1"
+  instrument: grobid-0-9-1
+  adapter_class: GrobidTextAdapter
+  endpoint: http://localhost:8072
+  consolidate_funders: false
+  supersedes: grobid-text-only
+  confidence_strategy: implicit-1.0
+  # Measured 2026-10-07/08 (run twice, same papers): 1 of 70 tasks differed in
+  # output_sha256 (one held-out paper; same score 0.9328 both passes). The
+  # held-out split was run a third time (version stamp missing on one record of
+  # the first run under 100 % CPU); that run matched the second on 30/30.
+  deterministic: false
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: grobid-sections-0-9-1
+  player_type: tool
+  player_version: "grobid-0.9.1"
+  instrument: grobid-0-9-1
+  adapter_class: GrobidSectionsAdapter
+  endpoint: http://localhost:8072
+  consolidate_funders: false
+  supersedes: grobid-sections
+  confidence_strategy: implicit-1.0
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: grobid-tables-0-9-1
+  player_type: tool
+  player_version: "grobid-0.9.1"
+  instrument: grobid-0-9-1
+  adapter_class: GrobidTablesAdapter
+  endpoint: http://localhost:8072
+  consolidate_funders: false
+  supersedes: grobid-tables
+  confidence_strategy: implicit-1.0
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: docling-text-2-135
+  player_type: tool
+  player_version: "docling-2.135.0+docling_core-2.100.0+docling_ibm_models-4.0.3+docling_parse-7.22.2+tableformer-accurate"
+  instrument: docling-2-135-0-tableformer-accurate-noocr
+  adapter_class: DoclingTextAdapter
+  tool_env: docling
+  supersedes: docling-text
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: docling-sections-2-135
+  player_type: tool
+  player_version: "docling-2.135.0+docling_core-2.100.0+docling_ibm_models-4.0.3+docling_parse-7.22.2+tableformer-accurate+arena-label-map"
+  instrument: docling-2-135-0-tableformer-accurate-noocr
+  adapter_class: DoclingSectionsAdapter
+  tool_env: docling
+  tool_native: false
+  wrapper: arena-label-map
+  confidence_strategy: implicit-1.0
+  # Measured 2026-10-08 (run twice): 44 of 46 tasks identical in output_sha256;
+  # the other 2 timed out in one pass each (different tasks), so unmeasured.
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: docling-tables-2-135
+  player_type: tool
+  player_version: "docling-2.135.0+docling_core-2.100.0+docling_ibm_models-4.0.3+docling_parse-7.22.2+tableformer-accurate"
+  instrument: docling-2-135-0-tableformer-accurate-noocr
+  adapter_class: DoclingTablesAdapter
+  tool_env: docling
+  supersedes: docling-tables
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+# Marker (datalab-to/marker; code GPL-3.0, weights OpenRAIL-M: research use OK).
+# Fixed configuration, in code: mode=fast, disable_ocr=True, no LLM. The ESCImate
+# pilot measured a first run spending ~4 min downloading weights, a 300 s
+# fast_layout timeout, and a heap-corruption crash (0xC0000374) on 3 papers; a
+# crash is recorded as an errored task, never as an empty success
+# (players/adapters/_tool_worker.py).
+- player_id: marker-text
+  player_type: tool
+  player_version: "marker-pdf-2.0.0+surya-ocr-0.22.1+fast-noocr-markdown"
+  instrument: marker-pdf-2-0-0-fast-noocr
+  adapter_class: MarkerTextAdapter
+  tool_env: marker
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: marker-sections
+  player_type: tool
+  player_version: "marker-pdf-2.0.0+surya-ocr-0.22.1+fast-noocr-markdown+arena-label-map"
+  instrument: marker-pdf-2-0-0-fast-noocr
+  adapter_class: MarkerSectionsAdapter
+  tool_env: marker
+  tool_native: false
+  wrapper: arena-label-map
+  confidence_strategy: implicit-1.0
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: marker-tables
+  player_type: tool
+  player_version: "marker-pdf-2.0.0+surya-ocr-0.22.1+fast-noocr-json"
+  instrument: marker-pdf-2-0-0-fast-noocr
+  adapter_class: MarkerTablesAdapter
+  tool_env: marker
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+# MinerU 4.0.10 (opendatalab; AGPL-3.0, run locally and unmodified), FLASH TIER
+# ONLY: the text-layer mode. basic/standard/advanced run a vision-language model
+# and are out of scope until an LLM phase -- a `-flash` row is not MinerU's best
+# tier. Private server: home outside the repository, own port, telemetry
+# disabled and read back before the first parse, every parse's stored text
+# deleted after the task (players/tool_envs/mineru/worker.py).
+- player_id: mineru-flash-text
+  player_type: tool
+  player_version: "mineru-4.0.10+flash"
+  instrument: mineru-4-0-10-flash
+  adapter_class: MineruTextAdapter
+  tool_env: mineru
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  # Measured 2026-10-08 (run twice, same papers): 3 of 70 tasks differed in
+  # output_sha256 (all held-out; scores equal to 4 dp); 67/70 identical.
+  deterministic: false
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: mineru-flash-sections
+  player_type: tool
+  player_version: "mineru-4.0.10+flash+arena-label-map"
+  instrument: mineru-4-0-10-flash
+  adapter_class: MineruSectionsAdapter
+  tool_env: mineru
+  tool_native: false
+  wrapper: arena-label-map
+  confidence_strategy: implicit-1.0
+  # Measured 2026-10-08 (run twice, same papers): 3 of 46 tasks differed in
+  # output_sha256 (all held-out; primary moved by up to 0.02); 43/46 identical.
+  deterministic: false
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
+- player_id: mineru-flash-tables
+  player_type: tool
+  player_version: "mineru-4.0.10+flash"
+  instrument: mineru-4-0-10-flash
+  adapter_class: MineruTablesAdapter
+  tool_env: mineru
+  tool_native: true
+  confidence_strategy: implicit-1.0
+  deterministic: true
+  quarantine: {since: "2026-10-07", reason: "new player under the recovery regime; awaiting blinded audit"}
+
 # --- pdf-reference-parsing-v1 players ------------------------------------
 
 - player_id: grobid-references
@@ -1563,6 +1761,12 @@
   instrument: claude-sonnet-5
   adapter_class: SubprocessCliAdapter
   cli_command: ["claude", "--print", "--model", "claude-sonnet-5"]
+  # Output ceiling sent as CLAUDE_CODE_MAX_OUTPUT_TOKENS and stamped into
+  # provenance.request_max_tokens (d-60b28c). Left unset, the CLI stopped
+  # v2 answers at exactly 64000 tokens (measured 2026-09-30); 200000 was
+  # accepted by all four Claude models that day. The CLI does not refuse
+  # larger values (probe 2026-10-08), so no provider_ceilings row exists.
+  cli_max_output_tokens: 200000
   # Opt in to `--output-format json`: the CLI then returns an envelope
   # carrying token usage and stop_reason around the answer. Without it a
   # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
@@ -1754,6 +1958,12 @@
   instrument: claude-opus-4-8
   adapter_class: SubprocessCliAdapter
   cli_command: ["claude", "--print", "--model", "claude-opus-4-8"]
+  # Output ceiling sent as CLAUDE_CODE_MAX_OUTPUT_TOKENS and stamped into
+  # provenance.request_max_tokens (d-60b28c). Left unset, the CLI stopped
+  # v2 answers at exactly 64000 tokens (measured 2026-09-30); 200000 was
+  # accepted by all four Claude models that day. The CLI does not refuse
+  # larger values (probe 2026-10-08), so no provider_ceilings row exists.
+  cli_max_output_tokens: 200000
   # Opt in to `--output-format json`: the CLI then returns an envelope
   # carrying token usage and stop_reason around the answer. Without it a
   # Claude player's tokens are unrecoverable. Answer parsing is unchanged;
@@ -4613,6 +4823,12 @@
   instrument: claude-opus-5
   adapter_class: SubprocessCliAdapter
   cli_command: ["claude", "--print", "--model", "claude-opus-5"]
+  # Output ceiling sent as CLAUDE_CODE_MAX_OUTPUT_TOKENS and stamped into
+  # provenance.request_max_tokens (d-60b28c). Left unset, the CLI stopped
+  # v2 answers at exactly 64000 tokens (measured 2026-09-30); 200000 was
+  # accepted by all four Claude models that day. The CLI does not refuse
+  # larger values (probe 2026-10-08), so no provider_ceilings row exists.
+  cli_max_output_tokens: 200000
   # Opt in to `--output-format json`: the CLI then returns an envelope
   # carrying token usage and stop_reason around the answer. Without it a
   # Claude player's tokens are unrecoverable. Answer parsing is unchanged;

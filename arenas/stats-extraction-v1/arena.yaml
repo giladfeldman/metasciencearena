@@ -18,6 +18,16 @@ task_set_versions:
   # Which version the board builds from is decided by `status: current`, never by
   # position in this list (framework/discovery.py::resolve_task_set_version,
   # mirrored by build-data.mjs::versionLadder).
+  #
+  # TASK-ID REUSE ACROSS v2..v5 — ACCEPTED, NOT FIXED (decided 2026-10-07, d-dc055d).
+  # generator._seed_tag hashes the seed alone for v2..v5, so those four task sets
+  # share the same 36 task ids with different text. Rewriting them would orphan
+  # every stored record and link, so they stay. It cannot pair a score with the
+  # wrong text on the site, verified 2026-10-07: the bundle carries only the
+  # current task set (396 of 396 bundled records match their task's version) and
+  # a frozen board renders no per-task link (live v2/v3/v4 boards: 0 task hrefs;
+  # the current board: 60). From v6 the version goes into the hash (8d3db0a), so
+  # no new task set can reuse an old id.
   - version: v1
     n_tasks: 36
     released_on: "2026-04-29"

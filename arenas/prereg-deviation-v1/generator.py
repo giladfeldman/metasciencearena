@@ -56,7 +56,8 @@ def _render_dim(dim: dict, rng: random.Random, mode: str) -> tuple[str, str, dic
     return prereg_s, paper_s, gold
 
 
-def _assemble(task_id, tier, dims_modes, rng, split, visibility) -> tuple[dict, dict]:
+def _assemble(task_id, tier, dims_modes, rng, split, visibility,
+              task_set_version="v1") -> tuple[dict, dict]:
     prereg_parts, paper_parts, gold = [], [], []
     for dim, mode in dims_modes:
         ps, qs, g = _render_dim(dim, rng, mode)
@@ -67,7 +68,7 @@ def _assemble(task_id, tier, dims_modes, rng, split, visibility) -> tuple[dict, 
     envelope = {
         "task_id": task_id,
         "arena_id": "prereg-deviation-v1",
-        "task_set_version": "v1",
+        "task_set_version": task_set_version,
         "split": split,
         "visibility": visibility,
         "difficulty": {"tier": tier, "n_deviations": n_dev},
@@ -80,15 +81,36 @@ def _assemble(task_id, tier, dims_modes, rng, split, visibility) -> tuple[dict, 
     return envelope, {"dimensions": gold}
 
 
+#: Task-set versions this generator knows. An unknown one is refused rather than
+#: silently generated under v1's rules.
+KNOWN_TASK_SET_VERSIONS = ("v1", "v2")
+
+
+def _task_id(task_set_version: str, tier: int, idx: int, seed: int, split: str) -> str:
+    """v1 ids are frozen as committed (`pd-t{tier}-{idx}-s{seed}`). From v2 the
+    PRIVATE split's id carries nothing derived from the secret seed -- a raw seed
+    in a task_id publishes it with the first committed record (the
+    stats-extraction v1 exposure) -- and every v2 id is prefixed, so a v1 id can
+    never fetch v2 gold."""
+    if task_set_version == "v1":
+        return f"pd-t{tier}-{idx}-s{seed}"
+    tag = f"s{seed}" if split == "revealed" else "private"
+    return f"pd{task_set_version}-t{tier}-{idx}-{tag}"
+
+
 def generate(task_set_version: str, seed: int, split: str = "revealed"):
+    if task_set_version not in KNOWN_TASK_SET_VERSIONS:
+        raise ValueError(f"prereg-deviation-v1 has no task set {task_set_version!r}; "
+                         f"known: {KNOWN_TASK_SET_VERSIONS}")
     visibility = "public" if split == "revealed" else "held_out"
     dims = _load_dimensions()
     n = len(dims)
 
     def emit(tier, idx, dims_modes):
-        tid = f"pd-t{tier}-{idx}-s{seed}"
+        tid = _task_id(task_set_version, tier, idx, seed, split)
         rng = random.Random(_seed_int(task_set_version, seed, tier, idx))
-        env, gt = _assemble(tid, tier, dims_modes, rng, split, visibility)
+        env, gt = _assemble(tid, tier, dims_modes, rng, split, visibility,
+                            task_set_version=task_set_version)
         _GROUND_TRUTH_CACHE[tid] = gt
         return env
 

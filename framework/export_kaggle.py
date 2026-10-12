@@ -2,14 +2,18 @@
 
 WHAT THIS IS, AND WHAT IT IS NOT
 --------------------------------
-Kaggle's `kbench` SDK is an *execution harness*: it runs a model over a set of
+Kaggle's Benchmarks SDK (`pip install kaggle-benchmarks`, imported as
+`kaggle_benchmarks`, conventionally aliased `kbench`) is an *execution harness*: it runs a model over a set of
 tasks and collects verdicts. This framework already owns task generation, gold,
 scoring and contamination control. So this is an EXPORT, not a migration —
 nothing about how a score is computed moves to Kaggle, and the numbers on
 metasciencearena.app keep coming from `framework.scoring`.
 
-The emitted module declares one `@kbench.task` per public task and scores it by
-calling this package's own scorer. That is the only honest arrangement: if the
+The emitted module declares one `@kbench.task` per public task, sends the prompt
+with `llm.prompt(...)`, and returns the score as a float (the SDK records a
+float-annotated task as a `Score`). Checked against kaggle-benchmarks 0.6.1
+(2026-10-08); until then this emitted `import kbench` / `model.generate`, neither
+of which exists (d-eb52f6). It scores by calling this package's own scorer. That is the only honest arrangement: if the
 Kaggle copy re-implemented scoring, a "score" there would silently mean
 something different from a score here, under the same arena name.
 
@@ -48,12 +52,12 @@ Cite:       see CITATION.cff in the metasciencearena package.
 Scoring calls `metasciencearena`'s own scorer, so a verdict here means exactly
 what the published leaderboard means. Install it first:
 
-    pip install metasciencearena
+    pip install metasciencearena kaggle-benchmarks
 """
 import json
 from pathlib import Path
 
-import kbench
+import kaggle_benchmarks as kbench
 
 from framework.paths import arenas_root
 from framework.runner import _import_arena_module
@@ -77,10 +81,10 @@ def _score(task_id: str, output: dict) -> float:
 
 _TASK_DEF = '''
 @kbench.task(name={name!r})
-def {func}(model):
+def {func}(llm) -> float:
     """{prompt_hint}"""
     task = _TASKS[{task_id!r}]
-    reply = model.generate(task["prompt"])
+    reply = llm.prompt(task["prompt"])
     try:
         output = json.loads(reply)
     except json.JSONDecodeError:

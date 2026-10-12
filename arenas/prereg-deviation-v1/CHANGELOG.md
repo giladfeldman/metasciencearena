@@ -1,3 +1,19 @@
+## v2 — UNRELEASED (built 2026-10-08) — optional summaries may be null
+- Held off the version ladder: prereg-deviation is the human-evaluation arena, and
+  releasing v2 changes the tasks human evaluators see and blocks scoring of v1 human
+  answers. Owner decision pending.
+- `registered_summary` / `paper_summary` are optional and unscored, but v1's schema
+  typed them as plain strings and the prompt never said they were optional. A
+  model that wrote null for "the preregistration says nothing here" had its whole
+  answer rejected (35 records of cohere-command-r7b-prereg scored 0.0). v2's
+  `schemas/v2/output.schema.json` allows null for both, and
+  `players/prompts/prereg_deviation_v2.txt` says they are optional (owner decision
+  2026-10-07, debt d-603203; Sonnet consult in
+  docs/consult/2026-10-07-prereg-r7b-null-summary/).
+- Scorer and dimensions unchanged. v2 task ids are `pdv2-…`; the private split's
+  ids carry no seed (`…-private`).
+- NOT comparable with v1: a fresh task draw and a changed prompt. v1 stays published.
+
 ## v1 (2026-06-29) — AbusingPreReg taxonomy broadening (in-place)
 - +4 dimensions / deviation_kinds drawn from the AbusingPreReg detection modules,
   taking the arena beyond the "planned X vs reported Y" value-swap family into

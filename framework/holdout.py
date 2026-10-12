@@ -30,6 +30,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from framework import timeouts as _timeouts
+
 HELD_OUT = "held_out"
 
 # Held-out records keep an ``input_hash`` STRING (the run-record schema requires
@@ -147,6 +149,12 @@ def sanitize_error(message: Any) -> str:
     if not text:
         return "Error"
     head = text.split(":", 1)[0].strip()
+    # A timeout whose TYPE does not say so (`RuntimeError: claude exited 124: ...`)
+    # would lose the one signal the scoring policy needs: reduced to `RuntimeError`
+    # it reads as the model's failure and is zeroed. Keep the CLASS, not the text
+    # (d-545c62; Sonnet consult 2026-10-07, reproduced).
+    if _timeouts.is_transport_timeout(text) and "timeout" not in head.lower():
+        return "TransportTimeout"
     # Exception type names only; anything else collapses to a constant so a bare
     # free-text message cannot squeeze through as a "type".
     return head if head.isidentifier() else "Error"
@@ -213,6 +221,8 @@ def redact_held_out_record(record: dict) -> dict:
     out = dict(record)
     if out.get("output"):
         out["output"] = {}
+    # A rejected answer reconstructs the document exactly as `output` does.
+    out.pop("rejected_output", None)
     # Always set the sentinel: held-out records MUST carry an input_hash string
     # (schema-required) but never the real per-task hash. Unconditional so the
     # redaction is self-healing — a record whose hash was previously dropped
@@ -288,6 +298,8 @@ def held_out_leak_reasons(entry_or_record: dict, *, kind: str) -> list[str]:
             return reasons
         if entry_or_record.get("output"):
             reasons.append("output is non-empty")
+        if "rejected_output" in entry_or_record:
+            reasons.append("rejected_output present (a refused answer is still an answer)")
         ih = entry_or_record.get("input_hash")
         if ih and ih != REDACTED_INPUT_HASH:
             reasons.append("input_hash present (membership oracle)")

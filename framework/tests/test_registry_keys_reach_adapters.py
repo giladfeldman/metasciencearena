@@ -76,6 +76,15 @@ CONSUMED_OUTSIDE_THE_ADAPTER = {
     # flagged third-party tool must each be reported).
     "maintainer_coi",
     "coi_note",
+    # QUARANTINE-BY-DEFAULT (2026-10-07). Read by framework/registry.py
+    # (`load_registry` -> `quarantine_problem` validates the shape; the gate
+    # framework/tests/test_new_players_are_quarantined.py demands it on every new
+    # player) and by leaderboard-app/scripts/build-data.mjs
+    # (`writeQuarantinedPlayers` -> quarantined-players.json, the "Provisional"
+    # badge). It says what is known about a player's records, nothing about how
+    # to run it. `quarantine_released` is the audit record that replaces it.
+    "quarantine",
+    "quarantine_released",
 }
 
 

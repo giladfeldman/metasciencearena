@@ -48,15 +48,26 @@ class DoclingTablesAdapter(PlayerAdapter):
         docling_vlm: bool = False,
         docling_table_mode: str = "accurate",
         docling_artifacts_path: str | None = None,
+        tool_env: str | None = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.docling_vlm = bool(docling_vlm)
         self.docling_table_mode = docling_table_mode
         self.docling_artifacts_path = docling_artifacts_path
+        # `tool_env: docling` runs a NEWER Docling out of process, in its own
+        # pinned venv (players/tool_envs/docling/); unset keeps the in-process
+        # 2.120.3 path the original players were published with. Same class on
+        # purpose: `supersedes:` requires one, and both paths share the one
+        # projection in _docling_common.
+        self.tool_env = tool_env
+        self._worker = dc.out_of_process_worker(tool_env, docling_vlm, docling_table_mode)
         self._converter = None
 
     def prepare(self) -> None:
+        if self._worker is not None:
+            self._worker.start()
+            return
         self._converter = dc.build_converter(
             vlm=self.docling_vlm,
             table_mode=self.docling_table_mode,
@@ -64,9 +75,20 @@ class DoclingTablesAdapter(PlayerAdapter):
         )
 
     def resolved_tool_version(self) -> str | None:
+        if self._worker is not None:
+            try:
+                return self._worker.versions().get("resolved")
+            except Exception:  # noqa: BLE001 - version detection never fails a task
+                return None
         return dc.version_stack(self.docling_vlm, self.docling_table_mode)
 
+    def cleanup(self) -> None:
+        if self._worker is not None:
+            self._worker.stop()
+
     def play_task(self, envelope: dict, *, timeout_s: int) -> dict:
+        if self._worker is not None:
+            return self._from_worker(envelope, timeout_s)
         if self._converter is None:
             self.prepare()
         from players.adapters._timeout import run_with_timeout
@@ -87,6 +109,10 @@ class DoclingTablesAdapter(PlayerAdapter):
                 self.docling_vlm, self.docling_table_mode
             ),
         }
+
+    def _from_worker(self, envelope: dict, timeout_s: int) -> dict:
+        res = dc.convert_in_worker(self._worker, envelope, timeout_s)
+        return {"tables": res["tables"], "player_strategy_notes": res["strategy_notes"]}
 
 
 register_adapter_class("DoclingTablesAdapter", DoclingTablesAdapter)

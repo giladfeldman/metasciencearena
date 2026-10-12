@@ -121,8 +121,17 @@ def grobid_version(endpoint: str) -> str | None:
     try:
         import requests
         r = requests.get(f"{endpoint.rstrip('/')}/api/version", timeout=3)
-        if r.status_code == 200 and r.text.strip():
-            return f"grobid-{r.text.strip()}"
+        body = (r.text or "").strip()
+        if r.status_code == 200 and body:
+            # 0.8.x answers plain text ("0.8.1"); 0.9.x answers JSON
+            # ({"version":"0.9.1","revision":"0.9.1"}). Stamping the raw JSON put
+            # a non-version into provenance (caught by a smoke run, 2026-10-07).
+            if body.startswith("{"):
+                import json
+
+                v = json.loads(body).get("version")
+                return f"grobid-{v}" if isinstance(v, str) and v.strip() else None
+            return f"grobid-{body}"
     except Exception:
         pass
     return None

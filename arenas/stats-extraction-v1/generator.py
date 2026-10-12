@@ -1423,7 +1423,7 @@ def generate(task_set_version: str, seed: int, split: str = "revealed"):
     for tier in (1, 2, 3, 4, 5, 6):
         for density in densities:
             for k in range(n_per_cell):
-                tid = f"t-tier{tier}-d{density}-{k}-s{_seed_tag(task_set_version, seed)}"
+                tid = f"t-tier{tier}-d{density}-{k}-s{_seed_tag(task_set_version, seed, split)}"
                 rng = random.Random(_seed_int(task_set_version, seed, tier, density, k))
                 if tier in (1, 2, 3):
                     env, gt = _build_task(tid, rng, tier, density, nhst, es,
@@ -1478,7 +1478,7 @@ def _seed_int(*parts) -> int:
     return int(h[:16], 16)
 
 
-def _seed_tag(task_set_version: str, seed: int) -> str:
+def _seed_tag(task_set_version: str, seed: int, split: str = "revealed") -> str:
     """The seed discriminator that goes INTO a `task_id`.
 
     v1 emitted the raw seed (`…-s<the 9-digit secret>`; the value is deliberately
@@ -1498,9 +1498,20 @@ def _seed_tag(task_set_version: str, seed: int) -> str:
     text (a frozen board makes its task links inert for exactly this reason, and
     `_GROUND_TRUTH_CACHE` is keyed on task_id). Frozen, so left as is. From v6 the
     version goes into the hash, so a new task set can never reuse an old id.
+
+    THE v2..v5 HASH IS INVERTIBLE (debt d-c7642f, measured 2026-09-30): 20 of 23
+    private seeds are 9 digits and plain-Python sha256 runs ~441k/s on one core,
+    so every candidate is hashed in ~38 minutes (seconds on a GPU). Any
+    deterministic function of a small secret is. So from v6 the PRIVATE split's
+    tag carries nothing derived from the seed -- a constant plus the version, as
+    publication-bias v2's `_v2_split_tag` does. The revealed seed is public, so
+    its tag may stay a hash. v2..v5 private ids stay as committed; minting v6
+    with a fresh private seed is what retires the exposed one.
     """
     if task_set_version == "v1":
         return str(seed)
     if _is_v6_plus(task_set_version):
+        if split != "revealed":
+            return f"private{task_set_version}"
         return hashlib.sha256(f"{task_set_version}:{seed}".encode("utf-8")).hexdigest()[:8]
     return hashlib.sha256(str(seed).encode("utf-8")).hexdigest()[:8]

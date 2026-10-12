@@ -30,6 +30,36 @@ class RegistryError(Exception):
     pass
 
 
+#: Quarantine-by-default for new players (docs/recovery-regime.md, Phase 3),
+#: implemented 2026-10-07. A quarantined player is PUBLISHED and visible -- the
+#: board shows its row with a "Provisional" badge -- but is declared not yet
+#: audited. `quarantine:` is a mapping {since: "YYYY-MM-DD", reason: str}; it is
+#: lifted by REPLACING it with `quarantine_released: {on: "YYYY-MM-DD", by: str}`
+#: once a blinded audit has checked the player's records, so the release is on
+#: the record rather than a silently deleted line.
+#: Gate: framework/tests/test_new_players_are_quarantined.py.
+QUARANTINE_ADOPTED_ON = "2026-10-07"
+
+
+def quarantine_problem(entry: dict) -> str | None:
+    import re
+
+    q, rel = entry.get("quarantine"), entry.get("quarantine_released")
+    if q is not None and rel is not None:
+        return "declares both quarantine and quarantine_released; a release replaces the quarantine"
+    if q is not None:
+        if not isinstance(q, dict) or not isinstance(q.get("reason"), str) or not q["reason"].strip():
+            return "quarantine must be a mapping with a non-empty `reason`"
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(q.get("since", ""))):
+            return "quarantine.since must be a YYYY-MM-DD date"
+    if rel is not None:
+        if not isinstance(rel, dict) or not isinstance(rel.get("by"), str) or not rel["by"].strip():
+            return "quarantine_released must be a mapping with a non-empty `by`"
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(rel.get("on", ""))):
+            return "quarantine_released.on must be a YYYY-MM-DD date"
+    return None
+
+
 def load_registry(path: Path) -> list[dict]:
     with path.open("r", encoding="utf-8") as f:
         data = yaml.safe_load(f) or []
@@ -54,6 +84,9 @@ def load_registry(path: Path) -> list[dict]:
             raise RegistryError(f"{path}: {entry['player_id']}: maintainer_coi must be true/false, got {entry['maintainer_coi']!r}")
         if "coi_note" in entry and not isinstance(entry["coi_note"], str):
             raise RegistryError(f"{path}: {entry['player_id']}: coi_note must be a string")
+        problem = quarantine_problem(entry)
+        if problem:
+            raise RegistryError(f"{path}: {entry['player_id']}: {problem}")
 
     # DECLARED INSTRUMENT IDENTITY (2026-09-17). Deliberately NOT in
     # REQUIRED_FIELDS: a second machine's registry is edited independently and

@@ -137,6 +137,8 @@ Benchmarks `@kbench.task` module for the arena's public split, plus its tasks as
 | `RSCRIPT_BINARY` | `Rscript` on PATH | Rscript for R players (a registry `rscript_binary` wins) |
 | `ARENA_RSCRIPT` | `Rscript` on PATH | Rscript used by the `code-translation-r-v1` scorer |
 | `DOCLING_ARTIFACTS_PATH` | Docling's cache | pre-fetched Docling model weights |
+| `SCIENCEARENA_MINERU_HOME` | `<temp>/sciencearena-mineru-home` | MinerU's server home for the MinerU players (outside the repository: it stores parses) |
+| `SCIENCEARENA_TOOL_ENV_<TOOL>` | `players/tool_envs/<tool>/.venv` | interpreter for an out-of-process tool worker (`DOCLING`, `MARKER`, `MINERU`) |
 
 ### Provider credentials (OpenAI-compatible players)
 
@@ -193,7 +195,9 @@ The `adapter_class` values used by the bundled registry:
 | `RegcheckShimAdapter` | regcheck through a local OpenAI-compatible shim |
 | `DocpluckLibraryAdapter`, `DocpluckSectionsAdapter`, `DocpluckTablesAdapter` | the docpluck library |
 | `GrobidTextAdapter`, `GrobidTablesAdapter`, `GrobidSectionsAdapter`, `GrobidReferencesAdapter`, `GrobidCitationsAdapter` | a GROBID server |
-| `DoclingTextAdapter`, `DoclingTablesAdapter` | Docling (`[pdf-docling]`) |
+| `DoclingTextAdapter`, `DoclingTablesAdapter`, `DoclingSectionsAdapter` | Docling (`[pdf-docling]`, or a pinned out-of-process venv via the registry's `tool_env`) |
+| `MarkerTextAdapter`, `MarkerSectionsAdapter`, `MarkerTablesAdapter` | Marker (`marker-pdf`), out of process in its own pinned venv; fast mode, no OCR, no LLM |
+| `MineruTextAdapter`, `MineruSectionsAdapter`, `MineruTablesAdapter` | MinerU (flash tier), out of process with its own local server; telemetry disabled |
 | `LiteparseTextAdapter`, `LiteparseTablesHeuristicAdapter`, `LiteparseSectionsHeuristicAdapter` | liteparse (`[pdf-liteparse]`) |
 | `PdftotextSubprocessAdapter` | poppler `pdftotext` |
 | `CermineReferencesAdapter`, `AnystyleReferencesAdapter` | CERMINE / AnyStyle reference parsers |
@@ -228,6 +232,7 @@ Shipped as package data under `framework/contract/schemas/`.
 | `resolved_tool_version` | the tool version detected at run time, or null |
 | `input_hash` | SHA-256 of the canonical envelope (redacted for held-out tasks in public artifacts) |
 | `output` | the answer, in the arena's output schema |
+| `rejected_output` | the answer as returned, present only when the output schema refused it (`output` is then `{}`); dropped for held-out tasks |
 | `score` | `primary` (0–1), `breakdown`, and `findings` (per-item error categories) |
 | `task_visibility`, `split` | copied from the envelope |
 | `timestamp_utc`, `latency_ms`, `cost_usd` | when, how long, and the list-price cost |

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 
 from framework.discovery import discover_arenas, load_arena
@@ -316,6 +317,7 @@ def _cmd_retry_failed(args):
         run_tournament(
             arena_dir=arena_dir, task_set_version=args.task_set, registry_path=registry_path(),
             player_ids=[player], output_path=tmp, trials=1, timeout_s=args.timeout,
+            timeout_fallback_s=300,
             seed=seed, split=args.split, overwrite=True, only_tasks=set(todo),
             public_only=(args.split == "revealed"),
         )
@@ -339,6 +341,13 @@ def _cmd_retry_failed(args):
                 # 429 record stays for ever and the file publishes a 0.0 that
                 # measures our own rate limiting rather than the player. See
                 # _record_has_a_verdict for the measurement.
+                merged[tid] = rec
+            elif _record_error_has_no_reason(merged[tid]) and not _record_error_has_no_reason(rec):
+                # A REASONED FAILURE DISPLACES A REASONLESS ONE (d-94418a). Records
+                # from before d-daa31d say only "claude exited 1:"; keeping them
+                # over a retry that recorded the cause discards the one fact a
+                # maintainer needs. Narrow on purpose: error-vs-error swaps beyond
+                # this could trade a counted failure for an excluded one.
                 merged[tid] = rec
             elif (
                 inc_tr
@@ -431,6 +440,15 @@ def _cmd_retry_failed(args):
     return 0
 
 
+_REASONLESS_EXIT = re.compile(r"exited -?\d+:\s*$")
+
+
+def _record_error_has_no_reason(rec: dict) -> bool:
+    """True for a record whose error is a bare ``<cli> exited N:`` with nothing after."""
+    err = ((rec.get("score") or {}).get("breakdown") or {}).get("error")
+    return isinstance(err, str) and bool(_REASONLESS_EXIT.search(err))
+
+
 def _recover_orphan_retry_temps(target: Path) -> None:
     """Merge OK verdicts from any orphaned ``<target>.retry-r*.jsonl`` temp files
     (left by a retry round that was killed before it merged) into ``target``, then
@@ -453,6 +471,9 @@ def _recover_orphan_retry_temps(target: Path) -> None:
                 gained += 1
             elif tid not in existing:
                 existing[tid] = rec
+            elif (_record_error_has_no_reason(existing[tid])
+                  and not _record_is_ok(rec) and not _record_error_has_no_reason(rec)):
+                existing[tid] = rec  # d-94418a: keep the failure that recorded its cause
         tmp.unlink(missing_ok=True)
     if existing:
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -1076,7 +1097,9 @@ def main(argv: list[str]) -> int:
     # Trials > 1 also narrowed the published CI by sqrt(3) in all three report
     # engines until 2026-08-19. Pass --trials N deliberately if you want variance.
     p_run.add_argument("--trials", type=int, default=1)
-    p_run.add_argument("--timeout", type=int, default=120)
+    # Default None = size each player's clock from its declared max_tokens
+    # (framework/timeouts.py; 120 s for players that declare none). d-545c62.
+    p_run.add_argument("--timeout", type=int, default=None)
     p_run.add_argument("--tag", default="run")
     p_run.add_argument("--public-only", action="store_true",
                        help="Skip tasks whose envelope.visibility != 'public'. "
@@ -1118,7 +1141,9 @@ def main(argv: list[str]) -> int:
     p_retry.add_argument("--tag", default="run", help="Run tag (must match the target file).")
     p_retry.add_argument("--split", choices=["revealed", "private"], default="revealed")
     p_retry.add_argument("--seed", type=int, default=None)
-    p_retry.add_argument("--timeout", type=int, default=300)
+    # Default None = sized from the declared max_tokens, 300 s floor. The old fixed
+    # 300 was SHORTER than most run timeouts, so a retry re-timed-out (run_health).
+    p_retry.add_argument("--timeout", type=int, default=None)
     p_retry.add_argument("--max-rounds", type=int, default=6,
                          help="Max retry rounds this invocation (default 6).")
     p_retry.add_argument("--include-truncated", action="store_true",
