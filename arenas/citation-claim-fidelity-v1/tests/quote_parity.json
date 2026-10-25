@@ -1,0 +1,30 @@
+{
+  "description": "Quote-guard parity fixture. citeclaim (TypeScript locateQuote) and the Python port of the quote guard (quote_in_abstract) used by the accompanying benchmark must both return `expected` for every case. A byte-identical copy lives with each implementation; each test suite pins this file's sha256.",
+  "cases": [
+    {"abstract": "Students recalled fewer words.", "quote": "recalled fewer words", "expected": true},
+    {"abstract": "Students recalled fewer words.", "quote": "RECALLED  fewer\nwords.", "expected": true},
+    {"abstract": "Students recalled fewer words.", "quote": "“recalled fewer words”", "expected": true},
+    {"abstract": "a time–limited task", "quote": "time-limited task", "expected": true},
+    {"abstract": "It said “no effect” here.", "quote": "said \"no effect\" here", "expected": true},
+    {"abstract": "Students recalled fewer words.", "quote": "recalled more words", "expected": false},
+    {"abstract": "Students recalled fewer words.", "quote": "", "expected": false},
+    {"abstract": "Students recalled fewer words.", "quote": "ab", "expected": false},
+    {"abstract": "Students recalled fewer words.", "quote": "Students ... fewer words", "expected": true},
+    {"abstract": "Students recalled fewer words.", "quote": "fewer words ... Students", "expected": false},
+    {"abstract": "Students recalled fewer words.", "quote": "... recalled fewer", "expected": true},
+    {"abstract": "Students recalled fewer words.", "quote": "re ... fewer words", "expected": false},
+    {"abstract": "Students recalled fewer words.", "quote": "Students…fewer", "expected": true},
+    {"abstract": "𐐀bc test", "quote": "𐐀bc", "expected": true},
+    {"abstract": "𐐀bc test", "quote": "𐐨bc", "expected": true},
+    {"abstract": "a﻿bc", "quote": "a bc", "expected": true},
+    {"abstract": "a\u001fbc", "quote": "a bc", "expected": false},
+    {"abstract": "x y z", "quote": "x y z", "expected": true},
+    {"abstract": "ΣΑΣ study", "quote": "σασ study", "expected": true},
+    {"abstract": "the ﬁnding held", "quote": "finding held", "expected": true},
+    {"abstract": "İstanbul sample", "quote": "İstanbul sample", "expected": true},
+    {"abstract": "😀 emoji and text", "quote": "😀 emoji", "expected": true},
+    {"abstract": "short", "quote": "...", "expected": false},
+    {"abstract": "p = .04 was reported", "quote": "p = .04", "expected": true},
+    {"abstract": "abc", "quote": "😀😀", "expected": false}
+  ]
+}

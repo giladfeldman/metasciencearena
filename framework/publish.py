@@ -61,6 +61,7 @@ from pathlib import Path
 
 __all__ = [
     "ArenaPublishability",
+    "ARENA_EXTRA_GOLD_MARKERS",
     "PRIVATE_GOLD_MARKERS",
     "PRIVATE_PACKAGES",
     "PRIVATE_TEST_FILES",
@@ -84,6 +85,19 @@ PRIVATE_GOLD_MARKERS = (
     "framework.jats",
     "article-finder",
     "article_finder",
+    # Custody loaders (consult 2026-10-09): a seeded arena reading gold through them
+    # was otherwise classified publishable.
+    "framework.article_custody",
+    "ma_human_coded",
+)
+
+#: Extra markers checked in ARENA code only, on top of PRIVATE_GOLD_MARKERS.
+#: `from framework import article_custody` does not contain the dotted marker,
+#: and a seeded fixture arena written that way was classified publishable
+#: (2026-10-12). Not added to the mirrored-file scan: the public custody unit
+#: test imports the module that way over synthetic DOIs only.
+ARENA_EXTRA_GOLD_MARKERS = (
+    "import article_custody",
 )
 
 #: Repo-root paths mirrored verbatim. Anything not matched here is private by
@@ -205,6 +219,14 @@ PUBLIC_ARENA_GLOBS = (
     # the flat rule alone shipped a suite that failed at collection.
     "schemas/**/*.json",
     "tests/**/*.py",
+    # Fixtures the published tests read (citation-claim-fidelity-v1 reads
+    # tests/quote_parity.json). Without them the mirror ships a test that fails.
+    # NEVER_PUBLISH and the verbatim scan still apply. (Review, 2026-10-19.)
+    "tests/**/*.json",
+    # Arena-owned, versioned prompts (CLAUDE.md: arenas/<id>/prompts/vN.md). The
+    # published registry points at them via prompt_template_path, and the
+    # instrument is public by directive (see players/prompts/ below).
+    "prompts/*.md",
     "tools/**/*.py",
     # R is a first-class player language here (harvest.R, tools/*.R). Shipping
     # only the .py half of an arena's harness ships half a harness.
@@ -493,6 +515,30 @@ PRIVATE_TEST_FILES = frozenset({
     #   * ADDED 2026-09-27. Loads `scripts/check_docs_coverage.py`, which `scripts/`
     #     never mirrors; the documentation-drift gate runs HERE, before a sync.
     "framework/tests/test_docs_coverage_gate.py",
+    #   * ADDED 2026-10-12. Imports `framework.article_custody` by name, which
+    #     became a gold marker that day (custody-loaded arenas were classified
+    #     publishable), so `scan_for_leaks` flags it. It drives the seven held-out
+    #     load sites over the PRIVATE custody corpus; the mirror has no corpus.
+    "framework/tests/test_custody_envelope_parity.py",
+    #   * ADDED 2026-10-21 (measured: `build_public_mirror.py --verify-tests`, 5
+    #     collection errors). Each loads a file the mirror never ships: the QA gates
+    #     `scripts/custody_gate.py`, `scripts/run_health.py`, `scripts/qa_coverage_checks.py`
+    #     (all run HERE, before a sync); ccf's `runs/`; stats-from-pdf-v1's schemas
+    #     (a private arena).
+    "framework/tests/test_custody_gate.py",
+    "framework/tests/test_run_health_standing.py",
+    "framework/tests/test_qa_c1_per_tier_sample.py",
+    "arenas/citation-claim-fidelity-v1/tests/test_board_agrees_with_guard.py",
+    "players/adapters/tests/test_stats_pipeline_mapping.py",
+    #   * Its real-repo half asserts unlisted arenas EXIST (two-sided), and the mirror
+    #     by design carries none of them.
+    "framework/tests/test_public_mirror_unlisted.py",
+    #   * ADDED 2026-10-25 (measured: `--verify-tests` at 3b9cb30b, 28 failures). Every
+    #     test in each reads a file the mirror never ships: `tools/dump_revealed_gold.py`
+    #     and `framework/pdfforge/universe_manifest*`; ccf's `runs/`. Files where only
+    #     SOME tests need a private file skip those tests by name instead (see each).
+    "framework/tests/test_dump_revealed_gold_public_only.py",
+    "arenas/citation-claim-fidelity-v1/tests/test_published_runs_are_complete.py",
 })
 
 #: Files that contain the marker strings as VOCABULARY rather than as a
@@ -695,7 +741,9 @@ def classify_arenas(arenas_root: Path) -> list[ArenaPublishability]:
             except OSError:
                 continue
             code = code_only(text)
-            markers.extend(m for m in PRIVATE_GOLD_MARKERS if m in code)
+            markers.extend(
+                m for m in PRIVATE_GOLD_MARKERS + ARENA_EXTRA_GOLD_MARKERS if m in code
+            )
         out.append(ArenaPublishability(arena.name, arena, has_seed, markers))
     return out
 
@@ -741,6 +789,68 @@ def imports_a_private_package(path: Path) -> str | None:
     return None
 
 
+#: The registry is mirrored, but only its PUBLIC copy: entries declaring
+#: `unlisted_with: <arena_id>` belong to an unlisted arena and are dropped, and the
+#: file is re-serialised (which also drops its comments). Python twin of
+#: leaderboard-app/scripts/lib/listing.mjs `publicRegistry`; both read the same key.
+REGISTRY_REL = "players/registry.yaml"
+
+
+def unlisted_arena_ids(repo_root: Path) -> list[str]:
+    """Arena ids whose arena.yaml says `unlisted: <reason>` (owner-gated, off the board)."""
+    import yaml
+    out = []
+    root = repo_root / "arenas"
+    for d in sorted(root.iterdir()) if root.is_dir() else []:
+        p = d / "arena.yaml"
+        if p.is_file() and (yaml.safe_load(p.read_text(encoding="utf-8")) or {}).get("unlisted"):
+            out.append(d.name)
+    return out
+
+
+def _public_registry(repo_root: Path) -> tuple[str, list[str]]:
+    import yaml
+    unlisted = set(unlisted_arena_ids(repo_root))
+    known = {d.name for d in (repo_root / "arenas").iterdir() if (d / "arena.yaml").is_file()}
+    kept, dropped = [], []
+    for e in yaml.safe_load((repo_root / REGISTRY_REL).read_text(encoding="utf-8")) or []:
+        w = e.get("unlisted_with")
+        if w is None:
+            kept.append(e)
+            continue
+        if w not in known:
+            raise ValueError(f"registry {e['player_id']}: unlisted_with names unknown arena {w!r}")
+        if w not in unlisted:
+            raise ValueError(f"registry {e['player_id']}: unlisted_with names {w}, which is LISTED")
+        dropped.append(e["player_id"])
+    return yaml.safe_dump(kept, sort_keys=False, allow_unicode=True, width=10**9), dropped
+
+
+def mirrored_text(repo_root: Path, rel: Path) -> str:
+    """The exact text the mirror writes for `rel` (the registry is filtered)."""
+    if rel.as_posix() == REGISTRY_REL:
+        return _public_registry(repo_root)[0]
+    return (repo_root / rel).read_text(encoding="utf-8", errors="replace")
+
+
+def unlisted_leaks(repo_root: Path, files: list[Path]) -> list[str]:
+    """Mirrored files whose WRITTEN text names an unlisted arena or one of its players."""
+    ids = unlisted_arena_ids(repo_root)
+    if (repo_root / REGISTRY_REL).is_file():
+        ids += _public_registry(repo_root)[1]
+    hits = []
+    for rel in files:
+        try:
+            text = mirrored_text(repo_root, rel)
+        except (OSError, UnicodeDecodeError):
+            continue
+        for i in ids:
+            if i in text:
+                hits.append(f"{rel.as_posix()}: names unlisted id {i}")
+                break
+    return hits
+
+
 def public_manifest(repo_root: Path) -> list[Path]:
     """Repo-relative paths that make up the public mirror, sorted."""
     picked: set[Path] = set()
@@ -774,6 +884,19 @@ def public_manifest(repo_root: Path) -> list[Path]:
         and not (p.suffix == ".py" and imports_a_private_package(repo_root / p))
         and p.as_posix() not in PRIVATE_TEST_FILES
     ]
+    # A file that names an UNLISTED arena (e.g. its taxonomy leaf) waits for the arena
+    # to be listed; the registry is the exception, mirrored through its public copy.
+    unlisted = unlisted_arena_ids(repo_root)
+    if unlisted:
+        def _names_unlisted(p: Path) -> bool:
+            if p.as_posix() == REGISTRY_REL:
+                return False
+            try:
+                text = (repo_root / p).read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                return False
+            return any(a in text for a in unlisted)
+        kept = [p for p in kept if not _names_unlisted(p)]
     return sorted(kept)
 
 
@@ -992,6 +1115,9 @@ def scan_for_leaks(repo_root: Path, files: list[Path], *, gates: str = "all") ->
     if gates not in GATE_MODES:
         raise ValueError(f"gates must be one of {GATE_MODES}, got {gates!r}")
     reasons: list[str] = []
+    # Unlisted (owner-gated) arenas: checked in every gate mode, on the bytes the
+    # mirror would WRITE, so the filtered registry passes and the raw one would not.
+    reasons += unlisted_leaks(repo_root, files)
     seeds = private_seed_values(repo_root)
     ho_shingles, ho_files = held_out_shingles(repo_root)
 

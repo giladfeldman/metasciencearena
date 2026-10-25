@@ -150,3 +150,17 @@ def test_the_legacy_constant_is_gone_from_the_framework():
         and host.LEGACY_CONSTANT_HOST in p.read_text(encoding="utf-8", errors="replace")
     ]
     assert not offenders, f"hardcoded host constant reintroduced in: {offenders}"
+
+
+def test_replayed_answers_publish_no_latency_but_live_ones_do():
+    # 2026-10-24 consult: Anthropic batch replay records carried ~0 ms, which the
+    # board would show as the player's speed. An adapter that did not wait on the
+    # model says so with latency_measured = False; everyone else keeps the field.
+    live = _build_record()
+    assert isinstance(live["latency_ms"], int)
+
+    class _Replay(_FakeAdapter):
+        latency_measured = False
+    rec = runner._play_one(ENVELOPE, {"gold": 1}, ENTRY, _Replay(), _FakeScorer(),
+                           _FakeValidator(), 60, "fake-arena", trials=1, seed=0, split="revealed")
+    assert "latency_ms" not in rec

@@ -174,14 +174,17 @@ def test_the_stub_is_not_vacuous(monkeypatch):
 
 
 def test_the_registry_entries_that_use_this_adapter_are_still_two():
-    """Blast radius, pinned. HttpAdapter serves the two ESCImate entries only.
+    """Blast radius, pinned. HttpAdapter serves the ESCImate entries only.
 
-    If a third player adopts it, this file's live-measured claims no longer
+    If another player adopts it, this file's live-measured claims no longer
     cover every user of the code path and the new one needs its own evidence.
+    escimate-0-7-19 (2026-10-14) has it: all 72 of its stats-extraction-v1 v5
+    records carry resolved_tool_version "0.7.19", read off the running service.
+    (The name says "two"; it is kept so the test's history stays searchable.)
     """
     from framework.paths import registry_path
     from framework.registry import load_registry
 
     users = sorted(e["player_id"] for e in load_registry(registry_path())
                    if e.get("adapter_class") == "HttpAdapter")
-    assert users == ["escimate", "escimate-0-7-10"], users
+    assert users == ["escimate", "escimate-0-7-10", "escimate-0-7-19"], users

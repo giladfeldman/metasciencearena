@@ -155,6 +155,13 @@ def sanitize_error(message: Any) -> str:
     # (d-545c62; Sonnet consult 2026-10-07, reproduced).
     if _timeouts.is_transport_timeout(text) and "timeout" not in head.lower():
         return "TransportTimeout"
+    # The same for a quota / 5xx / connection failure wrapped in a generic type
+    # (`RuntimeError: <player>: ... returned HTTP 429: ...`): reduced to
+    # `RuntimeError` it read as the model's own failure, and run_health and the
+    # board treated it so (d-685d09, 2026-10-19). A type that already names the
+    # transport (ConnectionError, ...) keeps its own name.
+    if _timeouts.is_transport_error(text) and not _timeouts.is_transport_error(head):
+        return "TransportError"
     # Exception type names only; anything else collapses to a constant so a bare
     # free-text message cannot squeeze through as a "type".
     return head if head.isidentifier() else "Error"

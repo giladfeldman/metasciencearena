@@ -560,13 +560,22 @@ def favouring(adir: Path, cases: list[dict], golds: list[Any], declared: list[di
 def triage_submission(sub: dict, *, root: Path | None = None, heldout: tuple[set[str], int] | None = None,
                       ai: Callable[[Path, dict], dict] | None = ai_review,
                       favour: Callable[..., dict] | None = None, registry: list[dict] | None = None,
-                      golds: list[Any] | None = None) -> dict:
+                      golds: list[Any] | None = None, files: list[tuple[str, bytes]] | None = None,
+                      fetch: Callable[[str], bytes] | None = None,
+                      runner: Callable[[str], str] | None = None) -> dict:
     """Run every applicable check and return the report. Decides nothing.
 
     ``golds`` overrides the AI's gold drafts (offline checks and tests); in the
-    scheduled job the drafts come from ``ai_review``.
+    scheduled job the drafts come from ``ai_review``. ``files`` (name, bytes),
+    ``fetch`` and ``runner`` serve the intake-v2 kinds (framework.contrib_intake);
+    ``runner=None`` with ``ai`` set means the real hermetic Claude CLI.
     """
     kind = sub.get("kind")
+    if kind == "arena_proposal" and ai is not None:
+        return _triage_idea(sub, root=root, runner=runner or claude_runner)
+    if kind in ("stimulus_feedback", "test_material"):
+        return _triage_intake_v2(sub, root=root, heldout=heldout, use_ai=ai is not None,
+                                 files=files or [], fetch=fetch, runner=runner or claude_runner)
     checks: dict[str, dict] = {}
     report: dict[str, Any] = {"report_version": REPORT_VERSION, "submission_id": sub.get("id"),
                               "payload_sha256": sub.get("payloadSha256"), "checks": checks}
@@ -625,6 +634,136 @@ def triage_submission(sub: dict, *, root: Path | None = None, heldout: tuple[set
     elif kind == "arena_proposal":
         for k in ("schema", "custody", "duplicates", "self_consistency", "favouring"):
             checks[k] = _check("not-applicable")
+
+    failed = sorted(k for k, c in checks.items() if c["status"] == "fail")
+    warned = sorted(k for k, c in checks.items() if c["status"] in ("warn", "skipped"))
+    verdict = ("problems: " + ", ".join(failed)) if failed else ("ready for review, with warnings: " + ", ".join(warned)) if warned else "ready for review"
+    report["summary"] = {"verdict": verdict, "failed": failed, "warned": warned,
+                         "note": "Advisory only. Triage never accepts or rejects; a moderator decides."}
+    return report
+
+
+def _triage_idea(sub: dict, *, root: Path | None, runner: Callable[[str], str]) -> dict:
+    """An arena idea: a design brief for the maintainers (never published), and suggested reasons."""
+    from framework import contrib_intake as CI
+
+    checks: dict[str, dict] = {k: _check("not-applicable") for k in ("schema", "custody", "duplicates", "self_consistency", "favouring")}
+    report: dict[str, Any] = {"report_version": REPORT_VERSION, "submission_id": sub.get("id"),
+                              "payload_sha256": sub.get("payloadSha256"), "checks": checks}
+    try:
+        brief = CI.draft_arena_brief(sub, (root or arenas_root()).parent, runner)
+        report["brief"] = {k: v for k, v in brief.items() if k != "suggested_reason"}
+        reasons = CI.suggested_reasons(brief)
+        if reasons:
+            report["suggested_reason"] = reasons
+        checks["ai_review"] = _check("pass")
+        if brief.get("feasibility") == "low" or brief.get("ground_truth_strategy") == "unclear":
+            checks["ground_truth"] = _check("warn", brief.get("feasibility_why") or "how right answers would be known is unclear")
+        else:
+            checks["ground_truth"] = _check("pass", brief.get("ground_truth_strategy"))
+    except Exception as exc:
+        checks["ai_review"] = _check("fail", f"{type(exc).__name__}: {exc}"[:300])
+    report["ai_review"] = {"rationale": (report.get("brief") or {}).get("one_line", "")}
+    failed = sorted(k for k, c in checks.items() if c["status"] == "fail")
+    warned = sorted(k for k, c in checks.items() if c["status"] in ("warn", "skipped"))
+    verdict = ("problems: " + ", ".join(failed)) if failed else ("ready for review, with warnings: " + ", ".join(warned)) if warned else "ready for review"
+    report["summary"] = {"verdict": verdict, "failed": failed, "warned": warned,
+                         "note": "Advisory only. A brief is a starting point for the maintainers, never a commitment."}
+    return report
+
+
+def _triage_intake_v2(sub: dict, *, root: Path | None, heldout, use_ai: bool,
+                      files: list[tuple[str, bytes]], fetch, runner: Callable[[str], str]) -> dict:
+    """Triage for ``stimulus_feedback`` and ``test_material`` (docs/design/2026-10-contrib-intake-v2.md)."""
+    from framework import contrib_intake as CI
+
+    kind = sub["kind"]
+    repo_root = (root or arenas_root()).parent  # ``root`` is the arenas directory
+    checks: dict[str, dict] = {}
+    report: dict[str, Any] = {"report_version": REPORT_VERSION, "submission_id": sub.get("id"),
+                              "payload_sha256": sub.get("payloadSha256"), "checks": checks}
+    try:
+        adir = arena_dir(sub["arenaId"], root)
+    except (FileNotFoundError, KeyError, TypeError) as exc:
+        checks["arena"] = _check("fail", str(exc))
+        adir = None
+    p = sub.get("payload") or {}
+
+    # Copied-article scan over everything the person wrote (the same shingle scanner).
+    own_words = [p.get("comment"), p.get("suggestion"), p.get("description"), p.get("expected"),
+                 (p.get("anchor") or {}).get("quote") if isinstance(p.get("anchor"), dict) else None]
+    checks["custody"] = check_custody([{"text": "\n".join(w for w in own_words if isinstance(w, str))}], heldout)
+
+    ai_out: dict | None = None
+    if kind == "stimulus_feedback":
+        if adir is not None and sub.get("taskId"):
+            checks["flag_target"] = check_dispute_target(adir, sub.get("taskId"))
+        else:
+            checks["flag_target"] = _check("not-applicable", "a comment on the arena as a whole")
+        if use_ai and adir is not None:
+            try:
+                ai_out = CI.ai_review_feedback(adir, sub, repo_root, runner)
+                checks["ai_review"] = _check("pass")
+            except Exception as exc:
+                checks["ai_review"] = _check("fail", f"{type(exc).__name__}: {exc}"[:300])
+        else:
+            checks["ai_review"] = _check("skipped", "not run")
+    else:
+        inventory = {"files": [CI.inventory_file(n, b) for n, b in files],
+                     "links": [CI.inventory_link(l["url"], fetch or CI.http_get) for l in (p.get("links") or []) if isinstance(l, dict)]}
+        n_declared = len(p.get("files") or [])
+        checks["files"] = (_check("fail", f"{n_declared} file(s) declared, {len(files)} fetched") if len(files) != n_declared
+                           else _check("pass" if all(f["status"] == "read" for f in inventory["files"]) else "warn",
+                                       [{"name": f["name"], "status": f["status"]} for f in inventory["files"]]))
+        checks["links"] = (_check("not-applicable") if not inventory["links"]
+                           else _check("pass" if all(l["status"] == "read" for l in inventory["links"]) else "warn",
+                                       [{"url": l["url"], "status": l["status"]} for l in inventory["links"]]))
+        inventory["linked_files"] = [f for l in inventory["links"] if l.get("status") == "read"
+                                     for f in CI.inventory_linked_files(l, fetch or CI.http_get)]
+        report["inventory"] = inventory
+        mapping = CI.dataset_mapping(inventory["files"] + inventory["linked_files"])
+        if mapping:
+            report["dataset_mapping"] = mapping
+        if use_ai and adir is not None and not is_private_split(sub):
+            try:
+                ai_out = CI.ai_review_material(adir, sub, inventory, repo_root, runner)
+                checks["ai_review"] = _check("pass")
+            except Exception as exc:
+                checks["ai_review"] = _check("fail", f"{type(exc).__name__}: {exc}"[:300])
+        elif is_private_split(sub):
+            checks["ai_review"] = _check("skipped", PRIVATE_SPLIT_AI_SKIP)
+        else:
+            checks["ai_review"] = _check("skipped", "not run")
+    # Translation (Phase 2): material -> cases in the arena's format, then the SAME
+    # checks a JSON test-case submission gets, run on the translated cases.
+    translated = False
+    if kind == "test_material" and use_ai and adir is not None and not is_private_split(sub):
+        try:
+            tr = CI.translate_material(adir, sub, files, runner)
+            report["translation"] = tr
+            if tr["cases"]:
+                pseudo = {**sub, "kind": "test_cases", "payload": {"cases": tr["cases"]}}
+                inner = triage_submission(pseudo, root=root, heldout=heldout,
+                                          ai=lambda a, s: ai_review(a, s, runner=runner), favour=None)
+                for k in ("schema", "duplicates", "self_consistency", "favouring"):
+                    checks[k] = inner["checks"][k]
+                checks["translated_custody"] = inner["checks"]["custody"]
+                report["cases"] = inner.get("cases", [])
+                translated = True
+                checks["translation"] = _check("pass", f"{len(tr['cases'])} case(s)")
+            else:
+                checks["translation"] = _check("warn", tr.get("not_translated") or "no case could be made from this material")
+        except Exception as exc:
+            checks["translation"] = _check("fail", f"{type(exc).__name__}: {exc}"[:300])
+    elif kind == "test_material" and is_private_split(sub):
+        checks["translation"] = _check("skipped", "private split: needs manual (or local-model) translation")
+    if not translated:
+        for k in ("schema", "self_consistency", "favouring"):
+            checks.setdefault(k, _check("not-applicable", "no translated test cases"))
+    report["ai_review"] = ai_out or {}
+    reasons = CI.suggested_reasons(ai_out)
+    if reasons:
+        report["suggested_reason"] = reasons
 
     failed = sorted(k for k, c in checks.items() if c["status"] == "fail")
     warned = sorted(k for k, c in checks.items() if c["status"] in ("warn", "skipped"))
@@ -716,6 +855,81 @@ def write_private(bundle: dict, bundle_sha256: str, *, root: Path | None = None)
     out.mkdir(parents=True, exist_ok=True)
     (out / "bundle.json").write_text(_dump(bundle), encoding="utf-8", newline="\n")
     return out / "bundle.json"
+
+
+#: Arenas whose task-set version is a STUDY decision (human evaluation is running
+#: on them: lib/human/arenas/). A contributed task never enters one through this
+#: command; the owner decides the next study version (TODO.md, 2026-10-07).
+STUDY_ARENAS = frozenset({"prereg-deviation-v1"})
+
+
+class MergeRefused(ValueError):
+    pass
+
+
+def merge_contributed(adir: Path, version: str, *, dry_run: bool = False) -> dict:
+    """Add accepted contributed tasks to a NEW task-set version (intake v2, Phase 3 item 16).
+
+    The arena's own generator mints ``task_sets/<version>/`` first; this explicit
+    step then appends every exported contributed task whose ``introduced_in`` is
+    ``version``. It never runs implicitly, and it refuses to touch:
+
+    * an arena on the study list (``STUDY_ARENAS``);
+    * a version not in ``arena.yaml``, or one marked ``frozen`` / ``superseded``;
+    * a version that already has run records (results already exist on it);
+    * a task id that already exists in the version.
+
+    Writes the merged ``_ground_truth.json`` (contributed tasks carry
+    ``difficulty.origin = "contributed"``), appends ``provenance.jsonl``, and records
+    ``contributed: {n, sha256}`` in ``task_sets/<version>/manifest.yaml`` so a
+    fingerprint covers what was added.
+    """
+    if adir.name in STUDY_ARENAS:
+        raise MergeRefused(f"{adir.name} is a human-evaluation study arena: its next version is the owner's study decision")
+    manifest = yaml.safe_load((adir / "arena.yaml").read_text(encoding="utf-8")) or {}
+    entry = next((v for v in manifest.get("task_set_versions") or [] if v.get("version") == version), None)
+    if entry is None:
+        raise MergeRefused(f"{version} is not in {adir.name}/arena.yaml task_set_versions — mint it with the generator first")
+    if entry.get("status") in ("frozen", "superseded"):
+        raise MergeRefused(f"{adir.name} {version} is {entry['status']}: contributed tasks enter only a new version")
+    vdir = adir / "task_sets" / version
+    gt_path = vdir / "_ground_truth.json"
+    if not gt_path.is_file():
+        raise MergeRefused(f"no {gt_path} — mint the version with the arena's generator first")
+    runs = adir / "runs" / version
+    if runs.is_dir() and any(runs.glob("*.jsonl")):
+        raise MergeRefused(f"{adir.name} {version} already has run records: adding tasks would change results already published")
+
+    contributed = load_for_version(adir, version)
+    gt = json.loads(gt_path.read_text(encoding="utf-8"))
+    clash = [c["task"]["task_id"] for c in contributed if c["task"]["task_id"] in gt]
+    if clash:
+        raise MergeRefused(f"task id(s) already in {version}: {clash[:5]}")
+    for c in contributed:
+        t = c["task"]
+        gt[t["task_id"]] = {
+            "envelope": {
+                "task_id": t["task_id"], "arena_id": adir.name, "task_set_version": version,
+                "difficulty": {"origin": "contributed"},
+                "visibility": "public" if c["split"] == "revealed" else "held_out",
+                "split": "revealed" if c["split"] == "revealed" else "private",
+                "input": t["input"],
+            },
+            "ground_truth": t["gold"],
+        }
+    summary = {"arena": adir.name, "version": version, "added": len(contributed),
+               "contributed_sha256": canonical_sha256([c["task"] for c in contributed])}
+    if dry_run or not contributed:
+        return {**summary, "written": False}
+    gt_path.write_text(json.dumps(gt, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    with (vdir / "provenance.jsonl").open("a", encoding="utf-8") as fh:
+        for c in contributed:
+            fh.write(json.dumps(c["provenance"], ensure_ascii=False, sort_keys=True) + "\n")
+    mpath = vdir / "manifest.yaml"
+    vman = (yaml.safe_load(mpath.read_text(encoding="utf-8")) or {}) if mpath.is_file() else {}
+    vman["contributed"] = {"n": len(contributed), "sha256": summary["contributed_sha256"]}
+    mpath.write_text(yaml.safe_dump(vman, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return {**summary, "written": True}
 
 
 def load_for_version(adir: Path, version: str) -> list[dict]:

@@ -29,6 +29,13 @@ import yaml
 REPO = Path(__file__).resolve().parents[2]
 PROMPT_DIR = REPO / "players" / "prompts"
 ARCHIVE_DIR = PROMPT_DIR / "_archive"
+#: Arena-owned prompts (CLAUDE.md directive 2026-10-14): `arenas/<id>/prompts/vN.md`,
+#: never edited after use -- a change is a new version file, so every one is live.
+ARENA_PROMPTS_GLOB = "arenas/*/prompts/v*.md"
+
+
+def _arena_prompts() -> list[Path]:
+    return sorted(REPO.glob(ARENA_PROMPTS_GLOB))
 REGISTRY = REPO / "players" / "registry.yaml"
 
 #: A YAML key whose NAME looks like it holds a credential.
@@ -151,7 +158,7 @@ def _prompt_hashes() -> dict[str, Path]:
     predates the fix.
     """
     out: dict[str, Path] = {}
-    for p in list(PROMPT_DIR.glob("*.txt")) + list(ARCHIVE_DIR.glob("*.txt")):
+    for p in list(PROMPT_DIR.glob("*.txt")) + list(ARCHIVE_DIR.glob("*.txt")) + _arena_prompts():
         for sha in _template_hash_variants(p.read_bytes()):
             out.setdefault(sha, p)
     return out
@@ -312,7 +319,7 @@ def test_published_records_were_measured_with_the_CURRENT_template():
     assert live, "no live templates found — check would be vacuous"
     # Accept the pre-2026-08-19 raw-bytes hash too; see _prompt_hashes().
     live_hashes = set()
-    for f in PROMPT_DIR.glob("*.txt"):
+    for f in list(PROMPT_DIR.glob("*.txt")) + _arena_prompts():
         live_hashes |= _template_hash_variants(f.read_bytes())
 
     stale: list[str] = []
@@ -411,6 +418,11 @@ def test_every_prompt_template_interpolates_its_input():
     rule that cannot tell them apart would push us to make the prompts worse.
     """
     placeholder = re.compile(r"\{\{[A-Z0-9_]+\}\}")
+    # An arena-owned prompt filled with `prompt_format: str.format` marks its input
+    # with `{field}` (framework/player_adapter.py), not `{{FIELD}}`.
+    format_field = re.compile(r"(?<!\{)\{[a-z_][a-z0-9_]*\}(?!\})")
+    str_format = {e["prompt_template_path"] for e in _registry()
+                  if e.get("prompt_template_path") and e.get("prompt_format") == "str.format"}
     referenced = sorted({
         e["prompt_template_path"] for e in _registry() if e.get("prompt_template_path")
     })
@@ -425,7 +437,8 @@ def test_every_prompt_template_interpolates_its_input():
         if not p.is_file():
             offenders.append(f"{rel}: referenced by the registry but does not exist")
             continue
-        if not placeholder.search(p.read_text(encoding="utf-8")):
+        marks = format_field if rel in str_format else placeholder
+        if not marks.search(p.read_text(encoding="utf-8")):
             offenders.append(
                 f"{rel}: contains no {{{{PLACEHOLDER}}}} — nothing marks where the "
                 f"task input goes, so either the input is baked in or the template "

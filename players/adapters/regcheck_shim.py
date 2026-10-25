@@ -47,8 +47,11 @@ if str(_SHIM_PKG.parent.parent) not in sys.path:
 
 from players.regcheck_shim import openai_shim  # noqa: E402
 from players.regcheck_shim.regcheck_to_runrecords import (  # noqa: E402
+    FULLPAPER_ARENA_ID,
+    FULLPAPER_DIMENSIONS_YAML,
     load_dimension_kinds,
     regcheck_items_to_output,
+    regcheck_items_to_threeway_output,
 )
 
 
@@ -207,6 +210,10 @@ class RegcheckShimAdapter(PlayerAdapter):
                 )
             data = json.loads(result_json.read_text(encoding="utf-8"))
             items = data.get("items", []) if isinstance(data, dict) else []
+            if envelope.get("arena_id") == FULLPAPER_ARENA_ID:
+                # The full-paper track scores RegCheck's own yes/no/missing three ways.
+                return regcheck_items_to_threeway_output(
+                    items, load_dimension_kinds(FULLPAPER_DIMENSIONS_YAML))
             return regcheck_items_to_output(items, self._dimension_kinds)
 
 

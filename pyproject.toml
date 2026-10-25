@@ -30,11 +30,21 @@ dependencies = [
   "rapidfuzz>=3.0",          # Levenshtein-similarity scoring for pdf-text-fidelity-v1
   "lxml>=5.0,<7.0.0a0",      # JATS / TEI XML parsing; upper bound excludes pre-release alphas (DR-0020)
   "packaging>=23.0",         # semver-aware version sort in framework/report.py
+  "pikepdf>=10.0",           # framework/pdfforge: font-map and page post-processing of synthetic PDFs
+  "fonttools>=4.60",         # framework/pdfforge: builds the deliberately broken fonts (catalog F)
+  "pypdfium2>=5.0",          # framework/pdfforge: renders each page for the manifest proof
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0"]
+# pydantic: players/adapters/tests/test_marker_worker_json.py builds a stand-in for
+# Marker's models with it; locally it arrives transitively (openai, fastapi), but the
+# CI python job installs only ".[dev]" and failed collecting that test (d-84abc5).
+dev = ["pytest>=8.0", "pydantic>=2"]
 pdf-liteparse = ["liteparse>=2.0.4"]
+# Local triage of contributed test material (docs/design/2026-10-contrib-intake-v2.md):
+# reads uploaded .xlsx / .docx on the operator's machine, never on the server.
+# Without them those files are reported "skipped: reader not installed", never passed.
+contrib-triage = ["openpyxl>=3.1", "python-docx>=1.1"]
 # Docling (pdf-table-extraction-v1, pdf-text-fidelity-v1). Optional because it
 # pulls torch: ~2 GB installed for a player most contributors will not run.
 # Install with the CPU wheel index or pip resolves a multi-GB CUDA build:

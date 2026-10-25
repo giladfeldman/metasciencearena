@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "citation-claim-fidelity-v1 task input",
+  "description": "One cited source (title, year, abstract) and k manuscript sentences that each cite it, already laid out for the arena-owned prompt (prompts/v1.md, rendered with str.format). Each sentence is a different place that cites the source.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["group_size", "prompt_fields"],
+  "properties": {
+    "group_size": {"type": "integer", "minimum": 1, "maximum": 6, "description": "Number of citing sentences in the task."},
+    "prompt_fields": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "year", "abstract", "sentences"],
+      "properties": {
+        "title": {"type": "string", "description": "Cited source title."},
+        "year": {"type": ["string", "integer"], "description": "Cited source year, or 'n.d.'."},
+        "abstract": {"type": "string", "description": "The cited source's abstract: the only evidence."},
+        "sentences": {"type": "string", "description": "The numbered citing sentences, one per line: 1. \"...\""}
+      }
+    }
+  }
+}

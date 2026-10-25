@@ -1,0 +1,34 @@
+# Human-readable difficulty axes (mirrors arena.yaml#difficulty_axes).
+# The leaderboard pivot is group_size: how many citing sentences of one source a task
+# presents together, judged against the same abstract in one call.
+
+group_size:
+  1:
+    label: one-sentence
+    description: >-
+      one citing sentence and the cited abstract; one verdict (consistent,
+      contradicts or silent).
+  2:
+    label: two-sentences
+    description: >-
+      two sentences that cite the same source from different places in the
+      manuscript, judged together against one abstract; each gets its own verdict.
+  3:
+    label: three-sentences
+    description: >-
+      three sentences citing the same source, judged in one call. A model must
+      keep the verdicts apart rather than let one sentence colour the others.
+  4:
+    label: four-sentences
+    description: >-
+      four sentences citing the same source, judged in one call.
+  5:
+    label: five-sentences
+    description: >-
+      five sentences citing the same source, judged in one call (rare: a source
+      cited in five places).
+  6:
+    label: six-sentences
+    description: >-
+      six sentences citing the same source, judged in one call (the largest group
+      in the task sets).

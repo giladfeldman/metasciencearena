@@ -204,3 +204,14 @@ def test_the_branch_is_actually_IN_cmd_retry_failed_not_only_in_this_test():
     assert "_record_is_truncated(merged[tid])" in body, (
         "the higher-ceiling replacement branch is gone from _cmd_retry_failed"
     )
+
+
+def test_a_retry_that_came_back_OK_is_not_retired():
+    # 2026-10-24: a truncation retried at 64000 answered cleanly, yet the round
+    # logged it as "retired as ceiling-independent" and exited 1.
+    cli = _cli()
+    fresh = {"ok": _clean("ok", 64000), "again": _truncated("again", 64000),
+             "err": {"task_id": "err", "score": {"primary": 0.0, "breakdown": {"error": "x"}},
+                     "response_meta": {"finish_reason": "end_turn"}}}
+    retired = cli._retired_after_truncation_retry(["ok", "again", "err", "not-run"], fresh)
+    assert retired == {"again", "err"}

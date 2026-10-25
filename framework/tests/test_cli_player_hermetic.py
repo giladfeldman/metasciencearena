@@ -66,6 +66,17 @@ from framework.player_adapter import build_adapter
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
+def _has_agentic_entry() -> bool:
+    import yaml
+    reg = yaml.safe_load((REPO_ROOT / "players" / "registry.yaml").read_text(encoding="utf-8")) or []
+    return any(isinstance(p, dict) and p.get("adapter_class") == "AgenticContainerAdapter" for p in reg)
+
+
+# The agentic players are unlisted, so the public mirror's registry carries none of them.
+_needs_agentic_entry = pytest.mark.skipif(not _has_agentic_entry(),
+                                          reason="no AgenticContainerAdapter player in this registry (public mirror)")
+
+
 # --------------------------------------------------------------------------
 # helpers
 # --------------------------------------------------------------------------
@@ -597,3 +608,71 @@ def test_a_cli_adapter_that_builds_its_own_argv_is_still_covered():
     import players.adapters.antigravity_cli as agy_mod
     assert "AntigravityCliAdapter" in hermetic.CLI_ADAPTER_CLASSES
     assert agy_mod.AntigravityCliAdapter is not None
+
+
+def test_an_agentic_container_record_is_labelled_as_such_not_hermetic():
+    """2026-10-17: agentic records carried the single-shot hermetic block (no tools, host CLI)
+    and so read `hermetic`. A container agent has Bash and R; its block names the container."""
+    rec = {"provenance": {"adapter_class": "AgenticContainerAdapter",
+                          "containment": {"profile_version": "agentic-container-1", "cli": "claude",
+                                          "verified": False,
+                                          "flags_insufficient": False}}}
+    assert hermetic.containment_state(rec) == hermetic.CONTAINMENT_AGENTIC_CONTAINER
+    hermetic_rec = {"provenance": {"adapter_class": "SubprocessCliAdapter",
+                                   "containment": {"verified": True, "flags_insufficient": False}}}
+    assert hermetic.containment_state(hermetic_rec) == hermetic.CONTAINMENT_HERMETIC
+    s = hermetic.summarise_containment([rec, hermetic_rec])
+    assert s["worst"] == hermetic.CONTAINMENT_AGENTIC_CONTAINER and s["mixed"]
+
+
+@_needs_agentic_entry
+def test_the_agentic_adapters_containment_block_fits_the_run_record_schema(monkeypatch):
+    """2026-10-17: a block with new keys failed run-record validation at write time and
+    crashed every agentic run. Build the block from the real registry entry and validate it."""
+    import json as _json
+    from jsonschema import Draft202012Validator
+    from framework import agentic_container as ac
+    from framework.player_adapter import build_adapter
+    from framework.registry import load_registry
+    from framework.storage import RUN_RECORD_SCHEMA_PATH
+    import players.adapters.agentic_container  # noqa: F401  (registers the class)
+    monkeypatch.setattr(ac, "image_id", lambda image=ac.DEFAULT_IMAGE: "sha256:" + "0" * 64)
+    entry = next(p for p in load_registry(REPO_ROOT / "players" / "registry.yaml")
+                 if p.get("adapter_class") == "AgenticContainerAdapter")
+    block = build_adapter(entry).containment_block()
+    schema = _json.loads(RUN_RECORD_SCHEMA_PATH.read_text(encoding="utf-8"))
+    sub = schema["properties"]["provenance"]["properties"]["containment"]
+    assert not list(Draft202012Validator(sub).iter_errors(block))
+    assert hermetic.containment_state({"provenance": {"containment": block}}) == \
+        hermetic.CONTAINMENT_AGENTIC_CONTAINER
+
+
+def _agentic_adapter(monkeypatch, result):
+    from framework import agentic_container as ac
+    from framework.player_adapter import build_adapter
+    from framework.registry import load_registry
+    import players.adapters.agentic_container  # noqa: F401
+    monkeypatch.setattr(ac, "image_id", lambda image=ac.DEFAULT_IMAGE: "sha256:" + "0" * 64)
+    monkeypatch.setattr(ac, "run_task", lambda *a, **k: result)
+    entry = next(p for p in load_registry(REPO_ROOT / "players" / "registry.yaml")
+                 if p.get("adapter_class") == "AgenticContainerAdapter")
+    return build_adapter(entry)
+
+
+@_needs_agentic_entry
+def test_agentic_answer_saved_before_the_turn_limit_is_kept(monkeypatch):
+    """Pretest round 1: error_max_turns on a 50 MB PDF; the saved /out/answer.json counts."""
+    import pytest as _pytest
+    from framework import agentic_container as ac
+    env = {"input": {"text": "x", "documents": {}}}
+    lock = "entrypoint: egress locked to: api.anthropic.com"
+    maxed = '{"type": "result", "subtype": "error_max_turns", "is_error": true}'
+    r = ac.ContainerResult(1, maxed, lock, 1.0, "img", "sha256:0", [], {"answer.json": '{"a": 1}'})
+    out = _agentic_adapter(monkeypatch, r).play_task(env, timeout_s=10)
+    assert out["a"] == 1 and "error_max_turns" in out["player_strategy_notes"]
+    r = ac.ContainerResult(1, maxed, lock, 1.0, "img", "sha256:0", [], {})
+    with _pytest.raises(RuntimeError, match="error_max_turns"):
+        _agentic_adapter(monkeypatch, r).play_task(env, timeout_s=10)
+    r = ac.ContainerResult(0, '{"type": "result", "result": "no json here"}', lock, 1.0, "img", "sha256:0", [], {})
+    with _pytest.raises(ValueError):    # a missing answer is a PARSE failure
+        _agentic_adapter(monkeypatch, r).play_task(env, timeout_s=10)

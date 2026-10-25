@@ -19,6 +19,7 @@ from framework.leaderboard import render_leaderboard
 from framework.registry import load_registry
 from framework.report import apply_unscoreable_policy, generate_report
 from framework.runner import run_tournament
+from framework import timeouts as _timeouts
 from framework.storage import read_records
 
 # Roots are resolved PER COMMAND, not at import. At import time this module may
@@ -34,6 +35,21 @@ def _cmd_arenas_list(_args):
     root = arenas_root()
     for arena in discover_arenas(root):
         print(f"{arena['arena_id']:40s}  {arena['root'].relative_to(root.parent)}")
+    return 0
+
+
+def _cmd_contributed_add(args):
+    from framework import contributions as C
+
+    try:
+        out = C.merge_contributed(C.arena_dir(args.arena), args.version, dry_run=args.dry_run)
+    except (C.MergeRefused, FileNotFoundError, ValueError) as exc:
+        print(f"REFUSED: {exc}")
+        return 2
+    verb = "would add" if not out["written"] and args.dry_run else "added"
+    print(f"{out['arena']} {out['version']}: {verb} {out['added']} contributed task(s); sha256 {out['contributed_sha256']}")
+    if out["added"] == 0:
+        print("  (no exported contribution has introduced_in == this version)")
     return 0
 
 
@@ -148,6 +164,12 @@ def _cmd_run(args):
     if args.split == "revealed" and not args.held_out_only and not args.include_held_out:
         public_only = True
 
+    only_tasks = _read_tasks_file(args.tasks_file) if args.tasks_file else None
+    # RunRecordWriter APPENDS unless --overwrite, so the file may already hold an
+    # earlier run's records; count only the ones this invocation adds.
+    n_before = (len(read_records(out)) if only_tasks is not None and not args.overwrite
+                and out.exists() else 0)
+
     n = run_tournament(
         arena_dir=arena_dir,
         task_set_version=args.task_set,
@@ -162,7 +184,20 @@ def _cmd_run(args):
         max_tasks=args.max_tasks,
         split=args.split,
         overwrite=args.overwrite,
+        only_tasks=only_tasks,
     )
+    if only_tasks is not None:
+        # A screen that silently played fewer tasks than listed would read as a
+        # clean result on a smaller sample. Name only counts: the ids may be held out.
+        played = ({r.get("task_id") for r in read_records(out)[n_before:]}
+                  if out.exists() else set())
+        missing = only_tasks - played
+        if missing:
+            import sys
+            print(f"--tasks-file: {len(missing)} of {len(only_tasks)} listed task_ids "
+                  f"produced no record in {out} (unknown id, filtered by split/visibility, "
+                  f"or cut by --max-tasks)", file=sys.stderr)
+            return 2
     # NEVER print a private seed. The revealed seed is committed in arena.yaml, so
     # showing it aids reproduction; the private one IS the secret, and printing it
     # puts it in terminal scrollback, CI logs and session transcripts. A v2 private
@@ -170,6 +205,15 @@ def _cmd_run(args):
     shown = seed if args.split == "revealed" else "<redacted:private>"
     print(f"wrote {n} run records to {out} (split={args.split}, seed={shown})")
     return 0
+
+
+def _read_tasks_file(path: Path) -> set[str]:
+    """task_ids for `run --tasks-file`: one per line; blank lines and `#` comments ignored."""
+    ids = {line.strip() for line in Path(path).read_text(encoding="utf-8").splitlines()}
+    ids = {t for t in ids if t and not t.startswith("#")}
+    if not ids:
+        raise SystemExit(f"--tasks-file {path} lists no task_ids")
+    return ids
 
 
 def _record_ceiling(rec: dict) -> int | None:
@@ -188,6 +232,15 @@ def _record_ceiling(rec: dict) -> int | None:
     return None
 
 
+def _retired_after_truncation_retry(todo, fresh: dict) -> set:
+    """Tasks a --include-truncated round should stop retrying: retried and STILL
+    not OK. A retry that came back OK is not hopeless; counting it as such logged
+    "retired as ceiling-independent" and exited 1 after a successful fix
+    (2026-10-24, Sonnet 5.5 publication-bias retry at 64000)."""
+    return {t for t in todo
+            if t in fresh and not _record_is_ok(fresh[t], include_truncated=True)}
+
+
 def _record_is_truncated(rec: dict) -> bool:
     """Was this answer cut off at OUR output ceiling rather than by the model?
 
@@ -197,7 +250,8 @@ def _record_is_truncated(rec: dict) -> bool:
     that cannot do the task. Measured 2026-08-20: 3 of 36 stats-extraction records,
     against a comparison player in the same arena that ran with no cap at all.
     """
-    return ((rec.get("response_meta") or {}).get("finish_reason") == "length")
+    from framework.ceilings import is_truncated
+    return is_truncated(rec.get("response_meta"))
 
 
 def _record_is_ok(rec: dict, *, include_truncated: bool = False) -> bool:
@@ -268,11 +322,25 @@ def _cmd_retry_failed(args):
     # Full task-id universe for this split (from the generator), so we can also
     # retry tasks that produced NO record at all.
     universe = _split_task_ids(arena_dir, args.task_set, args.split, seed)
+    # `--tasks-file`: the run covered only these task ids (`run --tasks-file`), so a task
+    # outside the list is not "missing" and must never be played here. Without this a
+    # retry of a one-tier run of a multi-tier task set played every other task of the
+    # split (citation-claim-fidelity-v1 v3, 2026-10-18: 567 listed of 1156).
+    tasks_file = getattr(args, "tasks_file", None)
+    if tasks_file:
+        listed = _read_tasks_file(tasks_file)
+        unknown = listed - universe if universe else set()
+        if unknown:
+            raise SystemExit(f"--tasks-file: {len(unknown)} of {len(listed)} listed task_ids are not in "
+                             f"the {args.split} split of {args.task_set}")
+        universe = listed
 
     # Crash recovery: a previous invocation killed mid-round leaves an orphaned
     # `<target>.retry-r*.jsonl` temp file whose OK verdicts were never merged. Fold
     # those in first so no completed work is lost, then remove the temps.
-    _recover_orphan_retry_temps(target)
+    # Answer-preserving unless the old re-sampling is asked for by name (d-24a295).
+    keep = not bool(getattr(args, "resample_model_output_errors", False))
+    _recover_orphan_retry_temps(target, keep_model_output_errors=keep)
 
     # Tasks that came back truncated AGAIN after a retry at a raised ceiling. The
     # ceiling was not the binding constraint for these -- the model spiralled without
@@ -299,6 +367,13 @@ def _cmd_retry_failed(args):
             # A truncated answer carries no error breakdown, so it would count as
             # settled here. The whole point of --include-truncated is to redo it.
             settled -= {t for t, r in existing.items() if _record_is_truncated(r)}
+        raw_ids = _raw_run_ids(target) if keep else set()
+        if keep:
+            # The model ANSWERED; the schema rejected the answer or the adapter could
+            # not parse it. Re-playing it re-samples the model until a format failure
+            # happens to parse, which flatters it (d-24a295). Only calls that got no
+            # answer are retried.
+            settled |= {t for t, r in existing.items() if _record_was_answered(r, raw_ids)}
         todo = sorted((universe - settled) - hopeless) if universe else sorted(
             t for t in existing if t not in settled and t not in hopeless)
         if not todo:
@@ -322,7 +397,7 @@ def _cmd_retry_failed(args):
             public_only=(args.split == "revealed"),
         )
         fresh = {r["task_id"]: r for r in read_records(tmp)} if tmp.exists() else {}
-        tmp.unlink(missing_ok=True)
+        fresh_raw = _raw_run_ids(tmp) if keep else set()
 
         # Merge: a fresh OK verdict replaces whatever was there; a fresh error only
         # fills a previously-missing slot (never downgrades an existing OK).
@@ -335,12 +410,27 @@ def _cmd_retry_failed(args):
                 merged[tid] = rec
             elif tid not in merged:
                 merged[tid] = rec
+            elif (keep and _record_was_answered(rec, fresh_raw)
+                  and not _record_has_a_verdict(merged[tid])
+                  and not _record_was_answered(merged[tid], raw_ids)):
+                # THE FIRST ANSWER DISPLACES A CALL THAT GOT NONE (consult 2026-10-15,
+                # both seats): a 429 retried into a schema-rejected answer kept the 429,
+                # so the next round re-sampled the task until it parsed.
+                merged[tid] = rec
             elif _record_has_a_verdict(rec) and not _record_has_a_verdict(merged[tid]):
                 # A FRESH VERDICT DISPLACES A STALE TRANSPORT ERROR, even when that
                 # verdict is an exclusion and so carries no number. Without this the
                 # 429 record stays for ever and the file publishes a 0.0 that
                 # measures our own rate limiting rather than the player. See
                 # _record_has_a_verdict for the measurement.
+                merged[tid] = rec
+            elif (_timeouts.record_is_transport_timeout(merged[tid])
+                  and not _timeouts.record_is_transport_failure(rec)):
+                # A RECORD KILLED BY OUR CLOCK IS NO EVIDENCE ABOUT THE PLAYER. When the
+                # re-play reaches a different, real outcome (a deterministic error, say), that
+                # outcome replaces the timeout; keeping the timeout left qa C11 red for a task
+                # that had in fact been re-played (2026-10-20). A fresh timeout or 429 does
+                # not qualify: it is again no evidence.
                 merged[tid] = rec
             elif _record_error_has_no_reason(merged[tid]) and not _record_error_has_no_reason(rec):
                 # A REASONED FAILURE DISPLACES A REASONLESS ONE (d-94418a). Records
@@ -371,12 +461,20 @@ def _cmd_retry_failed(args):
                 # qualify -- that is a re-roll of a non-deterministic player, which
                 # buys a different sample rather than better evidence.
                 merged[tid] = rec
-        # Persist merged file (stable task order).
+        # Persist merged file (stable task order), THEN retire the temp: deleting the
+        # temp first lost the round's answers if the process died before this write
+        # (consult 2026-10-15, Sol #4).
         order = [t for t in universe if t in merged] if universe else sorted(merged)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        with target.open("w", encoding="utf-8") as fh:
-            for tid in order:
-                fh.write(json.dumps(merged[tid], ensure_ascii=False) + "\n")
+        if tasks_file:
+            # `universe` is only the LISTED tasks here: the records of every other task
+            # are not stale, they are simply not this retry's business. Writing back the
+            # listed ones alone truncated nine run files to 1-5 records (2026-10-20).
+            # Keep the file's own order, then any newly filled listed task.
+            kept = [t for t in existing if t in merged]
+            order = kept + [t for t in order if t not in set(kept)]
+        _write_records_atomically(target, [merged[tid] for tid in order])
+        if _fold_retry_raw(tmp, target):
+            tmp.unlink(missing_ok=True)
 
         # Anything we just retried that is STILL truncated will not improve by being
         # retried again at the same ceiling. Retire it here, with its evidence.
@@ -388,7 +486,7 @@ def _cmd_retry_failed(args):
             # did not truncate at all, it REFUSED -- "I'm sorry, but I can't provide the
             # answer you're looking for" -- and the first version of this code called
             # that a truncation.
-            newly_hopeless = {t for t in todo if t in fresh}
+            newly_hopeless = _retired_after_truncation_retry(todo, fresh)
             if newly_hopeless:
                 hopeless |= newly_hopeless
                 for t in sorted(newly_hopeless)[:6]:
@@ -449,37 +547,132 @@ def _record_error_has_no_reason(rec: dict) -> bool:
     return isinstance(err, str) and bool(_REASONLESS_EXIT.search(err))
 
 
-def _recover_orphan_retry_temps(target: Path) -> None:
+def _record_is_model_output_error(rec: dict) -> bool:
+    """The record's error is the arena's schema rejecting the MODEL'S OWN answer."""
+    from framework.timeouts import _MODEL_OUTPUT_PREFIX
+    err = ((rec.get("score") or {}).get("breakdown") or {}).get("error")
+    return isinstance(err, str) and err.startswith(_MODEL_OUTPUT_PREFIX)
+
+
+def _raw_sidecars(run_file: Path) -> list[Path]:
+    """The run file's raw-response sidecars (public beside it, held-out in custody)."""
+    from framework import run_env
+    arena_id = run_file.parents[2].name  # arenas/<id>/runs/<version>/<file>
+    out = []
+    for held_out in (False, True):
+        try:
+            out.append(run_env.raw_sidecar_path(run_file, held_out=held_out, arena_id=arena_id))
+        except RuntimeError:  # no ARTICLE_REPOSITORY: no held-out raws can exist either
+            continue
+    return out
+
+
+def _raw_run_ids(run_file: Path) -> set[str]:
+    from framework import run_env
+    return {r.get("run_id") for p in _raw_sidecars(run_file) if p.exists() for r in run_env.read_raw(p)}
+
+
+def _record_was_answered(rec: dict, raw_ids: set[str]) -> bool:
+    """An ERRORED record whose call nevertheless returned the model's answer.
+
+    Either the arena schema rejected the answer (output_schema_violation), or the
+    adapter could not parse it -- which reaches the record only as a bare
+    RuntimeError, but the provider's HTTP-200 response was kept as a raw (the
+    runner stores a raw for every answered call, and none for a 429 / 5xx /
+    timeout; measured 2026-10-15: 0 of 97 quota errors and 28 of 28 schema
+    violations had one). Re-playing such a task re-samples the model.
+    """
+    if _record_has_a_verdict(rec):
+        return False
+    # Our clock or the provider failed: no answer, whatever raw sits beside it. A raw
+    # can be STALE (a container call that raised kept the previous task's; consult
+    # 2026-10-19), and answer-preserving retry is the default, so trusting it here
+    # would settle an unanswered task for good.
+    err = ((rec.get("score") or {}).get("breakdown") or {}).get("error")
+    from framework.timeouts import is_transport_failure
+    if is_transport_failure(err):
+        return False
+    return _record_is_model_output_error(rec) or rec.get("run_id") in raw_ids
+
+
+def _write_records_atomically(target: Path, records: list[dict]) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    part = target.with_name(target.name + ".part")
+    with part.open("w", encoding="utf-8") as fh:
+        for r in records:
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+    os.replace(part, target)
+
+
+def _fold_retry_raw(tmp: Path, target: Path) -> bool:
+    """Move a retry round's raw provider responses into the target's raw sidecar.
+
+    The sidecar is named after the run file (run_env.raw_sidecar_path), so a round
+    played into ``<target>.retry-rN.jsonl`` stored its raws under that temp name and
+    the merged records pointed at responses nobody would find (an analysis reading
+    ``<target>.raw.jsonl.gz`` saw ``no_raw`` for every retried task; 2026-10-15).
+    Raws are keyed by run_id, so appending them all is safe. The source is deleted
+    only once every one of its run_ids reads back from the destination (a torn
+    member in the destination hides everything appended after it; consult
+    2026-10-15); otherwise it is kept, with its temp run file, and False returned.
+    """
+    from framework import run_env
+    ok = True
+    for src, dst in zip(_raw_sidecars(tmp), _raw_sidecars(target)):
+        if not src.exists():
+            continue
+        lines = run_env.read_raw(src)
+        for line in lines:
+            run_env.append_raw(dst, line)
+        want = {r.get("run_id") for r in lines}
+        if want <= {r.get("run_id") for r in run_env.read_raw(dst)}:
+            src.unlink()
+        else:
+            ok = False
+            print(f"[retry] raw responses in {src.name} did not read back from {dst}; "
+                  "kept it and its temp run file -- repair the sidecar, then re-run.")
+    return ok
+
+
+def _recover_orphan_retry_temps(target: Path, *, keep_model_output_errors: bool = True) -> None:
     """Merge OK verdicts from any orphaned ``<target>.retry-r*.jsonl`` temp files
     (left by a retry round that was killed before it merged) into ``target``, then
     delete them. An OK verdict replaces a prior error / fills a gap; nothing is
-    downgraded. Best-effort: a malformed temp is skipped, not fatal."""
+    downgraded. Best-effort: a malformed temp is skipped, not fatal. The merged
+    target is written BEFORE any temp is deleted, so a crash here loses nothing."""
     temps = sorted(target.parent.glob(f"{target.stem}.retry-r*.jsonl"))
     if not temps:
         return
     existing = {r["task_id"]: r for r in read_records(target)} if target.exists() else {}
+    raw_ids = _raw_run_ids(target) if keep_model_output_errors else set()
     gained = 0
+    merged_temps = []
     for tmp in temps:
         try:
             fresh = {r["task_id"]: r for r in read_records(tmp)}
         except Exception:  # noqa: BLE001 - a corrupt temp must not abort recovery
             tmp.unlink(missing_ok=True)
             continue
+        fresh_raw = _raw_run_ids(tmp) if keep_model_output_errors else set()
         for tid, rec in fresh.items():
             if _record_is_ok(rec) and not _record_is_ok(existing.get(tid, {})):
                 existing[tid] = rec
                 gained += 1
             elif tid not in existing:
                 existing[tid] = rec
+            elif (keep_model_output_errors and _record_was_answered(rec, fresh_raw)
+                  and not _record_has_a_verdict(existing[tid])
+                  and not _record_was_answered(existing[tid], raw_ids)):
+                existing[tid] = rec  # the first ANSWER displaces a call that got none
             elif (_record_error_has_no_reason(existing[tid])
                   and not _record_is_ok(rec) and not _record_error_has_no_reason(rec)):
                 existing[tid] = rec  # d-94418a: keep the failure that recorded its cause
-        tmp.unlink(missing_ok=True)
+        merged_temps.append(tmp)
     if existing:
-        target.parent.mkdir(parents=True, exist_ok=True)
-        with target.open("w", encoding="utf-8") as fh:
-            for tid in sorted(existing):
-                fh.write(json.dumps(existing[tid], ensure_ascii=False) + "\n")
+        _write_records_atomically(target, [existing[tid] for tid in sorted(existing)])
+    for tmp in merged_temps:
+        if _fold_retry_raw(tmp, target):
+            tmp.unlink(missing_ok=True)
     if gained:
         print(f"[retry] recovered {gained} verdict(s) from {len(temps)} orphaned temp file(s).")
 
@@ -571,6 +764,7 @@ def _cmd_report(args):
         player_version=args.player_version,
         envelopes_by_task=envelopes_by_task,
         ground_truth_lookup=ground_truth_lookup,
+        tier=getattr(args, "tier", None),
     )
     print(f"wrote report bundle to {bundle}")
     return 0
@@ -1054,7 +1248,8 @@ def _cmd_export_inspect(args):
     return 0
 
 
-def main(argv: list[str]) -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """The `framework` argument parser, separate from `main` so tests can parse."""
     parser = argparse.ArgumentParser(prog="framework")
     # Data roots are INPUTS. Installed off-repo there is no `arenas/` beside the
     # package, so a third party must be able to point at their own. Setting the
@@ -1077,6 +1272,18 @@ def main(argv: list[str]) -> int:
         help="Show an arena's task-set version ladder: status, rationale, comparability.")
     p_versions.add_argument("--arena", default=None, help="One arena (default: all).")
     p_versions.set_defaults(func=_cmd_arenas_versions)
+
+    sub_contrib = sub.add_parser(
+        "contributed", help="Accepted community contributions (docs/design/2026-10-contrib-intake-v2.md)."
+    ).add_subparsers(dest="sub", required=True)
+    p_cadd = sub_contrib.add_parser(
+        "add",
+        help="Add accepted contributed tasks to a NEW task-set version the arena's generator has just minted. "
+             "Never runs implicitly; refuses frozen versions, versions with results, and study arenas.")
+    p_cadd.add_argument("arena")
+    p_cadd.add_argument("version", help="e.g. v3 — must already exist under task_sets/ and in arena.yaml")
+    p_cadd.add_argument("--dry-run", action="store_true", help="Report what would be added; write nothing.")
+    p_cadd.set_defaults(func=_cmd_contributed_add)
 
     sub_players = sub.add_parser("players").add_subparsers(dest="sub", required=True)
     sub_players.add_parser("list").set_defaults(func=_cmd_players_list)
@@ -1118,6 +1325,10 @@ def main(argv: list[str]) -> int:
                             "doesn't overlap the revealed public tasks.")
     p_run.add_argument("--max-tasks", type=int, default=None,
                        help="Stop after N envelopes (after public-only filter).")
+    p_run.add_argument("--tasks-file", type=Path, default=None, metavar="FILE",
+                       help="Play only the task_ids listed in FILE (one per line, '#' "
+                            "comments). Exits 2 if a listed id produced no record. Keep "
+                            "held-out ids out of tracked files.")
     p_run.add_argument("--split", choices=["revealed", "private"], default="revealed",
                        help="Which benchmark suite to run. 'revealed' = published Open "
                             "Benchmark; 'private' = official held-out suite (redacted).")
@@ -1154,6 +1365,25 @@ def main(argv: list[str]) -> int:
                               "ONLY useful once max_tokens has actually been raised "
                               "for the player -- otherwise the retry re-truncates, "
                               "which this detects and stops on.")
+    # ANSWER-PRESERVING IS THE DEFAULT (d-24a295, 2026-10-19). A task whose call
+    # returned the model's answer (schema-rejected, or unparseable with its raw kept)
+    # is answered: only calls that produced no answer (429, 5xx, timeouts) are
+    # re-played, and a first answer displaces such an error. The old default
+    # re-played every errored task, which re-samples the model until a format
+    # failure happens to parse and so flatters it -- a retry rule that moves a
+    # score must be asked for by name, never fallen into.
+    resample = p_retry.add_mutually_exclusive_group()
+    resample.add_argument("--resample-model-output-errors", action="store_true",
+                          help="Also re-play tasks the model ANSWERED but whose answer "
+                               "errored (the pre-2026-10-19 default). This re-samples the "
+                               "model until its format parses, which flatters its score; "
+                               "use only for a diagnostic run, never for a published one.")
+    resample.add_argument("--keep-model-output-errors", action="store_true",
+                          help="Accepted for older scripts; now the default and a no-op.")
+    p_retry.add_argument("--tasks-file", type=Path, default=None, metavar="FILE",
+                         help="Retry only within the task_ids listed in FILE (the same file "
+                              "given to `run --tasks-file`); a task outside it is never "
+                              "treated as missing.")
     p_retry.add_argument("--cooldown", type=int, default=150,
                          help="Seconds to sleep between rounds so a per-minute/day "
                               "token cap recovers (default 150).")
@@ -1169,6 +1399,9 @@ def main(argv: list[str]) -> int:
     p_rep.add_argument("--task-set", required=True)
     p_rep.add_argument("--player", required=True, help="Focal player_id.")
     p_rep.add_argument("--player-version", required=True)
+    p_rep.add_argument("--tier", default=None,
+                       help="Data tier to report on; required for a task set with task_sets/<v>/tiers.jsonl "
+                            "(scores are per tier, never pooled; framework/data_tiers.py).")
     p_rep.add_argument("--rebuild-tasks", action="store_true",
                        help="Re-run the generator to populate envelope/ground-truth caches "
                             "(needed for difficulty breakdown, reproduce envelopes, and gold in drilldown).")
@@ -1232,8 +1465,11 @@ def main(argv: list[str]) -> int:
     p_inspect.add_argument("--prompt", type=Path, default=None,
                            help="Prompt template containing {{INPUT_TEXT}}.")
     p_inspect.set_defaults(func=_cmd_export_inspect)
+    return parser
 
-    args = parser.parse_args(argv)
+
+def main(argv: list[str]) -> int:
+    args = build_parser().parse_args(argv)
     if args.arenas_root is not None:
         os.environ[ARENAS_ROOT_ENV] = str(args.arenas_root)
     if args.registry is not None:

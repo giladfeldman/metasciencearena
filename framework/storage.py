@@ -105,6 +105,19 @@ class RunRecordWriter:
         errors = sorted(self._validator.iter_errors(record), key=lambda e: e.path)
         if errors:
             raise RunRecordValidationError("; ".join(e.message for e in errors))
+        # DIRECTIVE (schema v12): a new record without an env_sha is rejected.
+        # Records of an older shape (a rescore rewriting history) predate the
+        # field and pass; anything claiming v12+ must name its run environment.
+        if (record.get("schema_version") or 0) >= 12 and not record.get("env_sha"):
+            raise RunRecordValidationError(
+                "schema v12+ record has no env_sha: every run record must name its run "
+                "environment (run_env/envs/<env_sha>.json)")
+        if (record.get("schema_version") or 0) >= 12:
+            from framework import run_env
+            if not (run_env.store_root() / "envs" / f"{record['env_sha']}.json").exists():
+                raise RunRecordValidationError(
+                    f"env_sha {str(record['env_sha'])[:12]} names no stored env "
+                    "(run_env/envs/<env_sha>.json): a hash with no record behind it is not provenance")
         if self._fh is None:
             raise RuntimeError("RunRecordWriter not opened (use 'with')")
         self._fh.write(json.dumps(record, sort_keys=True) + "\n")

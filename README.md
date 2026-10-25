@@ -54,6 +54,7 @@ Optional extras:
 | `[kaggle]` | `kaggle-benchmarks` | running modules emitted by `metasciencearena export-kaggle` |
 | `[pdf-docling]` | Docling (pulls torch, ~2 GB) | the Docling PDF players |
 | `[pdf-liteparse]` | liteparse | the liteparse PDF players |
+| `[contrib-triage]` | openpyxl, python-docx | reading contributed `.xlsx` / `.docx` test material during local triage |
 | `[dev]` | pytest | running the test suite |
 
 **Arena data is not bundled.** The package is the scoring machinery; the arenas are the data it
@@ -81,6 +82,7 @@ import math
 from pathlib import Path
 
 from framework.leaderboard import render_leaderboard
+from framework import container
 from framework.paths import arenas_root
 from framework.player_adapter import PlayerAdapter, register_adapter_class
 from framework.runner import run_tournament
@@ -112,6 +114,9 @@ class MyGrimAdapter(PlayerAdapter):
 
 
 register_adapter_class("MyGrimAdapter", MyGrimAdapter)
+# The runner refuses an adapter class nobody classified: name it as a host-run exemption (the record
+# then carries `isolation: host-exempt` and this reason).
+container.EXEMPT_ADAPTER_CLASSES["MyGrimAdapter"] = "pure-Python player from the quickstart, no I/O"
 Path("my_registry.yaml").write_text(
     "- player_id: my-grim\n"
     "  player_type: tool\n"
@@ -146,6 +151,7 @@ adapter module is importable (see [Writing your own player](#writing-your-own-pl
 
 | Arena | Task |
 |---|---|
+| `citation-claim-fidelity-v1` | judge whether each citing sentence is supported by the cited paper's abstract |
 | `code-translation-r-v1` | translate SPSS / Stata syntax to R (scored by running it) |
 | `effect-size-conversion-v1` | convert an effect size to another metric |
 | `grim-consistency-v1` | judge whether reported means / percentages are GRIM-possible |
@@ -226,6 +232,7 @@ wrong score):
 |---|---|
 | `RCliAdapter` | R on PATH (or `RSCRIPT_BINARY`) with the tool's package installed |
 | `OpenAIChatCompletionsAdapter` | the base-URL and key variables the entry names, e.g. `GROQ_BASE_URL` + `GROQ_API_KEY` |
+| `AnthropicApiAdapter` | `SCIENCEARENA_ANTHROPIC_KEY`, `SCIENCEARENA_ANTHROPIC_MODE`, and for live calls a spend budget (`SCIENCEARENA_ANTHROPIC_BUDGET_USD`, `SCIENCEARENA_ANTHROPIC_PERIOD`); optional: `SCIENCEARENA_ANTHROPIC_LEDGER` (spend-ledger path, default `~/.sciencearena/anthropic_spend.jsonl`), `SCIENCEARENA_ANTHROPIC_WORKSPACE_ID` (sent as the `anthropic-workspace-id` header, needed when the key is not scoped to a workspace), `SCIENCEARENA_ANTHROPIC_BATCH_DIR` (batch-plan and batch-replay modes: where each player's `requests.jsonl` and `results.jsonl` live) |
 | `SubprocessCliAdapter`, `LlmCliPdfAdapter` | the CLI on PATH, logged in with its own account |
 | `LocalGgufAdapter` | a running llama-server at the entry's `endpoint` |
 | `GrobidTextAdapter` and the other GROBID adapters | a GROBID server (default `http://localhost:8070`) |

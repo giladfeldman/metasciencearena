@@ -32,7 +32,7 @@ class _Args:
             arena="fake_split_arena", task_set="v1", split="private", seed=None,
             players=["stub-pass"], trials=1, timeout=60, tag="gate-test",
             public_only=False, include_held_out=False, held_out_only=False,
-            max_tasks=1, overwrite=True,
+            max_tasks=1, overwrite=True, tasks_file=None,
         )
         defaults.update(kw)
         self.__dict__.update(defaults)

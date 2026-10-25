@@ -37,7 +37,17 @@
     "single-trial pass (405 tasks) and correct these rows before publishing any",
     "Cohere cost figure. The global checked_on below is deliberately NOT bumped:",
     "the other ten rows were last verified 2026-08-13 and bumping it would claim a",
-    "freshness nobody established."
+    "freshness nobody established.",
+    "",
+    "ANTHROPIC API ROWS (anthropic-api/<model>), added 2026-10-23 for the approved API",
+    "exception (players/adapters/anthropic_api.py). Standard list prices read that day",
+    "from platform.claude.com/docs/en/about-claude/pricing. Vendor-prefixed on purpose:",
+    "'claude-' is in non_token_billed_prefixes (Max subscription), and an API call is",
+    "metered. Batch requests bill at 50% of these rows; the run record keeps",
+    "response_meta.service_tier so a report can apply it. Haiku 5.5 bills prompts over",
+    "100,000 tokens at the long_context_* prices; framework/pricing.py reads only",
+    "input/output, so a report UNDERSTATES such Haiku records until it learns the tier",
+    "(the spend guard, players/adapters/_anthropic_budget.py, already applies it)."
   ],
   "checked_on": "2026-08-13",
   "max_age_days": 60,
@@ -56,6 +66,9 @@
     "nvidia/nvidia-nemotron-nano-9b-v2": { "input": 0.04, "output": 0.16 },
     "command-a-03-2025": { "input": 2.5, "output": 10.0 },
     "command-r-plus-08-2024": { "input": 2.5, "output": 10.0 },
-    "command-r7b-12-2024": { "input": 0.0375, "output": 0.15 }
+    "command-r7b-12-2024": { "input": 0.0375, "output": 0.15 },
+    "anthropic-api/claude-opus-5-5": { "input": 4.0, "output": 20.0 },
+    "anthropic-api/claude-sonnet-5-5": { "input": 2.0, "output": 10.0 },
+    "anthropic-api/claude-haiku-5-5": { "input": 0.1, "output": 0.5, "long_context_threshold": 100000, "long_context_input": 0.5, "long_context_output": 2.5 }
   }
 }

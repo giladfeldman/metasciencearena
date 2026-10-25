@@ -1,0 +1,7 @@
+You are working in a sandbox. The task files are in /task (read-only):
+- /task/task_prompt.txt  : the task, with the exact JSON answer format required
+- /task/*.pdf            : the article PDF(s) the task refers to
+You may use Bash, R (metafor, effectsize, esc), Python and pdftotext to read the PDFs and compute.
+The text pasted into task_prompt.txt was extracted from the same PDFs; you may consult the PDFs directly (tables, figures, pages).
+
+When you are done, write your final answer -- ONE JSON object in exactly the format task_prompt.txt asks for -- to the file /out/answer.json, and also print that same JSON object as your final message.

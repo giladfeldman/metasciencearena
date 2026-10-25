@@ -25,6 +25,8 @@ if the two lists differ.
 """
 from __future__ import annotations
 
+import re
+
 #: Lower-case markers that mean OUR wall expired. Where each may match (see
 #: `is_transport_timeout`): the bare "timeout" ONLY in the exception TYPE
 #: (TimeoutExpired, ReadTimeout, TimeoutError, TransportTimeout) — in free text it
@@ -74,9 +76,82 @@ def is_transport_timeout(error: object) -> bool:
 
 
 def record_is_transport_timeout(rec: dict) -> bool:
+    return is_transport_timeout(_record_error(rec))
+
+
+def _record_error(rec: dict) -> object:
     breakdown = (rec.get("score") or {}).get("breakdown")
-    err = breakdown.get("error") if isinstance(breakdown, dict) else None
-    return is_transport_timeout(err)
+    return breakdown.get("error") if isinstance(breakdown, dict) else None
+
+
+# ---------------------------------------------------------------- transport errors
+# A TRANSPORT ERROR — HTTP 429 / 5xx, or the connection itself failing — is the
+# provider's or the network's, never the model's answer (d-685d09, 2026-10-19). It
+# follows the timeout rule above: never scored, never makes a task an orphan.
+#
+# WHY IT NEEDS A CLASS. `holdout.sanitize_error` keeps only a held-out record's
+# exception TYPE, and both adapters raise `RuntimeError: <player>: ... returned
+# HTTP 429: <body>`, so a quota failure was stored as `RuntimeError` and read as the
+# model failing: run_health filed it errored_deterministic and the board zeroed it.
+# Measured 2026-10-19: gpt-oss-120b 306/419 and Flash-Lite 93/589 calls, all
+# `RuntimeError`. Now sanitize keeps `TransportError` instead, as it keeps
+# `TransportTimeout`.
+#
+# Unlike a timeout it is NOT a zero-tolerance landing gate: a 429 is independent of
+# the task, so qa_coverage_checks C7's 10 % share applies.
+#
+# `leaderboard-app/scripts/lib/unscoreable.mjs` mirrors both constants;
+# `unscoreable-parity.test.ts` reads them from this file, and both engines are held
+# to `framework/tests/fixtures/transport_error_cases.json`.
+
+#: Lower-case exception TYPES that are a transport failure by name. `TransportError`
+#: is the class sanitize_error writes; the rest are what requests / urllib3 /
+#: http.client / the OS raise when the connection, not the answer, fails.
+TRANSPORT_ERROR_TYPES = ("transporterror", "connectionerror", "connectionreseterror", "connectionabortederror", "connectionrefusederror", "remotedisconnected", "chunkedencodingerror", "protocolerror", "proxyerror", "sslerror", "incompleteread", "brokenpipeerror")
+
+#: The HTTP status, ANCHORED to the adapter's own wording before any provider body
+#: or model text: `<Type>: [<player-id>: ]... returned HTTP <code>` (openai_compatible,
+#: gemini_native), or requests' bare `HTTPError: <code> Client|Server Error`. The
+#: optional player-id segment has no spaces and no segment may cross a colon or a
+#: quote, so model text quoted after the second ": " can never match.
+TRANSPORT_HTTP_STATUS_PATTERN = r"^[a-z_][a-z0-9_.]*: (?:[a-z0-9_.\-]+: )?(?:[^:'\"]*\breturned http (\d{3})\b|(\d{3}) (?:client|server) error\b)"
+
+_HTTP_STATUS_RE = re.compile(TRANSPORT_HTTP_STATUS_PATTERN)
+
+
+def _is_transport_status(code: int) -> bool:
+    # 429 = rate/quota; 5xx = the provider failing. Every other 4xx is a request
+    # problem or (422 NO_VALID_RESPONSE_GENERATED) the model's: not transient.
+    return code == 429 or 500 <= code <= 599
+
+
+def is_transport_error(error: object) -> bool:
+    """True when a record's error says the PROVIDER or NETWORK failed (429/5xx/connection).
+
+    Disjoint from `is_transport_timeout`: a timeout keeps its own, stricter rule.
+    """
+    if not isinstance(error, str) or not error:
+        return False
+    low = error.lower().strip()
+    if low.startswith(_MODEL_OUTPUT_PREFIX) or is_transport_timeout(error):
+        return False
+    if low.split(": ", 1)[0] in TRANSPORT_ERROR_TYPES:
+        return True
+    m = _HTTP_STATUS_RE.match(low)
+    return bool(m) and _is_transport_status(int(m.group(1) or m.group(2)))
+
+
+def is_transport_failure(error: object) -> bool:
+    """Our clock or the provider's failure — either way, not the model's answer."""
+    return is_transport_timeout(error) or is_transport_error(error)
+
+
+def record_is_transport_error(rec: dict) -> bool:
+    return is_transport_error(_record_error(rec))
+
+
+def record_is_transport_failure(rec: dict) -> bool:
+    return is_transport_failure(_record_error(rec))
 
 
 def timeout_for_cap(max_tokens: int) -> int:
@@ -97,7 +172,8 @@ def declared_max_tokens(entry: dict) -> int | None:
     at the 120 s default and every long v2 answer timed out.
     """
     for cap in ((entry.get("openai_extra_body") or {}).get("max_tokens"),
-                entry.get("cli_max_output_tokens")):
+                entry.get("cli_max_output_tokens"),
+                entry.get("anthropic_max_tokens")):
         if isinstance(cap, int) and not isinstance(cap, bool) and cap > 0:
             return cap
     return None
@@ -108,6 +184,13 @@ def timeout_for_entry(entry: dict, fallback: int) -> int:
 
     Sized from the declared ceiling when there is one; `fallback` (the command's
     historical default) when the player declares none. Never below `fallback`.
+    An entry may also declare `task_timeout_s` directly: an agentic player runs many
+    tool turns per task, so no output ceiling expresses its wall clock (measured
+    2026-10-17: every agentic table task hit the 120 s default). The largest wins.
     """
     cap = declared_max_tokens(entry)
-    return max(fallback, timeout_for_cap(cap)) if cap else fallback
+    need = max(fallback, timeout_for_cap(cap)) if cap else fallback
+    declared = entry.get("task_timeout_s")
+    if isinstance(declared, int) and not isinstance(declared, bool) and declared > 0:
+        need = max(need, declared)
+    return need

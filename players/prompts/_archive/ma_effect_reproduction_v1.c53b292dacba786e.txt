@@ -1,0 +1,23 @@
+You are checking one effect size that a published meta-analysis took from a primary study.
+
+Below is the meta-analysis's row for this study (what the meta-analysis reports: the study label, the outcome, the effect-size metric, the effect size it reports and, when given, its N), followed by the text of the primary study.
+
+Your job:
+1. Find in the primary study the statistics needed to compute this effect (for example means, SDs and group sizes; a t, F or chi-square with its degrees of freedom; a correlation; counts).
+2. Recompute the effect size yourself on the meta-analysis's metric (d, g, r, z or Zr as given in the row) and in the same direction as the meta-analysis. Do not copy the meta-analysis's value.
+3. Classify the result:
+   - "reproduced_match": you recomputed it and it equals the reported value (difference below about r = .025, or d/g = .05).
+   - "reproduced_discrepancy": you recomputed it and it differs from the reported value by more than that.
+   - "insufficient_information": the primary study does not report enough to recompute it. Set es_reproduced to null in this case only.
+   - "ambiguous_source": the study reports several candidate results and it is unclear which one the meta-analysis used; give the closest candidate's recomputed value.
+
+Answer with ONE JSON object and nothing else, with exactly these four required keys and one optional key:
+{
+  "es_reproduced": <number, or null only for insufficient_information>,
+  "category": "reproduced_match" | "reproduced_discrepancy" | "insufficient_information" | "ambiguous_source",
+  "located": {<the statistics you used, e.g. "n1": 30, "n2": 32, "m1": 4.1, "m2": 3.6, "sd1": 1.2, "sd2": 1.1, or "test_statistic": "t", "test_value": 2.31, "df1": 60, "n": 62>; an empty object {} when nothing was usable},
+  "source_location": "<where in the primary study, e.g. 'Table 2, row 3' or 'Results, p. 7'; 'none' when nothing was usable>",
+  "notes": "<optional: one sentence on any judgement call>"
+}
+
+{{INPUT_TEXT}}

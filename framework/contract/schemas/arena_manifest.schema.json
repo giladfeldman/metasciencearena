@@ -37,6 +37,11 @@
     "owner": {
       "type": "string"
     },
+    "unlisted": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The reason this arena is kept off the public hub index (leaderboard-app/scripts/lib/listing.mjs). Absent = listed."
+    },
     "license": {
       "type": "string"
     },
@@ -48,10 +53,34 @@
       "type": "string",
       "description": "Must match the leaf's output_to_judge."
     },
+    "runner": {
+      "type": "string",
+      "enum": ["container-required", "exemptions-allowed"],
+      "description": "Run-environment policy (schema v12, framework/container.py). container-required: every player must run in the pinned runner image; a player that cannot is refused before the first task. exemptions-allowed (the default when absent): a player of a NAMED exempt adapter class runs on the host and its env record says isolation host-exempt."
+    },
+    "pass_bars": {
+      "type": "object",
+      "description": "Pre-registered pass bars, written and committed BEFORE any player is scored (owner decision 2026-10-14: bars met -> continue; a bar missed -> stop and ask the owner). Evaluated by the arena's tools/check_bars.py against a run."
+    },
     "min_ranked_n": {
       "type": "integer",
       "minimum": 1,
       "description": "Optional (2026-06-13 fairness handoff §E). Minimum size of the COMMON task set every ranked player shares, below which the leaderboard flags the headline ranking 'insufficient sample, not ranked'. Guards tiny synthetic-only splits (e.g. the table arena's 2 docs) from being read as a real ranking."
+    },
+    "data_tiers": {
+      "type": "object",
+      "description": "Optional (2026-10-19). Board display per DATA TIER, for a task set that lists one in task_sets/<v>/tiers.jsonl: each tier is its own board, never pooled (framework/data_tiers.py, leaderboard-app/scripts/lib/data-tiers.mjs). Keys are tier ids, in display order. score_label null = the tier publishes no score.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["label", "score_label"],
+        "additionalProperties": false,
+        "properties": {
+          "label": {"type": "string", "minLength": 1},
+          "score_label": {"type": ["string", "null"], "minLength": 1},
+          "score_term": {"type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "Glossary term id (leaderboard-app/lib/glossary.ts) the tier board's score column uses; default the arena's primary column id."},
+          "note": {"type": "string"}
+        }
+      }
     },
     "difficulty_axes": {
       "type": "array",

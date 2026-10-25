@@ -1,0 +1,76 @@
+# Revealed split of citation-claim-fidelity-v1: hand-written, ENTIRELY FICTIONAL
+# examples. The studies, authors and numbers are invented; no real article text
+# is in this repository (custody rule). They show the task and every item type;
+# the real benchmark is the private split, read from article custody.
+#
+# gold: consistent | contradicts | silent | not_consistent (either contradicts
+# or silent is correct: a misrepresented finding or a wrong paper).
+tasks:
+  - key: sleep-recall
+    title: "Partial sleep restriction and next-day word recall in university students"
+    year: 2031
+    abstract: >-
+      We examined whether restricting sleep to five hours for one night affects
+      verbal memory. In a randomized laboratory experiment, 84 undergraduate
+      students were assigned to a restricted-sleep or a normal-sleep condition
+      and completed a free-recall task the next morning. Students in the
+      restricted-sleep condition recalled fewer words than students in the
+      normal-sleep condition (d = 0.45). Self-reported mood did not differ
+      between conditions. The effect may not generalize beyond young adults.
+    items:
+      - {sentence: "A night of restricted sleep reduced next-day word recall among undergraduates (Okafor & Lind, 2031).", type: ORIG-consistent, gold: consistent}
+      - {sentence: "A night of restricted sleep improved next-day word recall among undergraduates (Okafor & Lind, 2031).", type: A4, gold: contradicts}
+      - {sentence: "Restricted sleep reduces verbal memory in adults of all ages (Okafor & Lind, 2031).", type: A2, gold: contradicts}
+  - key: sleep-recall-2
+    title: "Partial sleep restriction and next-day word recall in university students"
+    year: 2031
+    abstract: >-
+      We examined whether restricting sleep to five hours for one night affects
+      verbal memory. In a randomized laboratory experiment, 84 undergraduate
+      students were assigned to a restricted-sleep or a normal-sleep condition
+      and completed a free-recall task the next morning. Students in the
+      restricted-sleep condition recalled fewer words than students in the
+      normal-sleep condition (d = 0.45). Self-reported mood did not differ
+      between conditions. The effect may not generalize beyond young adults.
+    items:
+      - {sentence: "In a correlational survey of 84 students, shorter sleep was linked to poorer recall (Okafor & Lind, 2031).", type: C3, gold: contradicts}
+      - {sentence: "Sleep restriction lowered recall by a large margin, d = 0.95 (Okafor & Lind, 2031).", type: C1, gold: contradicts}
+      - {sentence: "Mood was unaffected by one night of shortened sleep (Okafor & Lind, 2031).", type: PARA, gold: consistent}
+  - key: nudge-donations
+    title: "Default options and charitable giving: a field experiment"
+    year: 2029
+    abstract: >-
+      Defaults are thought to change behavior by making one option effortless.
+      We ran a field experiment with 2,400 online donors who were shown either
+      a pre-selected monthly donation or no pre-selection. The pre-selected
+      default increased the share of donors choosing a monthly gift from 18% to
+      31%, but did not change the average amount donated. We discuss when
+      defaults may backfire.
+    items:
+      - {sentence: "Pre-selecting a monthly donation raised the share of monthly donors (Varga, 2029).", type: ORIG-consistent, gold: consistent}
+      - {sentence: "Pre-selecting a monthly donation increased the average amount donated (Varga, 2029).", type: A1, gold: not_consistent}
+      - {sentence: "Defaults are widely used in public-policy design (Varga, 2029).", type: ORIG-silent, gold: silent}
+  - key: nudge-donations-wrong-paper
+    title: "Bilingual exposure and attention switching in toddlers"
+    year: 2030
+    abstract: >-
+      We tested whether everyday exposure to two languages relates to attention
+      switching in 120 toddlers aged 18 to 30 months. Toddlers with more
+      bilingual exposure switched attention faster in an eye-tracking task, and
+      the association held after adjusting for parental education.
+    items:
+      - {sentence: "Pre-selecting a monthly donation raised the share of monthly donors (Varga, 2029).", type: B3, gold: not_consistent}
+  - key: hedged-null
+    title: "No evidence that brief gratitude journaling improves exam performance"
+    year: 2032
+    abstract: >-
+      Gratitude interventions have been proposed to improve academic outcomes.
+      We preregistered a randomized trial with 412 secondary-school students who
+      kept a gratitude journal or a neutral diary for three weeks. Exam scores
+      did not differ between groups, and the confidence interval excluded
+      effects larger than d = 0.15. Gratitude journaling might still benefit
+      well-being, which we did not measure.
+    items:
+      - {sentence: "A preregistered trial found no effect of gratitude journaling on exam scores (Haddad et al., 2032).", type: ORIG-consistent, gold: consistent}
+      - {sentence: "Gratitude journaling might help students' well-being, although this has not been tested (Haddad et al., 2032).", type: ORIG-consistent, gold: consistent}
+      - {sentence: "Gratitude journaling improved exam scores in a preregistered trial (Haddad et al., 2032).", type: A4, gold: contradicts}

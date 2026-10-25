@@ -17,11 +17,13 @@ ALLOWED_CONFIDENCE = {"native", "implicit-1.0", "derived"}
 # may; the site renders a "COI" badge from that flag and links it to
 # /about#conflict-of-interest. The flag is what the site reads; this list is only
 # the cross-check that stops a new docpluck/escimate/... entry shipping unflagged.
+# `effectcheck` is the R engine inside every escimate-* pipeline player of
+# stats-from-pdf-v1; those entries declare instrument `effectcheck-<ver>-on-<extractor>`.
 # Families with no registry entry yet (citelink, referencecheck,
 # torturedcheck, repliscan, articlefinder) are listed on purpose: they are the
 # maintainer's tools most likely to be entered next (see
 # docs/design/2026-09-arena-expansion/), and must arrive flagged.
-MAINTAINER_TOOL_FAMILIES = ("docpluck", "escimate", "scimeto", "spss2rmarkdown",
+MAINTAINER_TOOL_FAMILIES = ("docpluck", "escimate", "effectcheck", "scimeto", "spss2rmarkdown",
                             "citelink", "referencecheck",
                             "torturedcheck", "repliscan", "articlefinder")
 

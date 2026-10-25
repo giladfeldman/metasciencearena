@@ -138,7 +138,10 @@ scipy==1.17.1
 # docpluck silently reads the unrepaired bytes, so pypdf is pinned below.
 # Extraction changes: tables 2.4.18 -> 2.4.21, normalization 1.9.70 -> 1.9.71.
 # ALSO BUMP the operator's dependency map (arena -> docpluck `pin:`) in the same pass.
-docpluck @ git+https://github.com/giladfeldman/docpluck.git@60517fa80200e7854b7d99fd9519d5be12fb40d0
+# 2.4.154 (2026-10-24, tag v2.4.154 peeled = 15f4d69f): no new runtime dependency (pyproject
+# changes only its version); extraction changes: normalization 1.9.71 -> 1.9.75, sections 1.2.6,
+# tables -> 2.4.25. Boards re-run in the same pass.
+docpluck @ git+https://github.com/giladfeldman/docpluck.git@15f4d69f8ce3e89958ebf58a440268729d2047ad
 pypdf==6.19.0
 
 # --- optional extra: pdf-docling -------------------------------------------
@@ -153,3 +156,11 @@ pypdf==6.19.0
 # docling-ibm-models==3.14.0
 # docling-parse==7.14.0
 # torch==2.13.0+cpu
+
+# framework/pdfforge (PDF universe, 2026-10-17): pikepdf rewrites font maps (ToUnicode,
+# /Differences) so a page shows one glyph while its text layer says another; fonttools
+# builds the broken fonts; pypdfium2 renders pages for the per-PDF manifest proof.
+pikepdf==10.17.0
+fonttools==4.67.0
+pypdfium2==5.9.0
+pillow==12.2.0

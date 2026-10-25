@@ -35,6 +35,7 @@ from framework.player_adapter import build_adapter, resolve_rscript_binary
 from framework.registry import load_registry
 from framework.storage import RunRecordWriter
 from framework import adherence
+from framework import container, run_env
 from framework import hermetic, host, identity, timeouts
 
 logger = logging.getLogger(__name__)
@@ -291,7 +292,36 @@ def run_tournament(
                     "landing (C11). Omit --timeout to size it automatically.",
                     timeout_s, need, entry["player_id"], timeouts.declared_max_tokens(entry))
 
-    adapters = [(entry, build_adapter(entry)) for entry in selected]
+    # WHERE EACH PLAYER RUNS (schema v12, CC8). A containerisable player's
+    # adapter runs in the pinned runner image, one container per task, with
+    # only the task mounted and egress limited to its provider; there is no
+    # host fallback (a down Docker raises RunnerUnavailable, it never silently
+    # runs the player here). Everything else runs on the host under a NAMED
+    # exemption, and its env record says so. An arena may refuse exemptions
+    # outright with `runner: container-required` in arena.yaml.
+    gen_fp = next((v.get("generator_fingerprint") for v in arena["manifest"].get("task_set_versions", [])
+                   if v.get("version") == task_set_version), None)
+    require_container = arena["manifest"].get("runner") == "container-required"
+    runner_info = egress_info = None
+    adapters = []
+    env_shas: dict[str, str] = {}
+    for entry in selected:
+        where = container.placement(entry)
+        if where == "container":
+            if runner_info is None:
+                runner_info = container.ensure_image()
+                egress_info = container.ensure_egress_image()
+            adapters.append((entry, container.ContainerizedAdapter(entry, runner_info)))
+            env = container.container_env(entry, runner_info, egress_info, gen_fp)
+        else:
+            if require_container:
+                raise container.RunnerUnavailable(
+                    f"{arena['arena_id']} declares runner: container-required, and "
+                    f"{entry['player_id']} cannot run in the runner image "
+                    f"({container.exemption_reason(entry)}).")
+            adapters.append((entry, build_adapter(entry)))
+            env = container.host_env(entry, gen_fp)
+        env_shas[entry["player_id"]] = run_env.store_env(env)
     for _, adapter in adapters:
         adapter.prepare()
     # A declared label the running tool contradicts would be refused at publish
@@ -341,7 +371,9 @@ def run_tournament(
                         record = _play_one(envelope, gt, entry, adapter, scorer_mod, output_validator,
                                            clocks[entry["player_id"]],
                                            arena["arena_id"], trials=n_trials, seed=seed, split=split,
-                                           enum_values=output_enum_values)
+                                           enum_values=output_enum_values,
+                                           env_sha=env_shas[entry["player_id"]],
+                                           run_file=Path(output_path))
                         outcome = _record_outcome(record)
                         outcomes[(entry["player_id"], outcome)] += 1
                         if outcome != "ok":
@@ -396,7 +428,10 @@ _EGRESS_ALLOW_ENV = "SCIENCEARENA_ALLOW_HELDOUT_EGRESS"
 _CLOUD_ADAPTER_PREFIXES = ("LlmCli", "LlmPdf", "SubprocessCli", "Http",
                            "RegcheckShim", "WatsonShim", "Scimeto",
                            "OpenAIChatCompletions", "AntigravityCli",
-                           "ModelProxy")
+                           "ModelProxy", "GeminiGenerateContent",
+                           # the agent inside the container talks to Anthropic, and the task's
+                           # PDFs are in the container: cloud, whatever the network lock does
+                           "AgenticContainer", "AnthropicApi")
 
 # Adapter classes REVIEWED and confirmed to keep the task on this machine when no
 # endpoint is declared. This is an allowlist, not a fallback: any registered class
@@ -437,6 +472,14 @@ _LOCAL_ADAPTER_CLASSES: frozenset[str] = frozenset({
     # local subprocess tools
     "AnystyleReferencesAdapter", "CermineReferencesAdapter",
     "PdftotextSubprocessAdapter", "RCliAdapter",
+    # stats-from-pdf-v1 pipelines and metacheck-dev (2026-10-17). REVIEWED, not assumed.
+    # StatsPipelineAdapter raises at construction for any non-loopback grobid_endpoint /
+    # docpluck_url (players/adapters/stats_pipeline.py); effectcheck's check_document keeps
+    # allow_remote = FALSE (its default); the metacheck route passes the local GROBID as
+    # api_url and STOPS rather than use metacheck's hosted bibr default. MetacheckDevAdapter
+    # runs the same players/adapters/metacheck.R as the RCliAdapter metacheck player, against
+    # a different R library. Asserted by players/adapters/tests/test_stats_pipeline_egress.py.
+    "StatsPipelineAdapter", "MetacheckDevAdapter",
     # local GROBID server (endpoint, when declared, decides instead)
     "GrobidTextAdapter", "GrobidSectionsAdapter", "GrobidTablesAdapter",
     "GrobidReferencesAdapter", "GrobidCitationsAdapter",
@@ -672,7 +715,7 @@ def _validate_findings(score: dict, arena_id: str, task_id: str | None) -> None:
 #: from now cannot tell a field's ABSENCE ("that run predates the field") from its
 #: omission ("not applicable to that run") — Codex and Sonnet both flagged this
 #: as the first thing a replication attempt would demand.
-RECORD_SCHEMA_VERSION = 11
+RECORD_SCHEMA_VERSION = 12
 
 
 def _code_version_for(repo_root) -> str | None:
@@ -787,7 +830,8 @@ def _build_response_meta(adapter, entry: dict, visibility: str) -> dict | None:
     # published a version it was not running; a queryable flag makes that drift
     # visible across every record instead of needing a manual diff.
     served = meta.get("served_model")
-    asked = (entry.get("openai_model") or entry.get("player_version") or "").strip()
+    asked = (entry.get("openai_model") or entry.get("anthropic_model")
+             or entry.get("player_version") or "").strip()
     if served and asked:
         meta["model_mismatch"] = served.strip() != asked
 
@@ -936,7 +980,8 @@ def _refuse_version_drift(entry: dict, adapter) -> None:
 
 
 def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validator, timeout_s,
-              arena_id, *, trials, seed, split, enum_values=frozenset()) -> dict:
+              arena_id, *, trials, seed, split, enum_values=frozenset(),
+              env_sha: str | None = None, run_file: Path | None = None) -> dict:
     started = time.monotonic()
     visibility = envelope.get("visibility", "held_out")
     # The answer the schema refused, kept so the violation can be diagnosed
@@ -1024,13 +1069,61 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
         "score": score,
         "task_visibility": visibility,
         "timestamp_utc": _utc_now_iso(),
-        "latency_ms": latency_ms,
     }
+    # An adapter that answers from saved results (Anthropic batch replay) never
+    # waited on the model, so the wall clock here measures a file lookup. Omit the
+    # field rather than publish ~0 ms as the player's speed (2026-10-24 consult).
+    if getattr(adapter, "latency_measured", True):
+        record["latency_ms"] = latency_ms
     if usage:
         record["usage"] = usage
     if rejected_output is not None:
         record["rejected_output"] = rejected_output
     record["schema_version"] = RECORD_SCHEMA_VERSION
+    # WHERE and HOW (schema v12). `env_sha` names the content-addressed run
+    # environment (run_env/envs/), `call_config_sha256` the settings that were on
+    # the wire for this call (run_env/call_configs/), derived from the adapter's
+    # actual request body. Null call_config for a player that made no model
+    # request (a tool, an R script): there is no configuration to record.
+    record["env_sha"] = env_sha
+    try:
+        body = adapter.last_request_body() if hasattr(adapter, "last_request_body") else None
+    except Exception:
+        body = None
+    call_config_sha = None
+    if body:
+        # The FULL sha256 of the LF-normalised template, as the citeclaim library
+        # records it (promptSha256), so a library verdict and a benchmark record
+        # made with the same settings carry the same call_config hash.
+        # provenance.prompt_template_sha256 keeps its historical 16-char prefix.
+        prompt_sha = (run_env.file_sha256(Path(entry["prompt_template_path"]))
+                      if entry.get("prompt_template_path") else None)
+        group_size = None
+        inp = envelope.get("input")
+        if isinstance(inp, dict) and isinstance(inp.get("group_size"), int):
+            group_size = inp["group_size"]
+        call_config_sha = run_env.store_call_config(run_env.build_call_config(
+            entry=entry, body=body, prompt_template_sha256=prompt_sha,
+            timeout_s=timeout_s, group_size=group_size))
+    record["call_config_sha256"] = call_config_sha
+    # The provider's raw answer, kept so a scorer fix can re-score without a new
+    # call. Public tasks: gzipped beside the run file. Held-out tasks: article
+    # custody (the raw answer can quote the real document). Best-effort: a
+    # failure to keep telemetry never fails the task, but it is logged.
+    try:
+        raw = adapter.last_raw_response() if hasattr(adapter, "last_raw_response") else None
+    except Exception:
+        raw = None
+    if raw is not None and run_file is not None:
+        try:
+            run_env.append_raw(
+                run_env.raw_sidecar_path(run_file, held_out=(visibility == "held_out"), arena_id=arena_id),
+                {"run_id": record["run_id"], "task_id": envelope["task_id"],
+                 "player_id": entry["player_id"], "call_config_sha256": call_config_sha,
+                 "raw_response": raw})
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("could not store the raw response for %s/%s: %s",
+                           entry["player_id"], envelope["task_id"], exc)
     # STRUCTURAL ADHERENCE, stamped at WRITE time (schema v8). Everything here is
     # derivable from `score.breakdown.error` for a public record, and this block
     # exists for the one case where it is not: `holdout.sanitize_error` reduces a
@@ -1134,8 +1227,12 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
         # see, which is why an adapter may now declare the argv it actually
         # spawned. Found 2026-08-27 by inspecting a smoke record before spending
         # a 41-record re-run on it.
-        "containment": hermetic.record_containment(
-            entry.get("cli_command") or getattr(adapter, "containment_argv", None)),
+        # An adapter whose isolation is not the CLI flags (the agentic container) describes
+        # itself; reading its cli_command here stamped the single-shot HERMETIC block on
+        # container agents that have Bash and R (found 2026-10-17).
+        "containment": (adapter.containment_block() if hasattr(adapter, "containment_block")
+                        else hermetic.record_containment(
+                            entry.get("cli_command") or getattr(adapter, "containment_argv", None))),
     }
     # Record which benchmark suite this task belongs to (source of truth is the
     # envelope). Omitted for legacy single-suite arenas that don't tag `split`.

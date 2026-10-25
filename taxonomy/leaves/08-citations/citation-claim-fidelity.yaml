@@ -1,0 +1,30 @@
+id: citation-claim-fidelity
+name: Citation claim fidelity (does the citing sentence match the cited abstract?)
+lifecycle_stage: 08-citations
+order: 30
+description: |
+  Given the abstract of a cited source and one or more manuscript sentences that
+  cite it, judge for each sentence what the abstract shows about the claim the
+  sentence attributes to the source: consistent, contradicts, or silent (the
+  abstract alone cannot settle it). Evidence-scoped by design: an abstract can
+  show a mismatch, it cannot show that the full paper does not support a claim.
+  Real open-access citing sentences and abstracts, with minimal-edit
+  perturbations mapped to the MetaMisCitations taxonomy (A4 reversal, A2
+  overgeneralisation, C1 quantitative, C3 method, A1 misrepresented finding,
+  B3 wrong paper) and clean traps (faithful paraphrase, hedged, negative
+  findings, reviews, abstract-silent-but-true).
+input_artifact: citation_context_window
+output_to_judge: list_of_claim_fidelity_verdicts
+existing_solutions:
+  - {id: citeclaim, type: tool, owner: in-house}
+  - {id: gemini-flash, type: ai-model, owner: google}
+  - {id: claude-baseline, type: ai-model, owner: anthropic}
+ground_truth_feasibility: medium
+arena_status: draft
+scope_tier: A
+notes: |
+  Arena: citation-claim-fidelity-v1. Gold for real sentences is two-labeler
+  (Claude Opus + Sonnet) agreement and perturbations are Claude-generated and
+  Claude-validated, so Claude players carry a conflict of interest here.
+  Human-labelled real data (Zhang & Abernethy 2024; SciFact; CITEINTEGRITY) is a
+  later tier. citeclaim is a maintainer tool (conflict of interest).

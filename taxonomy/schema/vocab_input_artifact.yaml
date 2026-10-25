@@ -49,3 +49,7 @@
   description: "A reported correlation matrix {labels, values, decimals, n}, off-diagonals rounded to the stated precision."
 - id: manuscript_and_code_repository
   description: "A paper's methods and results text plus the file listing and contents of its analysis-code repository."
+- id: meta_analysis_with_primary_study
+  description: "A meta-analysis article and one of its primary studies (as text and as PDFs), plus the meta-analysis's row for that study: {text, row, documents}."
+- id: meta_analysis_article
+  description: "A meta-analysis article (as text and as a PDF) plus what to extract or answer about it: {text, target | items, documents}."

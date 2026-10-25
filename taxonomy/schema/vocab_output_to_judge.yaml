@@ -61,3 +61,11 @@
   description: "Per mismatch: {analysis_id, kind: reported_not_implemented | implemented_differently | implemented_not_reported, paper_span, code_location, confidence}."
 - id: review_flaw_report
   description: "A written review plus its itemised flaws {flaw_id, category, location, claim, confidence}, matched against the injected flaw list."
+- id: list_of_claim_fidelity_verdicts
+  description: "Per citing sentence: {id, verdict: consistent | contradicts | silent, evidence_quote (verbatim span of the cited abstract), reason}. Evidence-scoped: the verdict says what the abstract shows, not whether the paper supports the claim."
+- id: reproduced_effect_size_record
+  description: "One recomputed effect size with its located inputs and a reproducibility category: {es_reproduced, category, located, source_location}."
+- id: meta_analysis_table_and_pooled_result
+  description: "A meta-analysis's per-study effect table and its re-run pooled result: {studies: [{label, es, se, n}], pooled: {estimate, ci_lb, ci_ub, tau2, i2, k, model}}."
+- id: coded_item_answers
+  description: "Answers to a coding sheet's items about one article: {answers: {item_id: code}}."

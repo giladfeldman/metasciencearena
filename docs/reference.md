@@ -50,6 +50,7 @@ Prints every registry entry: `player_id`, adapter class, confidence strategy, de
 | `--split revealed\|private` | `revealed` | which suite to generate |
 | `--seed N` | from `arena.yaml` | override the generator seed |
 | `--max-tasks N` | all | stop after N tasks |
+| `--tasks-file FILE` | all | play only the task_ids listed in FILE (one per line, `#` comments); exits 2 if a listed id produced no record |
 | `--public-only` | implied by `--split revealed` | skip tasks whose `visibility` is not public |
 | `--include-held-out` | off | opt out of the safe default and play held-out tasks in a revealed run |
 | `--held-out-only` | off | keep only held-out tasks |
@@ -69,10 +70,12 @@ back into the target file; sleeps between rounds so provider rate limits recover
 | `--player P` | required | one `player_id` |
 | `--tag NAME` | `run` | must match the target file |
 | `--split`, `--seed` | `revealed`, arena seed | as for `run` |
-| `--timeout S` | `300` | per-task timeout |
+| `--timeout S` | sized from the player's declared `max_tokens`, at least `300` | per-task timeout |
 | `--max-rounds N` | `6` | retry rounds this invocation |
 | `--cooldown S` | `150` | seconds between rounds |
 | `--include-truncated` | off | also re-play answers cut off at the output ceiling (`finish_reason = "length"`) |
+| `--resample-model-output-errors` | off | also re-play an errored task whose call returned the model's answer (schema-rejected, or unparseable with its raw response kept). Off by default since 2026-10-19: re-playing an answer re-samples the model until its format parses, which flatters its score, so by default only calls that got no answer (429, 5xx, timeouts) are re-played |
+| `--keep-model-output-errors` | — | accepted for older scripts; it is now the default and does nothing |
 
 Exits 1 when tasks are retired as hopeless or remain truncated.
 
@@ -87,6 +90,7 @@ the leaderboard table; exits 1 when there are no runs.
 |---|---|---|
 | `--arena ID`, `--task-set V` | required | |
 | `--player P`, `--player-version X` | required | the focal player |
+| `--tier ID` | none | data tier to report on; required for a task set that lists tiers in `task_sets/<v>/tiers.jsonl` (scores are per tier, never pooled) |
 | `--rebuild-tasks` | off | re-run the generator so the bundle can include difficulty breakdowns, reproduce envelopes and gold |
 | `--seed N` | `0` | generator seed for `--rebuild-tasks` |
 | `--split` | `revealed` | suite to rebuild |
@@ -108,6 +112,22 @@ envelopes and a `README.md`.
 | `--write-fingerprints` | record the generator fingerprint of every frozen task set lacking one (never overwrites) |
 
 With none of the four check flags, all four run. Exits 1 if any fails.
+
+### `metasciencearena contributed add`
+
+```text
+metasciencearena contributed add ARENA VERSION [--dry-run]
+```
+
+| Argument / flag | Meaning |
+|---|---|
+| `ARENA` | arena id |
+| `VERSION` | a NEW task-set version the arena's generator has just minted; it must already exist under `task_sets/` and in `arena.yaml` |
+| `--dry-run` | report what would be added; write nothing |
+
+Adds accepted community-contributed tasks to that version and prints how many were added and
+the sha256 of the contributed set. It never runs implicitly, and it refuses frozen versions,
+versions that already have results, and study arenas.
 
 ### `metasciencearena export-inspect` / `metasciencearena export-kaggle`
 
@@ -138,6 +158,11 @@ Benchmarks `@kbench.task` module for the arena's public split, plus its tasks as
 | `ARENA_RSCRIPT` | `Rscript` on PATH | Rscript used by the `code-translation-r-v1` scorer |
 | `DOCLING_ARTIFACTS_PATH` | Docling's cache | pre-fetched Docling model weights |
 | `SCIENCEARENA_MINERU_HOME` | `<temp>/sciencearena-mineru-home` | MinerU's server home for the MinerU players (outside the repository: it stores parses) |
+| `SCIENCEARENA_PDFFORGE_CACHE` | `%LOCALAPPDATA%/sciencearena/pdfforge_cache` (else `~/.cache/...`) | cache of generated synthetic PDFs for the PDF-universe arenas (outside the repository on purpose) |
+| `SCIENCEARENA_PDFU_PRIVATE_SEED` | `arenas_private/pdf-universe/.private_seed` | integer seed of the private PDF-universe split; without either, only the revealed split can be built |
+| `DOCPLUCK_INTERNAL_TOKEN` | `tmp/docpluck_local_token` | token for the LOCAL docpluck service, used by `StatsPipelineAdapter` when its extractor is docpluck |
+| `METACHECK_DEV_RLIB` | a per-user R library path | R library holding metacheck's development build, used by `MetacheckDevAdapter` |
+| `R_LIBS` | the R default | prepended with `METACHECK_DEV_RLIB` by `MetacheckDevAdapter` when it starts Rscript |
 | `SCIENCEARENA_TOOL_ENV_<TOOL>` | `players/tool_envs/<tool>/.venv` | interpreter for an out-of-process tool worker (`DOCLING`, `MARKER`, `MINERU`) |
 
 ### Provider credentials (OpenAI-compatible players)
@@ -157,6 +182,9 @@ must be listed in it.
 | Mistral | `MISTRAL_BASE_URL` | `MISTRAL_API_KEY` | `MISTRAL_MODELS` |
 | Hugging Face | `HF_BASE_URL` | `HF_API_KEY` | `HF_MODELS` |
 
+`GeminiGenerateContentAdapter` reads the key from the variable named by `gemini_api_key_env`
+(usually `GEMINI_API_KEY`).
+
 `ScimetoReplicationApiAdapter` reads the variables named by `api_url_env` and `api_key_env`
 (`SCIMETO_API_URL`, `SCIMETO_API_KEY`; the key is optional, the URL must be loopback unless
 `SCIENCEARENA_ALLOW_REMOTE=1`).
@@ -173,6 +201,7 @@ must be listed in it.
 | `REGCHECK_SHIM_PORT` | regcheck shim | port (default 8765) |
 | `REGCHECK_SHIM_NO_ST` | regcheck shim | set: skip sentence-transformers, use hashing embeddings |
 | `MODEL_PROXY_URL`, `MODEL_PROXY_API_KEY`, `LLMS_AVAILABLE` | `ModelProxyAdapter` (Kaggle proxy; no registry entry) | proxy URL, token, and the funded-model list |
+| `CLAUDE_CODE_OAUTH_TOKEN` | `AgenticContainerAdapter` | the Claude subscription token, passed into the container by name only (never an API key; `ANTHROPIC_API_KEY` and friends are removed from the container's environment) |
 
 Agentic CLI players use their own login; our `SCIENCEARENA_*` variables are stripped from their
 environment.
@@ -184,12 +213,17 @@ The `adapter_class` values used by the bundled registry:
 | Class | What it drives |
 |---|---|
 | `OpenAIChatCompletionsAdapter` | hosted OpenAI-compatible `/chat/completions` endpoints |
+| `AnthropicApiAdapter` | the Anthropic Messages API, no tools or system prompt; effort required per entry and recorded in `response_meta.sampling`; live, batch-plan and batch-replay modes behind a local spend ledger |
+| `GeminiGenerateContentAdapter` | Google Gemini's native `generateContent` API (seed, thinking level, served `modelVersion` recorded) |
 | `LocalGgufAdapter` | a local llama-server; records the GGUF file's SHA-256 |
 | `SubprocessCliAdapter` | an agentic CLI (Claude Code, Codex, Gemini, Cursor): templated prompt in, JSON out, hermetically contained |
 | `AntigravityCliAdapter` | the Antigravity `agy` CLI |
+| `AgenticContainerAdapter` | Claude Code with Bash/R/Python inside a locked Docker container, one fresh container per task (`framework.agentic_container`); counts as cloud for the held-out egress gate |
 | `LlmCliPdfAdapter`, `LlmCliPdfSectionsAdapter`, `LlmCliPdfTablesAdapter` | an LLM CLI reading a PDF for text / sections / tables |
 | `LlmPdfReferencesAdapter`, `LlmPdfCitationsAdapter` | an LLM reading a PDF for references / citations |
 | `RCliAdapter` | an R script via Rscript, JSON on stdout (statcheck, metacheck, …) |
+| `StatsPipelineAdapter` | a PDF extractor (pypdf, pdftotext, GROBID, docpluck, ...) feeding an R statistics checker (statcheck, effectcheck, metacheck); each (extractor, checker) pair is one registry entry and every tool version is recorded |
+| `MetacheckDevAdapter` | the metacheck player run against metacheck's development build (needs `METACHECK_DEV_RLIB`) |
 | `HttpAdapter` | a local HTTP service (e.g. the ESCImate checker) |
 | `ScimetoReplicationApiAdapter` | a local SciMeto API |
 | `RegcheckShimAdapter` | regcheck through a local OpenAI-compatible shim |
@@ -242,7 +276,12 @@ Shipped as package data under `framework/contract/schemas/`.
 | `instrument` | which scoring formula computed the number |
 | `adherence` | whether the output schema accepted the answer (separate from whether it was right) |
 | `player_identity` | the inference configuration that produced the answer |
-| `response_meta` | provider metadata such as `finish_reason` |
+| `response_meta` | provider metadata such as `finish_reason` and the served model |
+| `env_sha` | (v12) SHA-256 of the run environment stored once at `run_env/envs/<env_sha>.json`: runner image, its full `pip freeze`, egress proxy, network policy, resource limits, orchestrator, generator fingerprint; or `isolation: host-exempt` with the named exemption. Required on every v12 record |
+| `call_config_sha256` | (v12) SHA-256 of the call settings stored at `run_env/call_configs/<sha>.json`: every knob that can change a model's answer, read off the request actually sent (`n/a` where a provider has none); null when no model request was made |
+
+From v12 the provider's raw response is kept too: `<run file>.raw.jsonl.gz` beside the run file
+for public tasks, and in article custody for held-out tasks (it can quote the real document).
 
 ### Arena manifest (`arena_manifest.schema.json`)
 
@@ -251,8 +290,11 @@ Required: `arena_id`, `taxonomy_leaf_id`, `version` (semver of the arena code), 
 version ladder; which one is live is decided by each entry's status, not its position),
 `display_columns` (leaderboard columns projected from run records) and `tier_pivot`
 (per-tier panel semantics). Optional: `title`, `min_ranked_n` (smallest common task set
-below which a ranking is flagged insufficient), `benchmark_splits` (the revealed/private policy)
-and `error_categories` (failure modes `scorer.score()` may report). `contract/README.md` is
+below which a ranking is flagged insufficient), `benchmark_splits` (the revealed/private policy),
+`unlisted` (a reason string; the arena is kept off the public arenas index, e.g. an owner-gated study not yet registered), `data_tiers` (board display per data tier for a task set that lists tiers; each tier is its own board, never pooled), `error_categories` (failure modes `scorer.score()` may report), `runner` (`container-required`
+refuses any player that cannot run in the pinned runner image; `exemptions-allowed`, the
+default, lets a named exempt adapter class run on the host) and `pass_bars` (pre-registered
+pass criteria, committed before any player is scored). `contract/README.md` is
 the prose specification.
 
 ## Python API
@@ -285,7 +327,7 @@ and the constants `DEFAULT_ALPHA`, `DEFAULT_RESAMPLES`, `MIN_TASKS_FOR_TESTING`.
 `public_manifest(repo_root)`, `published_arena_ids(arenas_root)`, `classify_arenas`,
 `ArenaPublishability`, `scan_for_leaks(repo_root, files)`, `held_out_shingles`, `code_only`,
 `imports_a_private_package`, and the rule tables `PUBLIC_TOP_LEVEL`, `PUBLIC_ARENA_GLOBS`,
-`MIRROR_RENAMES`, `PRIVATE_GOLD_MARKERS`, `PRIVATE_PACKAGES`, `PRIVATE_TEST_FILES`,
+`MIRROR_RENAMES`, `PRIVATE_GOLD_MARKERS`, `ARENA_EXTRA_GOLD_MARKERS`, `PRIVATE_PACKAGES`, `PRIVATE_TEST_FILES`,
 `PUBLISHED_ARENAS_FILE`.
 
 Other modules used in the README examples: `framework.runner` (`run_tournament`,

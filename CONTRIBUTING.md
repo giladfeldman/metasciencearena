@@ -14,6 +14,14 @@ Open an issue at <https://github.com/giladfeldman/metasciencearena/issues> with:
 
 Please do not paste article text or PDFs into issues; cite the DOI.
 
+## Flagging a test, sending tests, proposing an arena
+
+Signed in with ORCID at <https://metasciencearena.app/contribute> you can flag the exact part of a
+test you think is wrong (every block of a test page has a Flag button), send test material in your
+own format (spreadsheets, a GitHub or OSF link, or a description — we translate it), or propose a
+new arena. A person reads every contribution and replies with a reason; accepted tests enter the
+arena's next task-set version, labelled as contributed.
+
 ## Adding a player
 
 You do not need to change this package: write an adapter in your own package and expose it via

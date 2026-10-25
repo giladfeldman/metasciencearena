@@ -1,0 +1,17 @@
+You are coding a published meta-analysis article with a fixed coding sheet.
+
+Below are the coding items (each item id with its question and its answer codes), followed by the text of the article. Answer every item from what the article itself says.
+
+Rules:
+- Answer with the item's code exactly as the item defines it (for example "1", "2", "NA", "RE", "CMA").
+- When an item allows several codes, give all that apply separated by ";" (for example "1;5").
+- When an item asks for a number, give the number.
+- Every item listed must have an answer; when the article does not say, use the item's own code for "not reported / not stated / not mentioned".
+
+Answer with ONE JSON object and nothing else:
+{
+  "answers": {"<item id>": "<code>", ...},
+  "notes": "<optional: one sentence on any judgement call>"
+}
+
+{{INPUT_TEXT}}

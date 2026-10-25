@@ -148,6 +148,14 @@ DOI_BASELINE: dict[str, int] = {
     "players/prompts/open_practices_repro.txt": 3,
     "players/prompts/prereg_extraction.txt": 1,
     "players/prompts/reference_integrity.txt": 1,
+    # 2026-09-28: synthetic reference DOI on the Crossref example prefix (cannot resolve)
+    "framework/paperforge/docbuild.py": 1,
+    # 2026-10-20: synthetic reference DOI on the Crossref example prefix 10.5555 (cannot resolve),
+    # built from a seeded random number, in the PDF-universe generator
+    "framework/pdfforge/content.py": 1,
+    "framework/pdfforge/refstyle.py": 1,
+    # 2026-09-28: synthetic reference DOI on the Crossref example prefix (cannot resolve)
+    "framework/tests/test_paperforge.py": 1,
     "taxonomy/leaves/02-preregistration/trial-registration-consistency.yaml": 1,
     "taxonomy/leaves/06-results-reporting/baseline-allocation-plausibility.yaml": 1,
     "taxonomy/leaves/06-results-reporting/correlation-matrix-consistency.yaml": 1,

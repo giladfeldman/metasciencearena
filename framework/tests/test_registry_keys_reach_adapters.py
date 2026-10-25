@@ -85,7 +85,24 @@ CONSUMED_OUTSIDE_THE_ADAPTER = {
     # to run it. `quarantine_released` is the audit record that replaces it.
     "quarantine",
     "quarantine_released",
+    # WALL CLOCK PER TASK (2026-10-17). Read by framework/timeouts.py
+    # (`timeout_for_entry`, which the runner calls for every player), not by an adapter:
+    # an agentic container player runs many tool turns, so no output ceiling expresses
+    # its clock. Asserted by test_a_declared_task_timeout_sets_the_clock below.
+    "task_timeout_s",
+    # PUBLICATION, not execution (2026-10-21). Read by leaderboard-app/scripts/lib/listing.mjs
+    # (`publicRegistry`, called by build-data.mjs): a player of an UNLISTED arena is dropped
+    # from every public registry.yaml and from quarantined-players.json. JavaScript consumer,
+    # exercised by scripts/tests/listing.test.mjs (incl. the real registry).
+    "unlisted_with",
 }
+
+
+def test_a_declared_task_timeout_sets_the_clock():
+    from framework import timeouts
+    assert timeouts.timeout_for_entry({"task_timeout_s": 3600}, 120) == 3600
+    assert timeouts.timeout_for_entry({}, 120) == 120
+    assert timeouts.timeout_for_entry({"task_timeout_s": 60}, 120) == 120   # never below the fallback
 
 
 @pytest.fixture(scope="module")

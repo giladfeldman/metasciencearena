@@ -52,6 +52,15 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 CEILINGS_PATH = REPO / "framework" / "contract" / "provider_ceilings.json"
 
+#: `response_meta.finish_reason` values meaning "stopped at the output ceiling".
+#: OpenAI-compatible providers say "length"; Anthropic (API and Claude CLI) says
+#: "max_tokens". Checking only "length" hid every Claude truncation (2026-10-23).
+TRUNCATED_FINISH_REASONS = frozenset({"length", "max_tokens"})
+
+
+def is_truncated(meta: dict | None) -> bool:
+    return (meta or {}).get("finish_reason") in TRUNCATED_FINISH_REASONS
+
 #: A truncation whose ceiling matched the provider's measured maximum. The model
 #: ran to the most it is allowed to emit and still did not finish: a real property
 #: of the model, not of our configuration.

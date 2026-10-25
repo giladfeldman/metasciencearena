@@ -1,0 +1,18 @@
+You are reproducing one meta-analysis from its published article.
+
+Below is a description of the meta-analysis to reproduce (its outcome, comparison, effect-size metric and number of studies, as far as known, and which studies to extract), followed by the text of the article.
+
+Your job:
+1. Extract the per-study table for THIS meta-analysis from the article (a table, forest plot or appendix): for each study its label as printed (e.g. "Smith et al. (2001)"), its effect size on the article's metric, and its standard error, confidence interval and N when printed.
+   If the description lists specific studies, extract those; otherwise extract every study in the analysis.
+2. Re-run the pooled analysis the article reports (same model: fixed or random effects) from your extracted table, and report your pooled estimate, its 95% CI, tau-squared and I-squared. Report the value YOU compute, not the article's printed value.
+
+Answer with ONE JSON object and nothing else. Both keys are required:
+{
+  "studies": [{"label": "<as printed>", "es": <number or null>, "se": <number or null>, "ci_lb": <number or null>, "ci_ub": <number or null>, "n": <number or null>}, ...],
+  "pooled": {"estimate": <number or null>, "ci_lb": <number or null>, "ci_ub": <number or null>, "tau2": <number or null>, "i2": <number or null>, "k": <integer or null>, "model": "<fixed | random | other>"},
+  "notes": "<optional: one sentence on any judgement call>"
+}
+Use null for a value the article does not let you determine; every study object needs "label" and "es".
+
+{{INPUT_TEXT}}

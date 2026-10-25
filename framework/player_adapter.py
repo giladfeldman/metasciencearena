@@ -372,6 +372,25 @@ class PlayerAdapter(ABC):
         """
         return None
 
+    def last_request_body(self) -> dict | None:
+        """The request body of the most recent model call, minus the prompt text.
+
+        Schema v12 derives the record's ``call_config`` from this: the settings
+        that were ON THE WIRE, not the registry's description of them (the two
+        diverge exactly when ``openai_extra_body`` overrides a default). The
+        messages are replaced by their sha256 so the body carries no task text.
+        Default ``None``: an adapter that sends no model request has none.
+        """
+        return None
+
+    def last_raw_response(self) -> object | None:
+        """The provider's raw parsed response for the most recent call, or None.
+
+        Stored gzipped beside the run file (schema v12) so a scorer fix can
+        re-score without calling the model again. Default ``None``.
+        """
+        return None
+
     def cleanup(self) -> None:
         """One-time teardown (stop server, etc.). Default: no-op."""
 
@@ -896,6 +915,10 @@ ADAPTER_EXTRA_KWARGS = {
     # first runs went out without it: dropped here, both players fell back to a
     # host `anystyle` / `java` that is not installed.
     "docker_container",
+    # stats-from-pdf-v1 pipelines (players/adapters/stats_pipeline.py, 2026-10-17): which
+    # extractor feeds which checker, and the LOCAL service URLs (the adapter refuses any
+    # non-loopback URL, so a YAML edit cannot send a held-out PDF off the machine).
+    "extractor", "checker", "grobid_endpoint", "docpluck_url", "docling_python", "metacheck_lib",
     # OpenAIChatCompletionsAdapter: how a PDF task reaches a text-only chat API
     # ("pdftotext"). Dropped, the adapter JSON-dumped the envelope and the model
     # received a megabyte of base64 instead of the paper (measured 2026-09-28:
@@ -921,9 +944,19 @@ ADAPTER_EXTRA_KWARGS = {
     # models (NVIDIA Nemotron 3.x default it ON, which cost 254s vs 3.7s per task).
     "openai_extra_body",
     "allow_rotating_model",
+    # How an arena-owned prompt is filled ("replace" | "str.format"), schema v12.
+    "prompt_format",
+    # Gemini native generateContent adapter (players/adapters/gemini_native.py).
+    "gemini_model", "gemini_api_key_env", "gemini_temperature", "gemini_seed",
+    "gemini_thinking_level", "gemini_max_output_tokens", "gemini_response_json",
+    "gemini_max_backoff_s",
     # Google Antigravity CLI headless mode (players/adapters/antigravity_cli.py).
     # This is a CLI-agent route, distinct from the legacy Gemini CLI and from
     # direct Gemini API keys.
+    # Anthropic Messages API players (players/adapters/anthropic_api.py) -- the
+    # one approved API exception (owner, 2026-10-23). Effort is required there.
+    "anthropic_model", "anthropic_effort", "anthropic_max_tokens",
+    "anthropic_thinking", "anthropic_output_coercer", "anthropic_document_to_text",
     "agy_model", "agy_effort", "agy_agent", "agy_print_timeout",
     "agy_json_schema", "agy_json_schema_path",
     # Local GGUF player served by llama.cpp llama-server on loopback

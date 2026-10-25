@@ -283,7 +283,7 @@ def test_the_live_registry_still_contains_the_pair_this_gate_watches():
     assert {"escimate", "escimate-0-7-10"} <= ids, (
         "the ESCImate version pair is gone from the registry; this file's "
         "publication gate now has nothing to check.")
-    assert lineage(entries, "escimate") == ["escimate-0-7-10", "escimate"], (
+    assert lineage(entries, "escimate") == ["escimate-0-7-19", "escimate-0-7-10", "escimate"], (
         "the declared ladder changed. Newest first is the contract every "
         "consumer of `lineage()` relies on.")
 

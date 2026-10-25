@@ -8,6 +8,7 @@ must not publish a score under a model name it did not actually run.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -297,9 +298,18 @@ class OpenAIChatCompletionsAdapter(PlayerAdapter):
         openai_extra_body: dict | None = None,
         allow_rotating_model: bool = False,
         document_to_text: str | None = None,
+        prompt_format: str = "replace",
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        #: How the template is filled. "replace" (default, every legacy arena):
+        #: the literal `{{INPUT_TEXT}}` is replaced by the task text. "str.format":
+        #: an ARENA-OWNED prompt (arenas/<id>/prompts/vN.md) with named fields,
+        #: filled from the envelope's `input.prompt_fields` -- the same rendering
+        #: the citeclaim library uses, so both send byte-identical prompts.
+        if prompt_format not in ("replace", "str.format"):
+            raise ValueError(f"unknown prompt_format {prompt_format!r}")
+        self.prompt_format = prompt_format
         #: How a PDF task reaches a model that cannot read a PDF. A chat API takes
         #: text; without this, a document arena's envelope was JSON-dumped into the
         #: prompt -- a megabyte of base64 the model cannot read. "pdftotext" runs
@@ -341,6 +351,8 @@ class OpenAIChatCompletionsAdapter(PlayerAdapter):
         self._last_usage: dict | None = None
         self._last_meta: dict | None = None
         self._last_request_max_tokens: int | None = None
+        self._last_request_body: dict | None = None
+        self._last_raw_response: object | None = None
 
     def prepare(self) -> None:
         if not self.openai_model:
@@ -407,16 +419,27 @@ class OpenAIChatCompletionsAdapter(PlayerAdapter):
         # failed before any request was built must not inherit the PREVIOUS task's
         # ceiling. None here is the honest answer — nothing went on the wire.
         self._last_request_max_tokens = None
+        self._last_request_body = None
+        self._last_raw_response = None
 
         payload = envelope["input"]
-        if (self.document_to_text and isinstance(payload, dict)
+        if self.prompt_format == "str.format":
+            if not isinstance(payload, dict) or not isinstance(payload.get("prompt_fields"), dict):
+                raise RuntimeError(f"{self.player_id}: prompt_format str.format needs input.prompt_fields")
+            input_str = None
+        elif (self.document_to_text and isinstance(payload, dict)
                 and payload.get("document_bytes_b64")):
             input_str = _pdf_to_text(payload["document_bytes_b64"], timeout_s)
         elif isinstance(payload, dict) and "text" in payload:
             input_str = payload["text"]
         else:
             input_str = json.dumps(payload, ensure_ascii=False)
-        prompt = self._template.replace("{{INPUT_TEXT}}", input_str)
+        if self.prompt_format == "str.format":
+            # CRLF -> LF first: a Windows checkout must render the same bytes as
+            # the committed (LF) prompt, or the prompt hash names another prompt.
+            prompt = self._template.replace(chr(13) + chr(10), chr(10)).format(**payload["prompt_fields"])
+        else:
+            prompt = self._template.replace("{{INPUT_TEXT}}", input_str)
 
         # Bounded retry on transient failures. Without it a single burst-limit 429
         # became a permanently errored record, which `aggregate()` excludes from
@@ -451,6 +474,10 @@ class OpenAIChatCompletionsAdapter(PlayerAdapter):
             # YAML: `max_tokens: true` would otherwise be recorded as the ceiling 1.
             self._last_request_max_tokens = (
                 cap if isinstance(cap, int) and not isinstance(cap, bool) else None)
+            self._last_request_body = {k: v for k, v in body.items() if k != "messages"}
+            self._last_request_body["messages_sha256"] = hashlib.sha256(json.dumps(
+                body["messages"], ensure_ascii=False, sort_keys=True, separators=(",", ":")
+            ).encode("utf-8")).hexdigest()
             response = requests.post(
                 self._url,
                 headers={
@@ -509,6 +536,10 @@ class OpenAIChatCompletionsAdapter(PlayerAdapter):
         # (Fable 5 cross-review, 2026-08-15.)
         self._last_usage = _usage_from_response(response)
         self._last_meta = _response_meta(response, attempt)
+        try:
+            self._last_raw_response = response.json()
+        except Exception:
+            self._last_raw_response = {"non_json_text": (getattr(response, "text", "") or "")[:200000]}
         content = _chat_content_from_response(response, self.player_id)
         return _extract_json_value(content)
 
@@ -521,6 +552,12 @@ class OpenAIChatCompletionsAdapter(PlayerAdapter):
 
     def last_response_meta(self) -> dict | None:
         return self._last_meta
+
+    def last_request_body(self) -> dict | None:
+        return self._last_request_body
+
+    def last_raw_response(self) -> object | None:
+        return self._last_raw_response
 
     def resolved_tool_version(self) -> str | None:
         return self.openai_model

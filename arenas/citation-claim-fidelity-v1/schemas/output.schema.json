@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "citation-claim-fidelity-v1 player output",
+  "description": "One evidence-scoped verdict per numbered sentence. Extra keys are tolerated (the answer is scored, not its format); a missing item or a verdict outside the scheme scores as no verdict for that sentence.",
+  "type": "object",
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "verdict"],
+        "properties": {
+          "id": {"type": ["integer", "string"], "description": "The sentence number."},
+          "verdict": {"type": "string", "description": "consistent | contradicts | silent"},
+          "evidence_quote": {"type": ["string", "null"], "description": "Verbatim span of the abstract that decides the verdict; empty for silent."},
+          "reason": {"type": ["string", "null"], "description": "One short sentence."}
+        }
+      }
+    }
+  }
+}

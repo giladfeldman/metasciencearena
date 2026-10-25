@@ -937,7 +937,8 @@ def _guarded_statuses() -> tuple[str, ...]:
 
 
 def generator_fingerprint(arena_dir: Path, task_set_version: str,
-                          errors: list["SplitNote"] | None = None) -> tuple[str | None, int]:
+                          errors: list["SplitNote"] | None = None,
+                          seeds: dict[str, int] | None = None) -> tuple[str | None, int]:
     """sha256 over the sorted ``task_id -> input_hash`` map, and the task count.
 
     Returns ``(None, 0)`` when the generator cannot be run in-process or emits
@@ -948,10 +949,20 @@ def generator_fingerprint(arena_dir: Path, task_set_version: str,
 
     Pass a list as ``errors`` to collect one line per split explaining why it
     contributed nothing.
+
+    ``seeds`` (``{"revealed": int, "private": int}``) skips resolving them from
+    ``arena.yaml``, for an arena whose manifest is still a draft
+    (tools/mint_fullpaper.py). The hash formula is the same either way.
     """
     import hashlib
 
-    hashes = current_input_hashes(arena_dir, task_set_version, errors=errors)
+    if seeds is None:
+        hashes = current_input_hashes(arena_dir, task_set_version, errors=errors)
+    else:
+        hashes = {}
+        for one in ("revealed", "private"):
+            hashes.update(current_input_hashes(arena_dir, task_set_version, split=one,
+                                               seed=seeds[one], errors=errors))
     if not hashes:
         return None, 0
     payload = "\n".join(f"{tid}\t{h}" for tid, h in sorted(hashes.items()))
@@ -969,7 +980,7 @@ def frozen_drift(arena_dir: Path) -> list[FrozenDriftRow]:
     """
     import yaml
 
-    from framework.discovery import FROZEN_STATUSES, version_ladder
+    from framework.discovery import version_ladder
 
     try:
         manifest = yaml.safe_load((arena_dir / "arena.yaml").read_text(encoding="utf-8")) or {}
@@ -1104,7 +1115,7 @@ def write_generator_fingerprints(arena_dir: Path) -> FingerprintWriteResult:
     """
     import yaml
 
-    from framework.discovery import FROZEN_STATUSES, version_ladder
+    from framework.discovery import version_ladder
 
     path = arena_dir / "arena.yaml"
     text = path.read_text(encoding="utf-8")

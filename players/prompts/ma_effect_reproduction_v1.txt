@@ -1,0 +1,24 @@
+You are extracting one effect size from a published primary study.
+
+Below is a description of the effect (the study label, the outcome or comparison, and the effect-size metric to use), followed by the text of the primary study.
+
+Your job:
+1. Find in the study the statistics needed for this effect (for example means, SDs and group sizes; a t, F or chi-square with its degrees of freedom; a correlation; counts in a 2x2 table; or an effect size the study reports itself).
+2. Compute the effect size on the requested metric (d, g, r, z, Zr, OR or as given). Give the sign as the study's comparison implies, and say in "notes" which group or variable is higher.
+3. Say what you found:
+   - "extracted": you found the statistics and computed the effect size.
+   - "not_reported": the study does not report enough to compute it. Set effect_size to null in this case only.
+   - "ambiguous": the study reports several results that could be this effect. Give the one you think best matches the description, and list the others in "alternatives".
+
+Answer with ONE JSON object and nothing else, with exactly these four required keys and two optional keys:
+{
+  "effect_size": <number, or null only for not_reported>,
+  "status": "extracted" | "not_reported" | "ambiguous",
+  "located": {<the statistics you used, e.g. "n1": 30, "n2": 32, "m1": 4.1, "m2": 3.6, "sd1": 1.2, "sd2": 1.1, or "test_statistic": "t", "test_value": 2.31, "df1": 60, "n": 62>; an empty object {} when nothing was usable},
+  "source_location": "<where in the study, e.g. 'Table 2, row 3' or 'Results, p. 7'; 'none' when nothing was usable>",
+  "alternatives": [<other candidate effect sizes as numbers; include this key only when status is ambiguous>],
+  "notes": "<optional: one sentence on any judgement call, including the direction>"
+}
+Every value inside "located" must be a single number, a short string or null: no nested objects and no lists. When the study reports several groups or outcomes, use one flat key per value (e.g. "m_control": 4.1, "m_treatment": 3.6) and include only the statistics you used. The answer must be plain JSON: no comments and no text outside the object.
+
+{{INPUT_TEXT}}

@@ -112,3 +112,25 @@ def test_nonzero_exit_keeps_stderr_and_ignores_non_envelope_stdout(tmp_path, mon
     with pytest.raises(RuntimeError) as exc:
         _adapter(tmp_path).play_task({"input": {"text": "x"}}, timeout_s=5)
     assert str(exc.value) == "claude exited 1: boom"
+
+
+#: The service ends an Opus 5 reply at 128000 output tokens whatever
+#: CLAUDE_CODE_MAX_OUTPUT_TOKENS says (publication-bias v2 tag v2c8, 2026-10-09:
+#: "Claude's response exceeded the 128000 output token maximum"). A larger
+#: declared ceiling is stamped into provenance.request_max_tokens as if it
+#: applied (d-942c12).
+OPUS_5_SERVICE_MAX = 128000
+
+
+def test_no_opus_5_player_declares_a_ceiling_above_the_service_maximum():
+    from framework.paths import registry_path
+    from framework.registry import load_registry
+
+    entries = load_registry(registry_path())
+    opus5 = [e for e in entries if e.get("cli_max_output_tokens") is not None
+             and "claude-opus-5" in (e.get("cli_command") or [])]
+    # Non-vacuity: claude-opus-5-pubbias declares one.
+    assert opus5, "no Opus 5 player declares cli_max_output_tokens; this check covers nothing"
+    over = {e["player_id"]: e["cli_max_output_tokens"] for e in opus5
+            if e["cli_max_output_tokens"] > OPUS_5_SERVICE_MAX}
+    assert not over, over

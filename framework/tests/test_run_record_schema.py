@@ -112,6 +112,11 @@ SHAPE_FINGERPRINT_BY_VERSION = {
     # arena's output schema refused, kept so the violation can be diagnosed
     # (conductor F-0082). Optional; held-out redaction drops it.
     11: "bc5fed60870a018776e567a27aaa2294223a6bc674713ba24d7de5cf42098ff0",
+    # v12 (2026-10-14) added top-level env_sha (content-addressed run
+    # environment, required non-null by a schema_version>=12 conditional and by
+    # RunRecordWriter) and call_config_sha256 (content-addressed call settings,
+    # null for players that make no model request). CC8 runner image.
+    12: "5c55eab3f4afaa57ad6932cb86155faeb0cda3523dc76236227af6bdeb833d98",
 }
 
 

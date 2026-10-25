@@ -173,9 +173,15 @@ HERMETIC_PROFILES: dict[str, HermeticProfile] = {
     # `--ignore-user-config` is Codex's analogue of `--setting-sources ""`:
     # "Do not load $CODEX_HOME/config.toml; auth still uses CODEX_HOME".
     # Codex exposes no tool allowlist, so containment is cwd + sandbox only.
-    # UNVERIFIED: Codex was out of quota when this was written, so no nonce
-    # probe has been run against it. Do not describe a Codex run as hermetic
-    # until one has.
+    # NONCE-PROBED 2026-10-18 on codex-cli 0.162.1, gpt-6.1-sol, three arms
+    # (tools/hermetic_nonce_probe.py; result in
+    # arenas/citation-claim-fidelity-v1/runs/stage_e/codex_nonce_probe_2026-10-18.json):
+    #   P1 nonce IN the prompt                        -> returned (pipeline works)
+    #   C2 nonce file inside the scratch cwd          -> NOT returned ("blocked by policy")
+    #   C1 nonce file inside the repo, absolute path  -> NOT returned ("blocked by policy")
+    # With these flags on Windows the read-only sandbox refuses every shell
+    # command, including reads, so the player has no file access at all. Re-probe
+    # after a Codex CLI update (the profile records the version it was measured on).
     "codex": HermeticProfile(
         binary="codex",
         tools_flag=None,
@@ -183,8 +189,8 @@ HERMETIC_PROFILES: dict[str, HermeticProfile] = {
         isolation_flags=("--ignore-user-config", "--skip-git-repo-check",
                          "--sandbox", "read-only"),
         cwd_flag="--cd",
-        verified=False,
-        verified_note="no nonce probe run (Codex out of quota 2026-08-16..20)",
+        verified=True,
+        verified_note="nonce probe, codex-cli 0.162.1 (gpt-6.1-sol), 2026-10-18: no file access",
     ),
     # Cursor CLI. MEASURED LEAKY 2026-08-19 on cursor-agent 2026.08.11-e8db854.
     # With `--mode ask` (its read-only Q&A mode), cwd set to a scratch directory
@@ -661,6 +667,11 @@ CONTAINMENT_HERMETIC = "hermetic"
 CONTAINMENT_UNVERIFIED = "hermetic-unverified"
 CONTAINMENT_UNCONTROLLED = "uncontrolled"
 CONTAINMENT_NOT_APPLICABLE = "not-applicable"
+#: An agent WITH tools (Bash, R, Python) inside a per-task locked container
+#: (framework/agentic_container.py). Not hermetic: its isolation is the container and
+#: the egress lock, proven by the live leak test, not the CLI flags. Added 2026-10-17;
+#: until then these records carried the single-shot hermetic block and read "hermetic".
+CONTAINMENT_AGENTIC_CONTAINER = "agentic-container"
 
 #: Adapter classes that spawn an agentic CLI. Used as a second, independent
 #: signal when `provenance.command` cannot be parsed, so a malformed command
@@ -670,6 +681,7 @@ CLI_ADAPTER_CLASSES: frozenset[str] = frozenset({
     "LlmCliPdfAdapter", "LlmCliPdfSectionsAdapter", "LlmCliPdfTablesAdapter",
     "LlmPdfReferencesAdapter", "LlmPdfCitationsAdapter",
     "AntigravityCliAdapter",
+    "AgenticContainerAdapter",
 })
 
 
@@ -744,6 +756,8 @@ def containment_state(record: dict) -> str:
         if first and is_agentic_cli(first):
             return CONTAINMENT_UNCONTROLLED
         return CONTAINMENT_NOT_APPLICABLE
+    if str(block.get("profile_version") or "").startswith(CONTAINMENT_AGENTIC_CONTAINER):
+        return CONTAINMENT_AGENTIC_CONTAINER
     if block.get("flags_insufficient"):
         # A CLI measured reading outside its workspace is uncontrolled however
         # carefully it was invoked. Reporting it as "unverified" would imply
@@ -761,7 +775,7 @@ def summarise_containment(records: Sequence[dict]) -> dict:
     hermetic, some not — is not a hermetic player, and reporting only the
     majority state would launder the uncontrolled half.
     """
-    order = [CONTAINMENT_UNCONTROLLED, CONTAINMENT_UNVERIFIED,
+    order = [CONTAINMENT_UNCONTROLLED, CONTAINMENT_UNVERIFIED, CONTAINMENT_AGENTIC_CONTAINER,
              CONTAINMENT_HERMETIC, CONTAINMENT_NOT_APPLICABLE]
     counts: dict[str, int] = {}
     for r in records:

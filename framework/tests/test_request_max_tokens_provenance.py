@@ -36,6 +36,7 @@ import yaml
 from framework.runner import run_tournament
 from framework.storage import read_records
 from players.adapters.openai_compatible import _DEFAULT_MAX_TOKENS
+from framework.tests._container_fakes import in_process_runner  # noqa: F401  (fixture)
 
 ARENA = Path("arenas/grim-consistency-v1")
 
@@ -70,7 +71,7 @@ _NO_CEILING_PLAYER = "scrutiny-grim"
 
 
 @pytest.fixture
-def fake_provider(monkeypatch):
+def fake_provider(monkeypatch, in_process_runner):
     """Capture every request body the adapter actually puts on the wire."""
     monkeypatch.setenv("CEILING_PROBE_BASE_URL", "https://api.invalid/v1")
     monkeypatch.setenv("CEILING_PROBE_API_KEY", "k")

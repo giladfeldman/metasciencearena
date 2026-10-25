@@ -179,6 +179,13 @@ def apply_unscoreable_policy(all_records: list[dict]) -> tuple[list[dict], set[s
     claim about the TASK, and our clock says nothing about the task. Measured when
     introduced: 0 timeout records across 270 live run files, so no published
     number moved.
+
+    A TRANSPORT ERROR (HTTP 429 / 5xx / connection) follows the same rule
+    (d-685d09, 2026-10-19; `timeouts.is_transport_error`): it is the provider's
+    failure, not the player's answer. Measured when introduced: 0 live records
+    matched, so no published number moved; the two runs that would have been
+    zeroed (gpt-oss-120b, Flash-Lite on citation-claim-fidelity-v1) had already been
+    archived off the board for that reason.
     """
     scored_tasks: set[str] = {
         r.get("task_id") for r in all_records if _is_scored(r) and r.get("task_id")
@@ -186,7 +193,7 @@ def apply_unscoreable_policy(all_records: list[dict]) -> tuple[list[dict], set[s
     unscoreable_tasks: set[str] = {
         r.get("task_id") for r in all_records
         if r.get("task_id") and not _is_scored(r)
-        and not timeouts.record_is_transport_timeout(r)
+        and not timeouts.record_is_transport_failure(r)
     }
     orphans = unscoreable_tasks - scored_tasks
 
@@ -194,7 +201,7 @@ def apply_unscoreable_policy(all_records: list[dict]) -> tuple[list[dict], set[s
     for r in all_records:
         task = r.get("task_id")
         if (_is_scored(r) or not task or task in orphans
-                or timeouts.record_is_transport_timeout(r)):
+                or timeouts.record_is_transport_failure(r)):
             out.append(r)
             continue
         # Copy deeply enough that the caller's record is untouched.
@@ -1006,6 +1013,7 @@ def generate_report(
     player_version: str,
     envelopes_by_task: dict[str, dict] | None = None,
     ground_truth_lookup=None,
+    tier: str | None = None,
 ) -> Path:
     """Generate a full report bundle. Returns the bundle directory.
 
@@ -1019,6 +1027,14 @@ def generate_report(
         ground_truth_lookup: optional callable(task_id) -> ground_truth; if
             provided, public drilldown includes the gold inline. If None,
             public drilldown stores the player's output + score only.
+        tier: for a task set with DATA TIERS (``task_sets/<v>/tiers.jsonl``,
+            framework/data_tiers.py), the tier to report on. Required there: a report
+            over every record would pool populations, which the board never does. A tier
+            whose arena.yaml ``data_tiers.<id>.score_label`` is null (rd-zhang2024:
+            constraint agreement, not accuracy) is refused; its verdicts come from the
+            arena's per-tier analysis (tools/analyze_run.py --tier), never from here.
+            The report covers the tier's tasks and the players that ran all of them,
+            exactly the records the tier's board publishes.
     """
     arena = load_arena(arena_dir)
     arena_id = arena["arena_id"]
@@ -1026,6 +1042,36 @@ def generate_report(
     category_severity = {c["id"]: c["severity"] for c in manifest.get("error_categories", [])}
 
     all_records = load_records_for(arena_dir, task_set_version)
+    tier_block = None
+    from framework import data_tiers
+    tier_index = data_tiers.read_tier_index(arena_dir, task_set_version)
+    if tier_index is None and tier is not None:
+        raise ValueError(f"{arena_id}/{task_set_version} has no data tiers; drop tier={tier!r}")
+    if tier_index is not None:
+        plan = data_tiers.plan_data_tiers(tier_index=tier_index, declarations=manifest.get("data_tiers"),
+                                          records=all_records)
+        if plan["unknown_task_ids"] or plan["undeclared_tiers"]:
+            raise ValueError(f"{arena_id}/{task_set_version}: tier map does not cover the run records "
+                             f"(unknown tasks {plan['unknown_task_ids'][:5]}, undeclared tiers "
+                             f"{plan['undeclared_tiers']})")
+        names = [t["id"] for t in plan["tiers"]]
+        if tier is None:
+            raise ValueError(f"{arena_id}/{task_set_version} has data tiers {names}; pass tier= "
+                             "(scores are per tier, never pooled)")
+        entry = next((t for t in plan["tiers"] if t["id"] == tier), None)
+        if entry is None:
+            raise ValueError(f"{arena_id}/{task_set_version} has no data tier {tier!r} (has {names})")
+        if entry["score_label"] is None:
+            raise ValueError(f"data tier {tier!r} publishes no score (score_label null in arena.yaml "
+                             "data_tiers); report its pre-registered bars from the arena's analysis")
+        complete = {p["player_id"] for p in entry["players"] if p["complete"]}
+        if player_id not in complete:
+            raise ValueError(f"{player_id} did not run every task of data tier {tier!r}; it is not on that board")
+        in_tier = set(entry["task_ids"])
+        all_records = [r for r in all_records if r["task_id"] in in_tier and r["player_id"] in complete]
+        row = next(p for p in entry["players"] if p["player_id"] == player_id)
+        tier_block = {"id": tier, "label": entry["label"], "score_label": entry["score_label"],
+                      "n_tasks": entry["n_tasks"], "mean": row["mean"], "n_scored": row["n_scored"]}
     # What an unscoreable output is worth (TODO A5(b), decided 2026-08-19).
     # Applied ONCE here, over the whole arena, because the rule needs the rest of
     # the field: a failure only counts as the player's when somebody else managed
@@ -1078,6 +1124,8 @@ def generate_report(
 
     # Build bundle directory.
     bundle = arena_dir / "runs" / task_set_version / "reports" / f"{player_id}@{player_version}"
+    if tier_block is not None:
+        bundle = bundle / "tiers" / tier
     (bundle / "findings" / "public").mkdir(parents=True, exist_ok=True)
     (bundle / "findings" / "held_out").mkdir(parents=True, exist_ok=True)
     (bundle / "reproduce").mkdir(parents=True, exist_ok=True)
@@ -1139,6 +1187,9 @@ def generate_report(
         "generated_at_utc": _utc_now_iso(),
         "arena": {"id": arena_id, "task_set_version": task_set_version},
         "player": {"id": player_id, "version": player_version},
+        # Present only for a data-tiered task set: which tier this report covers, and the
+        # tier's own metric name and mean (framework/data_tiers.py, the board's number).
+        **({"data_tier": tier_block} if tier_block is not None else {}),
         "summary": summary,
         "improvement_priorities": priorities,
         # Categories excluded from the priorities above because every player in

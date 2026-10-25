@@ -251,8 +251,12 @@ def _composition_excused(parity: dict, task_set_version: str) -> dict | None:
     return decl if task_set_version in (decl.get("versions") or []) else None
 
 
-def check_parity(arena_dir: Path, task_set_version: str = "v1") -> ParityReport:
-    manifest = _load_manifest(arena_dir)
+def check_parity(arena_dir: Path, task_set_version: str = "v1", *,
+                 manifest: dict | None = None) -> ParityReport:
+    # `manifest` is passed only for an arena whose manifest is still a draft
+    # (arenas/prereg-deviation-fullpaper-v1/arena.draft.yaml); others read arena.yaml.
+    if manifest is None:
+        manifest = _load_manifest(arena_dir)
     arena_id = manifest.get("arena_id", arena_dir.name)
     splits = manifest.get("benchmark_splits")
     if not splits:
