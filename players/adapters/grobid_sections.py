@@ -66,7 +66,7 @@ class GrobidSectionsAdapter(PlayerAdapter):
     def prepare(self) -> None:
         self._label_map = _load_grobid_label_map()
         try:
-            r = requests.get(f"{self.endpoint}/api/isalive", timeout=3)
+            r = requests.get(f"{self.endpoint}/api/isalive", timeout=30)  # 3 s failed under load (d-28dd52)
             if r.status_code != 200:
                 raise RuntimeError(f"GROBID isalive returned {r.status_code}")
         except Exception as exc:

@@ -75,12 +75,14 @@ def _arena_gold(arena: str, spec, bt) -> dict:
         return {**meta, "corruption_intensity": _defect_load(spec), "column_count": t["column_count"],
                 "gold_preserve_greek": t["gold_preserve_greek"], "gold_ascii_greek": t["gold_ascii_greek"]}
     if arena == "pdf-table-extraction-v1":
-        # no "scoring": "v2" -- the v2 content-overlap table matching is unreleased (d-24891c)
-        return {**meta, "n_tables": g["tables"]["n_tables"], "gold_tables": g["tables"]["gold_tables"]}
+        # "scoring": "v2" = the redesigned v2 matcher (owner decision 2026-10-24, d-24891c)
+        return {**meta, "scoring": "v2", "n_tables": g["tables"]["n_tables"],
+                "gold_tables": g["tables"]["gold_tables"]}
     if arena == "pdf-section-structure-v1":
         s = g["sections"]
-        return {**meta, "section_count": s["section_count"], "gold_sections": s["gold_sections"],
-                "gold_full_text": s["gold_full_text"]}
+        # "scoring": "v2" = body-only formula: the gold omits back matter the PDF prints
+        return {**meta, "scoring": "v2", "section_count": s["section_count"],
+                "gold_sections": s["gold_sections"], "gold_full_text": s["gold_full_text"]}
     if arena == "pdf-reference-parsing-v1":
         r = g["references"]
         return {**meta, "scoring": "v2", "reference_count": r["reference_count"], "gold_references": r["gold_references"]}
