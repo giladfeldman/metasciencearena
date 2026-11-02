@@ -10214,3 +10214,559 @@
   quarantine:
     since: '2026-10-31'
     reason: new player under the recovery regime; awaiting blinded audit
+- player_id: local-qwen36-35b-a3b-q3-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.6-35B-A3B-UD-Q3_K_XL
+  instrument: local-gguf-qwen3-6-35b-a3b-ud-q3-k-xl-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf
+  openai_model: Qwen3.6-35B-A3B-UD-Q3_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-gpt-oss-20b-mxfp4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/gpt-oss-20b-MXFP4
+  instrument: local-gguf-gpt-oss-20b-mxfp4-rlow
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/gpt-oss-20b-MXFP4.gguf
+  openai_model: gpt-oss-20b-MXFP4
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    reasoning_effort: low
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-gpt-oss-20b-q8-rmed-pubbias
+  player_type: ai-model
+  player_version: local-gguf/gpt-oss-20b-Q8_0
+  instrument: local-gguf-gpt-oss-20b-q8-rmed
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/gpt-oss-20b-Q8_0.gguf
+  openai_model: gpt-oss-20b-Q8_0
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    reasoning_effort: medium
+    max_tokens: 12288
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-gpt-oss-20b-q8-rhigh-pubbias
+  player_type: ai-model
+  player_version: local-gguf/gpt-oss-20b-Q8_0
+  instrument: local-gguf-gpt-oss-20b-q8-rhigh
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/gpt-oss-20b-Q8_0.gguf
+  openai_model: gpt-oss-20b-Q8_0
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    reasoning_effort: high
+    max_tokens: 22528
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-qwen36-35b-a3b-q2-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.6-35B-A3B-UD-Q2_K_XL
+  instrument: local-gguf-qwen3-6-35b-a3b-ud-q2-k-xl-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.6-35B-A3B-UD-Q2_K_XL.gguf
+  openai_model: Qwen3.6-35B-A3B-UD-Q2_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-qwen36-35b-a3b-iq4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.6-35B-A3B-UD-IQ4_XS
+  instrument: local-gguf-qwen3-6-35b-a3b-ud-iq4-xs-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.6-35B-A3B-UD-IQ4_XS.gguf
+  openai_model: Qwen3.6-35B-A3B-UD-IQ4_XS
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-qwen36-35b-a3b-q3-think-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.6-35B-A3B-UD-Q3_K_XL
+  instrument: local-gguf-qwen3-6-35b-a3b-ud-q3-k-xl-think
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf
+  openai_model: Qwen3.6-35B-A3B-UD-Q3_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: true
+    max_tokens: 12288
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-qwen36-35b-a3b-q3-t07s1-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.6-35B-A3B-UD-Q3_K_XL
+  instrument: local-gguf-qwen3-6-35b-a3b-ud-q3-k-xl-nothink-t07-s1
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf
+  openai_model: Qwen3.6-35B-A3B-UD-Q3_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.7
+  openai_extra_body:
+    seed: 1
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-qwen36-35b-a3b-q3-t07s2-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.6-35B-A3B-UD-Q3_K_XL
+  instrument: local-gguf-qwen3-6-35b-a3b-ud-q3-k-xl-nothink-t07-s2
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf
+  openai_model: Qwen3.6-35B-A3B-UD-Q3_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.7
+  openai_extra_body:
+    seed: 2
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-qwen36-35b-a3b-q3-t07s3-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.6-35B-A3B-UD-Q3_K_XL
+  instrument: local-gguf-qwen3-6-35b-a3b-ud-q3-k-xl-nothink-t07-s3
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.6-35B-A3B-UD-Q3_K_XL.gguf
+  openai_model: Qwen3.6-35B-A3B-UD-Q3_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.7
+  openai_extra_body:
+    seed: 3
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-qwen35-9b-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.5-9B-UD-Q4_K_XL
+  instrument: local-gguf-qwen3-5-9b-ud-q4-k-xl-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.5-9B-UD-Q4_K_XL.gguf
+  openai_model: Qwen3.5-9B-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-qwen38-27b-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Qwen3.8-27B-UD-Q4_K_M
+  instrument: local-gguf-qwen3-8-27b-ud-q4-k-m-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Qwen3.8-27B-UD-Q4_K_M.gguf
+  openai_model: Qwen3.8-27B-UD-Q4_K_M
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-gemma4-26b-a4b-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/gemma-4-26B-A4B-it-UD-Q4_K_M
+  instrument: local-gguf-gemma-4-26b-a4b-it-ud-q4-k-m-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
+  openai_model: gemma-4-26B-A4B-it-UD-Q4_K_M
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-gemma4-26b-a4b-q4-think-pubbias
+  player_type: ai-model
+  player_version: local-gguf/gemma-4-26B-A4B-it-UD-Q4_K_M
+  instrument: local-gguf-gemma-4-26b-a4b-it-ud-q4-k-m-think
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/gemma-4-26B-A4B-it-UD-Q4_K_M.gguf
+  openai_model: gemma-4-26B-A4B-it-UD-Q4_K_M
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: true
+    max_tokens: 12288
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-gemma4-26b-a4b-q40-pubbias
+  player_type: ai-model
+  player_version: local-gguf/gemma-4-26B-A4B-it/Q4_0
+  instrument: local-gguf-gemma-4-26b-a4b-it-q4-0-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/gemma-4-26B-A4B-it-Q4_0.gguf
+  openai_model: gemma-4-26B-A4B-it-Q4_0
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-gemma4-26b-qat-q40-pubbias
+  player_type: ai-model
+  player_version: local-gguf/gemma-4-26B-it/QAT-Q4_0
+  instrument: local-gguf-gemma-4-26b-it-qat-q4-0-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/gemma-4-26B_q4_0-it.gguf
+  gguf_quant: Q4_0
+  openai_model: gemma-4-26B_q4_0-it
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-nemotron3-nano-30b-a3b-iq4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Nemotron-3-Nano-30B-A3B-IQ4_XS
+  instrument: local-gguf-nemotron-3-nano-30b-a3b-iq4-xs-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Nemotron-3-Nano-30B-A3B-IQ4_XS.gguf
+  openai_model: Nemotron-3-Nano-30B-A3B-IQ4_XS
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-nemotron3-nano-30b-a3b-iq4-think-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Nemotron-3-Nano-30B-A3B-IQ4_XS
+  instrument: local-gguf-nemotron-3-nano-30b-a3b-iq4-xs-think
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Nemotron-3-Nano-30B-A3B-IQ4_XS.gguf
+  openai_model: Nemotron-3-Nano-30B-A3B-IQ4_XS
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: true
+    max_tokens: 12288
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-glm47-flash-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/GLM-4.7-Flash/UD-Q4_K_XL
+  instrument: local-gguf-glm-4-7-flash-ud-q4-k-xl-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/GLM-4.7-Flash-UD-Q4_K_XL.gguf
+  openai_model: GLM-4.7-Flash-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-glm47-flash-q4-think-pubbias
+  player_type: ai-model
+  player_version: local-gguf/GLM-4.7-Flash/UD-Q4_K_XL
+  instrument: local-gguf-glm-4-7-flash-ud-q4-k-xl-think
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/GLM-4.7-Flash-UD-Q4_K_XL.gguf
+  openai_model: GLM-4.7-Flash-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: true
+    max_tokens: 12288
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-glm47-flash-reap23b-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/GLM-4.7-Flash-REAP-23B/UD-Q4_K_XL
+  instrument: local-gguf-glm-4-7-flash-reap-23b-a3b-ud-q4-k-xl-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/GLM-4.7-Flash-REAP-23B-A3B-UD-Q4_K_XL.gguf
+  openai_model: GLM-4.7-Flash-REAP-23B-A3B-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-ministral3-14b-instruct-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Ministral-3-14B-Instruct-2512-UD-Q4_K_XL
+  instrument: local-gguf-ministral-3-14b-instruct-2512-ud-q4-k-xl
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Ministral-3-14B-Instruct-2512-UD-Q4_K_XL.gguf
+  openai_model: Ministral-3-14B-Instruct-2512-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-olmo3-7b-instruct-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Olmo-3-7B-Instruct-UD-Q4_K_XL
+  instrument: local-gguf-olmo-3-7b-instruct-ud-q4-k-xl
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Olmo-3-7B-Instruct-UD-Q4_K_XL.gguf
+  openai_model: Olmo-3-7B-Instruct-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-olmo3-7b-think-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Olmo-3-7B-Think-UD-Q4_K_XL
+  instrument: local-gguf-olmo-3-7b-think-ud-q4-k-xl
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Olmo-3-7B-Think-UD-Q4_K_XL.gguf
+  openai_model: Olmo-3-7B-Think-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    max_tokens: 12288
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-falcon-h1-7b-instruct-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Falcon-H1-7B-Instruct-UD-Q4_K_XL
+  instrument: local-gguf-falcon-h1-7b-instruct-ud-q4-k-xl
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Falcon-H1-7B-Instruct-UD-Q4_K_XL.gguf
+  openai_model: Falcon-H1-7B-Instruct-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-falcon-h1r-7b-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Falcon-H1R-7B-UD-Q4_K_XL
+  instrument: local-gguf-falcon-h1r-7b-ud-q4-k-xl
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Falcon-H1R-7B-UD-Q4_K_XL.gguf
+  openai_model: Falcon-H1R-7B-UD-Q4_K_XL
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    max_tokens: 12288
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-muse-glimmer-30b-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M
+  instrument: local-gguf-muse-glimmer-30b-kquant-17gb-q4-k-m-rlow
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M.gguf
+  openai_model: Muse-Glimmer-30B-KQuant-17GB-Q4_K_M
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      reasoning_strength: low
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
+- player_id: local-granite42-30b-q4-pubbias
+  player_type: ai-model
+  player_version: local-gguf/granite-4.2-30b-Q4_K_M
+  instrument: local-gguf-granite-4-2-30b-q4-k-m-nothink
+  adapter_class: LocalGgufAdapter
+  endpoint: http://127.0.0.1:8080/v1
+  gguf_path: ${SCIENCEARENA_GGUF_DIR}/granite-4.2-30b-Q4_K_M.gguf
+  openai_model: granite-4.2-30b-Q4_K_M
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  openai_temperature: 0.0
+  openai_extra_body:
+    seed: 42
+    chat_template_kwargs:
+      enable_thinking: false
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-11-02'
+    reason: new player under the recovery regime; awaiting blinded audit. Local open-weight GGUF model run on the uni desktop (llama.cpp, host-exempt)
