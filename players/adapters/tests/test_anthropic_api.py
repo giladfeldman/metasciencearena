@@ -3,7 +3,9 @@
 No test touches the network: `requests.post` / `requests.get` are replaced, and
 every test asserts what WOULD have been sent. The budget tests are the point --
 the owner's condition for the API exception (2026-10-23) is that nothing is
-spent beyond the credit, so each refusal path is checked to send nothing.
+spent beyond the credit, so each refusal path is checked to send nothing. The
+exception closed on 2026-10-29: `read_key` now refuses unless the reopen flag
+is set, and the closure tests check that refusal and that replay still works.
 """
 from __future__ import annotations
 
@@ -73,6 +75,9 @@ def env(tmp_path, monkeypatch):
     prompt = tmp_path / "prompt.txt"
     prompt.write_text(PROMPT, encoding="utf-8")
     monkeypatch.setenv(api.KEY_ENV, "test-key")
+    # The mechanics below are tested as if the owner had reopened the exception; the closure
+    # itself is tested at the end of this file.
+    monkeypatch.setenv("SCIENCEARENA_ANTHROPIC_REOPENED", "test")
     monkeypatch.setenv(budget.BUDGET_ENV, "5")
     monkeypatch.setenv(budget.PERIOD_ENV, "test-period")
     monkeypatch.setenv(budget.LEDGER_ENV, str(tmp_path / "ledger.jsonl"))
@@ -326,7 +331,10 @@ def test_registry_api_players_build_are_cloud_and_sized():
     from framework.runner import is_cloud_player
     entries = [e for e in load_registry(registry_path())
                if e.get("adapter_class") == "AnthropicApiAdapter"]
-    assert len(entries) == 69
+    # 24 lanes x 3 models x 5 effort levels (the effort ladder, plan step 9, 2026-10-27;
+    # the stats-from-pdf lane added 2026-10-28); was 69 (default effort only) until then.
+    assert len(entries) == 24 * 3 * 5
+    assert {e["anthropic_effort"] for e in entries} == {"low", "medium", "high", "xhigh", "max"}
     for e in entries:
         assert not e["player_id"].startswith("claude-")
         assert is_cloud_player(e)
@@ -501,3 +509,94 @@ def test_call_config_reads_an_anthropic_request_as_anthropic():
     assert cfg["max_tokens"] == 16000
     assert cfg["other_body_keys"] == run_env.NA
 
+
+
+# -- the exception is CLOSED (owner, 2026-10-29) ---------------------------------------
+# sciencearena-review 2026-11-01, F1: "No more API or cloud usage" was enforced nowhere in
+# code. With the key still in the user environment, MODE=live (or a batch submit) would have
+# billed a closed account. Every paid path reads the key through read_key(); replay does not.
+def test_closed_exception_refuses_every_key_read(env, monkeypatch):
+    monkeypatch.delenv(api.REOPEN_ENV, raising=False)
+    with pytest.raises(RuntimeError, match="CLOSED"):
+        api.read_key()
+    for mode in ("live", "plan"):
+        monkeypatch.setenv(api.MODE_ENV, mode)
+        with pytest.raises(RuntimeError, match="CLOSED"):
+            make(env / "prompt.txt").prepare()
+
+
+#: scripts/ is not part of the public mirror (mirrored-suite run, 2026-11-02): the tests that import
+#: its batch and sweep drivers skip there by name instead of failing.
+NEEDS_SCRIPTS = pytest.mark.skipif(
+    not (Path(__file__).resolve().parents[3] / "scripts" / "anthropic_batch.py").is_file(),
+    reason="scripts/ is not in the public mirror -- NOT verified here")
+
+
+@NEEDS_SCRIPTS
+def test_closed_exception_refuses_the_batch_scripts_key(env, monkeypatch):
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+    import anthropic_batch
+    monkeypatch.delenv(api.REOPEN_ENV, raising=False)
+    with pytest.raises(RuntimeError, match="CLOSED"):
+        anthropic_batch._key()
+
+
+def test_closed_exception_still_replays(env, monkeypatch):
+    """Control: replay needs no key, so the closure leaves scoring of collected batches alone."""
+    monkeypatch.delenv(api.REOPEN_ENV, raising=False)
+    monkeypatch.setenv(api.MODE_ENV, "replay")
+    a = make(env / "prompt.txt")
+    (env / "batches" / a.player_id).mkdir(parents=True)
+    for name in ("results.jsonl", "requests.jsonl"):
+        (env / "batches" / a.player_id / name).write_text("", encoding="utf-8")
+    a.prepare()
+    assert a._key is None
+
+
+@pytest.mark.parametrize("usage", [None, {}, {"input_tokens": 1000}, {"input_tokens": "1000", "output_tokens": 200}])
+def test_a_reply_without_usable_usage_settles_at_the_worst_case(env, monkeypatch, usage):
+    """sciencearena-review 2026-11-01, F4: a 200 reply with a missing or partial `usage`
+    block settled at $0.00, replacing the worst-case reservation, so the ledger under-counted
+    exactly what it exists to bound. It must keep the worst case instead."""
+    monkeypatch.setenv(api.MODE_ENV, "live")
+    fake = FakeApi()
+    if usage is None:
+        fake.message.pop("usage")
+    else:
+        fake.message["usage"] = usage
+    monkeypatch.setattr(api.requests, "post", fake.post)
+    make(env / "prompt.txt").play_task(ENV, timeout_s=60)
+    worst = budget.worst_case_cost("claude-sonnet-5-5", 1000, 16000, batch=False)
+    assert budget.Ledger.from_env().spent_usd() == pytest.approx(worst)
+
+
+@NEEDS_SCRIPTS
+def test_sweep_levels_and_players_match_the_generated_registry():
+    """sciencearena-review 2026-11-01, F6: the sweep's `ladder` expansion had no test, so a
+    LEVELS or MODELS edit could plan players the registry does not hold and fail only late."""
+    import sys
+    import yaml
+    root = Path(__file__).resolve().parents[3]
+    sys.path.insert(0, str(root / "scripts"))
+    import anthropic_sweep as sweep
+    import gen_anthropic_api_players as gen
+    assert set(sweep.LEVELS) == set(gen.REGISTRY_EFFORTS)
+    assert sweep.MODELS == {m: d for m, (_, d) in gen.MODELS.items()}
+    assert set(sweep.LANES) <= set(gen.LANES)  # the sweep may run fewer lanes, never others
+    reg = yaml.safe_load((root / "players" / "registry.yaml").read_text(encoding="utf-8"))
+    ids = {e["player_id"] for e in (reg["players"] if isinstance(reg, dict) else reg)
+           if isinstance(e, dict) and "player_id" in e}
+    planned = {pid for _, _, _, pid in sweep._players(["default", "ladder"])}
+    assert planned and planned <= ids, sorted(planned - ids)[:5]
+    # `ladder` is every level except the model's default, `default` is that one level.
+    assert len(planned) == len(sweep.LANES) * len(sweep.MODELS) * len(sweep.LEVELS)
+
+
+@pytest.mark.parametrize("value", ["0", "false", "No", "off", " "])
+def test_a_reopen_flag_that_reads_as_off_keeps_the_exception_closed(env, monkeypatch, value):
+    """sciencearena-review 2026-11-01 (attempt 2, nit): any non-blank value reopened the API,
+    so SCIENCEARENA_ANTHROPIC_REOPENED=0, meant as 'off', would have read the key."""
+    monkeypatch.setenv(api.REOPEN_ENV, value)
+    with pytest.raises(RuntimeError, match="CLOSED"):
+        api.read_key()

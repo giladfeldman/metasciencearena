@@ -186,8 +186,17 @@ HERMETIC_PROFILES: dict[str, HermeticProfile] = {
         binary="codex",
         tools_flag=None,
         empty_tools_value=None,
+        # The last four (added 2026-11-01, codex-cli 0.166.0) stop Codex injecting the
+        # operator's local skill descriptions (a ~21,000-character developer message,
+        # in every one of 1,899 player and gold rollouts) into the model's context;
+        # measured on a gpt-6-luna call: host_skills gone, developer text 44,141 ->
+        # 22,724 characters, input 18,265 -> 13,231 tokens. Codex still OFFERS 11 tools
+        # (exec, spawn_agent, ...): no flag removes them (`tools=[]` is rejected), so
+        # model_call records `tools_offered` and `tools_called` for every call.
         isolation_flags=("--ignore-user-config", "--skip-git-repo-check",
-                         "--sandbox", "read-only"),
+                         "--sandbox", "read-only",
+                         "-c", "skills.include_instructions=false",
+                         "--enable", "skip_host_skill_discovery"),
         cwd_flag="--cd",
         verified=True,
         verified_note="nonce probe, codex-cli 0.162.1 (gpt-6.1-sol), 2026-10-18: no file access",
@@ -481,18 +490,53 @@ STRIPPED_ENV_VARS: frozenset[str] = frozenset({
 })
 
 
-def hermetic_env(base: dict[str, str] | None = None) -> dict[str, str]:
-    """A copy of the environment with our own secrets and roots removed.
+#: Variables a host-launched harness may set for ITSELF and must never pass to a player
+#: (2026-11-01: a player started from the desktop app inherited CLAUDE_CODE_USER_EMAIL,
+#: CLAUDE_CODE_ORGANIZATION_UUID, CLAUDE_CODE_MAX_RETRIES=100, DISABLE_MICROCOMPACT=1,
+#: CLAUDE_EFFORT, a messaging socket and token, ...). Stripped for every agentic CLI.
+HARNESS_ENV_PREFIXES: tuple[str, ...] = ("CLAUDE_", "CLAUDECODE", "ANTHROPIC_", "MCP_", "OTEL_")
+HARNESS_ENV_VARS: frozenset[str] = frozenset({"DISABLE_MICROCOMPACT", "DISABLE_AUTOUPDATER"})
+
+#: For the two CLIs whose players we publish, the environment is an ALLOWLIST: what Windows
+#: needs to start a process, the profile folders where each CLI keeps its OAuth login, and
+#: proxy/certificate settings. Measured 2026-11-01: claude 2.1.316 and codex 0.166.0 both
+#: authenticate with this set (27 variables instead of 123).
+CLI_ENV_KEEP: frozenset[str] = frozenset({
+    "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "PATH", "NUMBER_OF_PROCESSORS",
+    "PROCESSOR_ARCHITECTURE", "OS", "USERPROFILE", "HOMEDRIVE", "HOMEPATH", "HOME", "APPDATA",
+    "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)", "PROGRAMW6432",
+    "COMMONPROGRAMFILES", "TEMP", "TMP", "USERNAME", "USERDOMAIN", "COMPUTERNAME", "SYSTEMDRIVE",
+    "PUBLIC", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "CLAUDE_CODE_OAUTH_TOKEN", "SSL_CERT_FILE",
+    "NODE_EXTRA_CA_CERTS", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+})
+#: Set by us, recorded on every call: the CLI must not update itself in the middle of a run.
+PINNED_ENV: dict[str, str] = {"DISABLE_AUTOUPDATER": "1"}
+ALLOWLIST_ENV_BINARIES: frozenset[str] = frozenset({"claude", "codex"})
+
+
+def hermetic_env(base: dict[str, str] | None = None, *, binary: str | None = None) -> dict[str, str]:
+    """The environment for an agentic CLI player.
+
+    ``claude`` / ``codex``: an allowlist (``CLI_ENV_KEEP``) plus ``PINNED_ENV``. Any other CLI:
+    a copy of the environment with our own secrets and roots and the launching harness's
+    variables removed.
 
     Auth is deliberately left intact — ``CLAUDE_CODE_OAUTH_TOKEN``,
-    ``CODEX_HOME``, ``CURSOR_API_KEY`` and the platform keychain are how the
+    ``CODEX_HOME``, ``CURSOR_API_KEY``, the profile folders and the platform keychain are how the
     subprocess reaches the subscription at all. Isolation of *settings* is done
     with the CLI's own flag (``--setting-sources ""``), not by blanking the
     config directory, which was tried first and breaks login.
     """
-    env = dict(os.environ if base is None else base)
+    src = dict(os.environ if base is None else base)
+    if binary is not None and normalise_binary(binary) in ALLOWLIST_ENV_BINARIES:
+        env = {k: v for k, v in src.items() if k.upper() in CLI_ENV_KEEP}
+        env.update(PINNED_ENV)
+        return env
+    env = src
     for key in list(env):
         if key in STRIPPED_ENV_VARS or key.startswith(STRIPPED_ENV_PREFIXES):
+            env.pop(key, None)
+        elif key.upper() in HARNESS_ENV_VARS or key.upper().startswith(HARNESS_ENV_PREFIXES):
             env.pop(key, None)
     return env
 
@@ -540,6 +584,7 @@ def spawn_kwargs(
     *,
     allow_tools: Sequence[str] = (),
     cwd: str | Path | None = None,
+    via_recorder: bool = False,
 ) -> tuple[list[str], dict]:
     """One call that returns everything a contained ``subprocess.run`` needs.
 
@@ -552,6 +597,12 @@ def spawn_kwargs(
     validated: a cwd inside the repo defeats the whole boundary and raises.
     """
     binary = effective_binary(argv) if argv else ""
+    if binary in ALLOWLIST_ENV_BINARIES and not via_recorder:
+        # Every claude/codex launch goes through framework.model_call, which states the
+        # effort, picks the session id and records what the CLI logged. A second path
+        # here would be a call nobody can describe afterwards.
+        raise UnhardenedCliError(
+            f"{binary} must be launched through framework.model_call.prepare(), not spawn_kwargs()")
     hardened = harden_argv(argv, allow_tools=allow_tools)
 
     if not is_agentic_cli(binary):
@@ -573,10 +624,14 @@ def spawn_kwargs(
         # both, so neither alone is load-bearing.
         hardened += [profile.cwd_flag, str(resolved)]
 
-    return hardened, {"cwd": str(resolved), "env": hermetic_env()}
+    return hardened, {"cwd": str(resolved), "env": hermetic_env(binary=binary)}
 
 
-_VERSION_CACHE: dict[str, str] = {}
+#: name -> (monotonic time read, version). Re-read after VERSION_TTL_S: both CLIs auto-update,
+#: and an overnight batch read once would stamp the old version on every record (consult
+#: round 1, 2026-11-01). The session log's own harness version is the per-call evidence.
+_VERSION_CACHE: dict[str, tuple[float, str]] = {}
+VERSION_TTL_S = 300.0
 
 
 def cli_version(binary: str) -> str | None:
@@ -588,8 +643,10 @@ def cli_version(binary: str) -> str | None:
     Best-effort: never raises, returns ``None`` when the version cannot be read.
     """
     name = normalise_binary(binary)
-    if name in _VERSION_CACHE:
-        return _VERSION_CACHE[name] or None
+    import time
+    hit = _VERSION_CACHE.get(name)
+    if hit is not None and time.monotonic() - hit[0] < VERSION_TTL_S:
+        return hit[1] or None
     profile = HERMETIC_PROFILES.get(name)
     argv_tail = profile.version_argv if profile else ("--version",)
     try:
@@ -605,7 +662,7 @@ def cli_version(binary: str) -> str | None:
         value = raw[0].strip() if raw else ""
     except Exception:
         value = ""
-    _VERSION_CACHE[name] = value
+    _VERSION_CACHE[name] = (time.monotonic(), value)
     return value or None
 
 
@@ -682,6 +739,7 @@ CLI_ADAPTER_CLASSES: frozenset[str] = frozenset({
     "LlmPdfReferencesAdapter", "LlmPdfCitationsAdapter",
     "AntigravityCliAdapter",
     "AgenticContainerAdapter",
+    "PowerReviewCliAdapter",  # SubprocessCliAdapter subclass (power-review players)
 })
 
 

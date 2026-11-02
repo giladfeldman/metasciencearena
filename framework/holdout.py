@@ -107,7 +107,17 @@ def redact_ground_truth_entry(entry: dict) -> dict:
 # must not have seen, so publishing it would defeat the split entirely.
 # Difficulty/visibility metadata and the required-statistic NAMES stay: they are
 # non-revealing and the leaderboard needs them to render the split.
-_SECRET_INPUT_FIELDS = ("source_code", "text", "document_bytes_b64", "content")
+#
+# Added 2026-10-27 (owner-approved): the document arenas that hand players a paper,
+# a preregistration, an analysis repository or a dataset as structured input, or a
+# pre-rendered prompt. code-paper-consistency-v1 uses paper / repository / dataset /
+# prompt_fields, prereg-deviation-v1 and -fullpaper-v1 use paper / preregistration,
+# citation-claim-fidelity-v1 keeps its real abstracts in prompt_fields. None of them
+# dumped a held-out entry through this function when the names were added (every
+# tracked held-out entry was checked), so no committed file changed; the names close
+# the gap before any of them does.
+_SECRET_INPUT_FIELDS = ("source_code", "text", "document_bytes_b64", "content",
+                        "paper", "preregistration", "repository", "dataset", "prompt_fields")
 REDACTED_INPUT = "<redacted: held-out>"
 
 
@@ -241,6 +251,11 @@ def redact_held_out_record(record: dict) -> dict:
     # since 2026-08-13; nothing performed it until 2026-08-14, which was harmless
     # only because no record carried `usage` yet.
     out.pop("usage", None)
+    # The CLI call block (schema v13): ids, timings, usage and the CLI envelope go; the
+    # settings stay. The runner already writes it reduced; this makes the redaction total.
+    if out.get("model_call"):
+        from framework.model_call import public_block
+        out["model_call"] = public_block(out["model_call"], held_out=True)
     score = out.get("score")
     if isinstance(score, dict):
         score = dict(score)
@@ -343,6 +358,14 @@ def held_out_leak_reasons(entry_or_record: dict, *, kind: str) -> list[str]:
                         f"score.breakdown.error carries a message body, not just its "
                         f"type: {str(err)[:60]!r}"
                     )
+        # The CLI call block must already be its held-out public view (public_block is
+        # idempotent, so a reduced block reduces to itself). Without this the guard could not
+        # see an unreduced block at all (review 2026-11-02).
+        mc = entry_or_record.get("model_call")
+        if mc:
+            from framework.model_call import public_block
+            if public_block(mc, held_out=True) != mc:
+                reasons.append("model_call block is not reduced to its held-out public view")
         return reasons
     raise ValueError(f"unknown kind {kind!r} (expected 'ground_truth' or 'record')")
 

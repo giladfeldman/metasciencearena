@@ -1,10 +1,15 @@
 """Local spend guard for the Anthropic API players.
 
+CLOSED 2026-10-29 (owner: "No more API or cloud usage"): anthropic_api.read_key() now
+refuses every key read, so nothing can reach this guard's paid path until the owner
+reopens the exception. The text below is why the guard existed while it was open.
+
 WHY THIS EXISTS. The owner approved API use for ScienceArena on one condition: it
-is funded ONLY by the Max-included monthly API credit and must never cost money
+is funded ONLY by the Max-included API credit (one-time as far as the owner knows; an
+earlier 'monthly' came from a web search, corrected 2026-10-28) and must never cost money
 beyond it (standing "Claude Max only" rule, exception of 2026-10-23). The
 Console already stops requests at a zero balance (auto-reload off) and caps spend
-at the monthly credit. This module is the third, local guard: it refuses to SEND
+at the credit. This module is the third, local guard: it refuses to SEND
 a request whose worst-case cost would take the period's spend past the budget the
 operator declared, so a script loop or a mis-sized batch is stopped on this
 machine before Anthropic ever sees it.

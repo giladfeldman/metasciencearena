@@ -59,6 +59,7 @@
     since: '2026-10-14'
     reason: new player under the recovery regime; awaiting blinded audit
 - player_id: codex-5-5
+  cli_effort: high
   player_type: ai-model
   player_version: codex-5.5
   instrument: codex-cli-gpt-5-5
@@ -127,6 +128,8 @@
   deterministic: false
   best_effort: true
 - player_id: claude-haiku-4-5
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -159,6 +162,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: regcheck-openai
+  cli_effort: high
+  regcheck_model: gpt-5.5
   player_type: tool
   player_version: regcheck-bdb961d-openai-via-codex-shim
   instrument: regcheck-bdb961d-openai-codex-shim
@@ -167,7 +172,39 @@
   confidence_strategy: native
   deterministic: false
   best_effort: true
+- player_id: regcheck-50c8017-nvidia-gpt-oss-20b
+  player_type: tool
+  player_version: regcheck-50c8017-nvidia-nim-gpt-oss-20b-nim-nemotron-3-embed-1b
+  instrument: regcheck-50c8017-nvidia-gpt-oss-20b
+  adapter_class: RegcheckShimAdapter
+  regcheck_commit: 50c8017
+  regcheck_client: nvidia-gpustack
+  regcheck_model: openai/gpt-oss-20b
+  regcheck_embeddings: nvidia-nim
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-31'
+    reason: 'new player under the recovery regime; awaiting blinded audit. RegCheck 50c8017 with two substitutions: its retrieval embeddings are NVIDIA NIM nemotron-3-embed-1b, not RegCheck''s default OpenAI text-embedding-3-large, and its chat model is openai/gpt-oss-20b on NVIDIA NIM; RegCheck does not code disclosure (shown n/a)'
+- player_id: regcheck-50c8017-codex-gpt-6-luna
+  cli_effort: medium
+  player_type: tool
+  player_version: regcheck-50c8017-openai-via-codex-shim-gpt-6-luna-nim-nemotron-3-embed-1b
+  instrument: regcheck-50c8017-codex-gpt-6-luna
+  adapter_class: RegcheckShimAdapter
+  regcheck_commit: 50c8017
+  regcheck_client: openai
+  regcheck_model: gpt-6-luna
+  regcheck_embeddings: nvidia-nim
+  confidence_strategy: native
+  deterministic: false
+  best_effort: true
+  quarantine:
+    since: '2026-10-31'
+    reason: 'new player under the recovery regime; awaiting blinded audit. RegCheck 50c8017 with two substitutions: its retrieval embeddings are NVIDIA NIM nemotron-3-embed-1b, not RegCheck''s default OpenAI text-embedding-3-large, and its chat model is gpt-6-luna through the Codex CLI (ChatGPT subscription); RegCheck does not code disclosure (shown n/a)'
 - player_id: claude-haiku-4-5-prereg
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -182,6 +219,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-reporting
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -196,6 +235,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-siglang
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -210,6 +251,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-siglang
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -224,6 +266,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-4-6-siglang
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-4-6
   instrument: claude-sonnet-4-6
@@ -238,6 +281,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-refint
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -252,6 +297,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-transparency
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -266,6 +313,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-power
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -280,6 +329,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-pregextract
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -294,6 +345,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-repro
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -316,6 +369,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-grim
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -338,6 +393,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-sprite
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -360,6 +417,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-zcurve
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -445,6 +504,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-pdf
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -458,6 +519,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: codex-5-5-pdf
+  cli_effort: high
   player_type: ai-model
   player_version: gpt-5.5-via-codex
   instrument: codex-cli-pdf-default-model
@@ -465,6 +527,8 @@
   cli_command:
   - codex
   - exec
+  - --model
+  - gpt-5.5
   - --skip-git-repo-check
   prompt_template_path: players/prompts/pdf_text_fidelity.txt
   output_message_flag: -o
@@ -491,6 +555,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-sections
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -504,6 +570,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-sections
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -517,6 +584,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-sections
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -559,6 +627,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-tables
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -779,6 +849,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-references
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -800,6 +872,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-citations
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -829,6 +903,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-pubbias
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -851,6 +927,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-esconvert
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -886,6 +964,8 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-haiku-4-5-pcurve
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -916,6 +996,7 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-sonnet-5-prereg
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -930,6 +1011,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-reporting
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -944,6 +1026,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-siglang
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -958,6 +1041,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-refint
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -972,6 +1056,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-transparency
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -986,6 +1071,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-power
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1000,6 +1086,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-pregextract
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1014,6 +1101,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-repro
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1028,6 +1116,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-grim
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1042,6 +1131,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-sprite
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1056,6 +1146,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-zcurve
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1070,6 +1161,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-pubbias
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1085,6 +1177,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-esconvert
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1099,6 +1192,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-pcurve
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1113,6 +1207,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-prereg
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1127,6 +1222,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-reporting
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1141,6 +1237,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-refint
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1155,6 +1252,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-transparency
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1169,6 +1267,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-power
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1183,6 +1282,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-pregextract
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1197,6 +1297,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-repro
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1211,6 +1312,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-grim
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1225,6 +1327,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-sprite
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1239,6 +1342,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-zcurve
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1253,6 +1357,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-pubbias
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1268,6 +1373,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-esconvert
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1282,6 +1388,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-pcurve
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1296,6 +1403,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-stats
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1310,6 +1418,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-stats
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -1324,6 +1433,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-stats
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -1366,6 +1477,7 @@
   confidence_strategy: implicit-1.0
   deterministic: true
 - player_id: claude-sonnet-5-xlat
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -1380,6 +1492,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-xlat
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -1394,6 +1508,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-4-8-xlat
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-4-8
   instrument: claude-opus-4-8
@@ -3204,6 +3319,7 @@
   deterministic: false
   best_effort: true
 - player_id: claude-opus-5-siglang
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3218,6 +3334,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-sections
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3231,6 +3348,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-prereg
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3245,6 +3363,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-reporting
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3259,6 +3378,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-refint
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3273,6 +3393,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-transparency
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3287,6 +3408,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-power
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3301,6 +3423,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-pregextract
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3315,6 +3438,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-repro
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3329,6 +3453,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-grim
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3343,6 +3468,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-sprite
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3357,6 +3483,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-zcurve
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3371,6 +3498,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-pubbias
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3386,6 +3514,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-esconvert
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3400,6 +3529,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-pcurve
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3414,6 +3544,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-stats
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -3428,6 +3559,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-xlat
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -4415,6 +4547,8 @@
   deterministic: false
   best_effort: true
 - player_id: claude-haiku-4-5-via-pdftotext-references
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -4429,6 +4563,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-via-pdftotext-references
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -4443,6 +4578,8 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-haiku-4-5-via-pdftotext-citations
+  cli_effort: not-applicable
+  cli_effort_reason: Claude Code 2.1.316 sends no effort for this model even when asked (measured 2026-11-01); recovered transcripts 2.1.238-2.1.285 show none either
   player_type: ai-model
   player_version: claude-haiku-4-5-20251001
   instrument: claude-haiku-4-5
@@ -4457,6 +4594,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-sonnet-5-via-pdftotext-citations
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -4471,6 +4609,7 @@
   confidence_strategy: native
   deterministic: false
 - player_id: claude-opus-5-prereg-fullpaper
+  cli_effort: high
   player_type: ai-model
   player_version: claude-opus-5
   instrument: claude-opus-5
@@ -4488,6 +4627,7 @@
     since: '2026-10-14'
     reason: new player under the recovery regime; awaiting blinded audit
 - player_id: claude-sonnet-5-prereg-fullpaper
+  cli_effort: high
   player_type: ai-model
   player_version: claude-sonnet-5
   instrument: claude-sonnet-5
@@ -4503,6 +4643,385 @@
   deterministic: false
   quarantine:
     since: '2026-10-14'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: claude-haiku-5-5-prereg-fullpaper
+  cli_effort: medium
+  player_type: ai-model
+  player_version: claude-haiku-5-5
+  instrument: claude-haiku-5-5
+  adapter_class: SubprocessCliAdapter
+  cli_command:
+  - claude
+  - --print
+  - --model
+  - claude-haiku-5-5
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-30'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: codex-gpt-6-luna-prereg-fullpaper
+  cli_effort: medium
+  player_type: ai-model
+  player_version: gpt-6-luna
+  instrument: codex-cli-gpt-6-luna
+  adapter_class: SubprocessCliAdapter
+  cli_command:
+  - codex
+  - exec
+  - --model
+  - gpt-6-luna
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-30'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-low-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
     reason: new player under the recovery regime; awaiting blinded audit
 - player_id: anthropic-api-opus-5-5-medium-xlat
   player_type: ai-model
@@ -4828,6 +5347,1741 @@
   anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
   anthropic_document_to_text: pdftotext
   prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-medium-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-high-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-xhigh-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-opus-5-5-max-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-opus-5-5
+  instrument: anthropic-api-claude-opus-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-opus-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-low-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 14000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-medium-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 14000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
   confidence_strategy: native
   deterministic: false
   quarantine:
@@ -5162,6 +7416,1053 @@
   quarantine:
     since: '2026-10-23'
     reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-high-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 14000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-xhigh-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 14000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-sonnet-5-5-max-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-sonnet-5-5
+  instrument: anthropic-api-claude-sonnet-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-sonnet-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 14000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-low-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-low
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: low
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
 - player_id: anthropic-api-haiku-5-5-medium-xlat
   player_type: ai-model
   player_version: anthropic-api/claude-haiku-5-5
@@ -5486,6 +8787,1053 @@
   anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
   anthropic_document_to_text: pdftotext
   prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-medium-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-medium
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: medium
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-high-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-high
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: high
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-xhigh-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-xhigh
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: xhigh
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-xlat
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  prompt_template_path: players/prompts/code_translation_r.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-esconvert
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/effect_size_conversion.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-grim
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/grim_consistency.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-repro
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/open_practices_repro.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-pcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/pcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-power
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/power_reporting.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-prereg
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-prereg-fullpaper
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_deviation_fullpaper.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-pregextract
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/prereg_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-pubbias
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/publication_bias_v2.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-refint
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reference_integrity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-replookup
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/replication_lookup_model.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-reporting
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/reporting_completeness.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-siglang
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/significance_language.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-sprite
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/sprite_plausibility.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-stats
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 64000
+  prompt_template_path: players/prompts/stats_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-transparency
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/transparency_statements.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-zcurve
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  prompt_template_path: players/prompts/zcurve_evidential.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-pdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf:_coerce_output
+  prompt_template_path: players/prompts/pdf_text_fidelity.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-sections
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_pdf_sections:_coerce_sections
+  prompt_template_path: players/prompts/pdf_section_structure.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-tables
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_tables:_coerce_tables
+  prompt_template_path: players/prompts/pdf_table_extraction.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-via-pdftotext-references
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_references:_coerce_references
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_reference_parsing_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-via-pdftotext-citations
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 32000
+  anthropic_output_coercer: players.adapters.llm_pdf_citations:_coerce_citations
+  anthropic_document_to_text: pdftotext
+  prompt_template_path: players/prompts/pdf_citation_matching_text.txt
+  confidence_strategy: native
+  deterministic: false
+  quarantine:
+    since: '2026-10-23'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: anthropic-api-haiku-5-5-max-statspdf
+  player_type: ai-model
+  player_version: anthropic-api/claude-haiku-5-5
+  instrument: anthropic-api-claude-haiku-5-5-max
+  adapter_class: AnthropicApiAdapter
+  anthropic_model: claude-haiku-5-5
+  anthropic_effort: max
+  anthropic_max_tokens: 16000
+  anthropic_output_coercer: players.adapters.llm_stats_pdf:coerce_stats_pdf
+  prompt_template_path: arenas/stats-from-pdf-v1/prompts/v1.md
   confidence_strategy: native
   deterministic: false
   quarantine:
@@ -5829,3 +10177,40 @@
   prompt_format: str.format
   confidence_strategy: implicit-1.0
   deterministic: false
+- player_id: claude-haiku-5-5-power-review
+  cli_effort: medium
+  player_type: ai-model
+  player_version: claude-haiku-5-5
+  instrument: claude-max-cli-haiku-5-5-prompt-20261023-2
+  adapter_class: PowerReviewCliAdapter
+  cli_command:
+  - claude
+  - --print
+  - --model
+  - claude-haiku-5-5
+  cli_json_envelope: claude
+  prompt_template_path: players/prompts/power_review_cli.txt
+  confidence_strategy: native
+  deterministic: false
+  task_timeout_s: 300
+  quarantine:
+    since: '2026-10-31'
+    reason: new player under the recovery regime; awaiting blinded audit
+- player_id: codex-gpt-6-luna-power-review
+  cli_effort: medium
+  player_type: ai-model
+  player_version: gpt-6-luna
+  instrument: codex-cli-gpt-6-luna-prompt-20261023-2
+  adapter_class: PowerReviewCliAdapter
+  cli_command:
+  - codex
+  - exec
+  - --model
+  - gpt-6-luna
+  prompt_template_path: players/prompts/power_review_cli.txt
+  confidence_strategy: native
+  deterministic: false
+  task_timeout_s: 300
+  quarantine:
+    since: '2026-10-31'
+    reason: new player under the recovery regime; awaiting blinded audit

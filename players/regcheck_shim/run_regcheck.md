@@ -215,3 +215,39 @@ hashing-based pseudo-embedding** (`REGCHECK_SHIM_NO_ST=1` forces this). The
 fallback only affects regcheck's internal chunk RETRIEVAL (which excerpts it
 shows the model), not the final yes/no judgement directly; retrieval quality is
 degraded but the pipeline runs fully offline.
+
+## RegCheck 50c8017 on `prereg-deviation-fullpaper-v1` (2026-10-30)
+
+Upstream moved fast: HEAD `50c8017` (2026-10-12) is 116 commits past the pinned
+`bdb961d`. It **dropped the Groq client**; its clients are now openai, deepseek, qwen,
+claude and gpustack. The fullpaper players pin a separate clone at
+`$REGCHECK_HOME/regcheck-50c8017` (default `REGCHECK_HOME=~/regcheck_run`); the adapter
+refuses a clone whose `HEAD` is not that commit, so a label always names the RegCheck that ran.
+The arena was minted on 2026-10-31 as a public development preview; the 2026-10-30 runs of both
+players are its first board rows.
+
+| Player | Route | Key (env only) |
+|---|---|---|
+| `regcheck-50c8017-nvidia-gpt-oss-20b` | GPUStack client → NVIDIA NIM free endpoint, `openai/gpt-oss-20b` | `NVIDIA_NIM_API_KEY` |
+| `regcheck-50c8017-codex-gpt-6-luna` | openai client → local codex shim (ChatGPT subscription), `gpt-6-luna` | `NVIDIA_NIM_API_KEY` (embeddings only) |
+
+Both pin `regcheck_embeddings: nvidia-nim`: retrieval embeddings come from NVIDIA NIM's free
+`nvidia/nemotron-3-embed-1b` (passed as `--embedding-model`; key in env only). The shim's
+hashing stand-in gave near-random retrieval in the first smoke run (relevance 0.00-0.22),
+and the other NIM embedding models are retired or demand an `input_type` RegCheck never sends.
+RegCheck >= 50c8017 also prefixes each quoted chunk with `[PAPER_0032, relevance_score=…]`;
+the converter strips that tag, as RegCheck itself does, before the quote is scored.
+
+Free routes that were tried and **cannot** carry a full paper (measured 2026-10-30):
+Groq's free tier caps every chat model at 6000-8000 tokens/minute (allam-2-7b 6000;
+gpt-oss-120b, gpt-oss-20b, qwen3.8-27b 8000), and one full-paper request is ~8260 tokens,
+so every call fails with HTTP 413 whatever `GPUSTACK_MAX_TOKENS` is. NVIDIA NIM retired
+`openai/gpt-oss-120b` on 2026-09-03 (HTTP 410). The failed attempt's record is kept
+outside the arena's run directory (`tmp/pretest/regcheck-attempts/`), never as a scored run.
+
+```bash
+export REGCHECK_PYTHON="$HOME/regcheck_run/venv/Scripts/python.exe"
+export NVIDIA_NIM_API_KEY="nvapi-…"   # env only, never committed, never on argv
+python -m framework run --arena prereg-deviation-fullpaper-v1 --task-set v1 \
+  --players regcheck-50c8017-nvidia-gpt-oss-20b --trials 1 --public-only --timeout 1800
+```

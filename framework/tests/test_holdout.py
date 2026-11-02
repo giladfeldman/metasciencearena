@@ -158,6 +158,29 @@ def test_held_out_envelope_input_is_redacted():
     assert entry["envelope"]["input"]["source_code"].startswith("T-TEST")
 
 
+def test_held_out_document_inputs_are_redacted_from_the_dump():
+    """Paper, preregistration, repository, dataset and pre-rendered prompt inputs
+    (code-paper-consistency-v1, prereg-deviation-*, citation-claim-fidelity-v1) are the
+    held-out secret exactly as a source script is, so the dump must blank them too."""
+    from framework.holdout import redact_ground_truth_entry, REDACTED_INPUT
+
+    secret = {"paper": {"title": "T", "text": "Method ..."}, "preregistration": "We will ...",
+              "repository": {"files": [{"path": "run_all.R", "content": "x <- 1"}]},
+              "dataset": {"path": "data/d.csv", "csv": "pid\n1\n"},
+              "prompt_fields": {"paper": "Method ...", "repository": "1 | x <- 1"}}
+    entry = {"envelope": {"task_id": "t-held", "visibility": "held_out", "difficulty": {"n": 1},
+                          "input": {**secret, "group_size": 3}},
+             "ground_truth": {"mistake_kinds": ["model_mismatch"], "gold_mismatches": [{"type": "x"}]}}
+    out = redact_ground_truth_entry(entry)
+    for key in secret:
+        assert out["envelope"]["input"][key] == REDACTED_INPUT, key
+    assert out["envelope"]["input"]["group_size"] == 3          # non-revealing metadata survives
+    assert not [k for k in out["ground_truth"] if k.startswith("gold")]
+    assert entry["envelope"]["input"]["paper"]["title"] == "T"  # not mutated
+    public = {**entry, "envelope": {**entry["envelope"], "visibility": "public"}}
+    assert redact_ground_truth_entry(public)["envelope"]["input"]["dataset"] == secret["dataset"]
+
+
 def test_public_envelope_input_is_untouched():
     """Redaction must not blank a PUBLIC task's input — players need it."""
     from framework.holdout import redact_ground_truth_entry
@@ -282,3 +305,17 @@ def test_redact_held_out_record_keeps_usage_on_public_record():
     assert out.get("usage", {}).get("prompt_tokens") == 41234, (
         "public records must keep usage — that is the whole point of capturing it"
     )
+
+
+def test_leak_reasons_flag_an_unreduced_model_call_block_and_pass_a_reduced_one():
+    # Review 2026-11-02: the guard had no model_call check, so a held-out record whose CLI
+    # call block kept a session id or a host-skills digest passed it.
+    block = {"recorder_version": 1, "session_id": "s", "started_utc": "t",
+             "launch": {"binary": "claude", "argv": ["claude", "--session-id", "s"]},
+             "facts": {"effort_sent": "medium", "context_injections": {"host_skills_text": "d"}},
+             "checks": {"effort_applied": True, "context_injections": {"host_skills_text": "d"}}}
+    rec = {"task_visibility": "held_out", "model_call": block}
+    assert any("model_call" in r for r in held_out_leak_reasons(rec, kind="record"))
+    assert held_out_leak_reasons(redact_held_out_record(rec), kind="record") == []
+    # A public record is not checked.
+    assert held_out_leak_reasons({**rec, "task_visibility": "public"}, kind="record") == []

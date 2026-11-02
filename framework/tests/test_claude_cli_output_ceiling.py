@@ -24,7 +24,8 @@ def _adapter(tmp_path, **kw):
     tpl = tmp_path / "t.txt"
     tpl.write_text("{{INPUT_TEXT}}", encoding="utf-8")
     return SubprocessCliAdapter(**_BASE, cli_command=["claude", "--print", "--model", "claude-x"],
-                                prompt_template_path=tpl, cli_json_envelope="claude", **kw)
+                                prompt_template_path=tpl, cli_json_envelope="claude",
+                                cli_effort=kw.pop("cli_effort", "high"), **kw)
 
 
 def _fake_run(seen):

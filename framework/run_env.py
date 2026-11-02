@@ -30,6 +30,7 @@ same hash is a hash collision or a tampered file, and raises.
 """
 from __future__ import annotations
 
+import copy
 import gzip
 import hashlib
 import json
@@ -51,6 +52,9 @@ def store_root() -> Path:
 ENV_SCHEMA_VERSION = 1
 CALL_CONFIG_SCHEMA_VERSION = 1
 NA = "n/a"
+#: Typed absence for a CLI call_config (see build_cli_call_config).
+UNSUPPORTED = "unsupported"
+DEFAULT_UNRESOLVED = "default-unresolved"
 
 
 def _normalise(value):
@@ -289,7 +293,9 @@ def build_call_config(*, entry: dict, body: dict | None, prompt_template_sha256:
     cfg = {k: NA for k in CALL_CONFIG_FIELDS}
     cfg["call_config_schema_version"] = CALL_CONFIG_SCHEMA_VERSION
     cls = (entry.get("adapter_class") or "").rsplit(".", 1)[-1]
-    body = dict(body or {})
+    # A deep copy: the body is the adapter's own request, whose nested dicts are its live settings.
+    # Popping from them stripped enable_thinking from every later request (d-02eea6).
+    body = copy.deepcopy(body or {})
     body.pop("messages_sha256", None)
     body.pop("contents_sha256", None)
     other: dict = {}
@@ -359,6 +365,81 @@ def build_call_config(*, entry: dict, body: dict | None, prompt_template_sha256:
     cfg["group_size"] = group_size if group_size is not None else NA
     cfg["timeout_s"] = timeout_s if timeout_s is not None else NA
     cfg["other_body_keys"] = {k: _safe_extra(v) for k, v in other.items()} if other else NA
+    return _normalise(cfg)
+
+
+#: The provider a CLI's own login bills.
+_CLI_PROVIDER = {"claude": "anthropic", "codex": "openai", "agy": "google", "gemini": "google"}
+
+
+def _mask_per_call(argv: list) -> list:
+    """The launch argv with what changes on every call masked, so equal settings hash equal:
+    the recorder's session id, per-call folders and files, and a prompt passed as an argument."""
+    import tempfile
+    tmp = str(Path(tempfile.gettempdir())).replace("\\", "/").lower()
+    out, skip = [], False
+    for a in argv:
+        s = str(a)
+        if skip:
+            out.append("<per-call>")
+            skip = False
+            continue
+        if s == "--session-id":
+            out.append(s)
+            skip = True
+        elif s.startswith("<redacted"):
+            out.append("<prompt>")
+        elif tmp in s.replace("\\", "/").lower() or "sciencearena-hermetic" in s:
+            out.append("<per-call path>")
+        else:
+            out.append(s)
+    return out
+
+
+def build_cli_call_config(*, entry: dict, launch: dict, prompt_template_sha256: str | None,
+                          timeout_s: int | None) -> dict:
+    """call_config for a call made through an agentic CLI (``framework.model_call`` launch block).
+
+    Setting-level only: the harness and its version, model, effort, tools, the CLI flags and the
+    environment knobs we set. Per-call values (session id, folders) are masked. What the CLI
+    then actually sent is evidence, not configuration, and lives in the record's ``model_call``.
+    """
+    cfg = {k: NA for k in CALL_CONFIG_FIELDS}
+    cfg["call_config_schema_version"] = CALL_CONFIG_SCHEMA_VERSION
+    binary = launch.get("binary") or NA
+    cfg["provider"] = _CLI_PROVIDER.get(binary, NA)
+    cfg["api_type"] = f"cli:{binary}"
+    cfg["endpoint"] = f"{binary}@{launch.get('cli_version') or 'unknown'}"
+    cfg["model_requested"] = launch.get("model_requested") or NA
+    cfg["reasoning_effort"] = launch.get("effort_requested") or NA
+    pinned = launch.get("env_pinned") or {}
+    if "CLAUDE_CODE_MAX_OUTPUT_TOKENS" in pinned:
+        cfg["max_tokens"] = int(pinned["CLAUDE_CODE_MAX_OUTPUT_TOKENS"])
+    cfg["tools"] = list(launch.get("allow_tools") or [])
+    # Typed absence (CLI branch only; API config hashes are untouched): a knob the CLI offers no
+    # way to set is "unsupported"; one the CLI decides itself is "default-unresolved" (what it
+    # then sent is evidence, in the record's model_call.facts).
+    for k in ("temperature", "top_p", "top_k", "min_p", "seed", "frequency_penalty", "presence_penalty",
+              "repetition_penalty", "logit_bias", "n", "stop", "max_completion_tokens", "response_format",
+              "response_schema", "tool_choice", "parallel_tool_calls", "provider_routing", "stream",
+              "safety_settings", "verbosity"):
+        cfg[k] = UNSUPPORTED
+    for k in ("thinking_budget", "enable_thinking", "max_tokens"):
+        if cfg[k] == NA:
+            cfg[k] = DEFAULT_UNRESOLVED
+    if cfg["reasoning_effort"] == "not-applicable":
+        cfg["reasoning_effort"] = UNSUPPORTED
+    cfg["prompt_template_sha256"] = prompt_template_sha256 or NA
+    cfg["prompt_format"] = entry.get("prompt_format") or "replace"
+    cfg["timeout_s"] = timeout_s if timeout_s is not None else NA
+    cfg["other_body_keys"] = {
+        "cli_argv": _mask_per_call(launch.get("argv") or []),
+        "env_pinned": dict(sorted(pinned.items())),
+        "env_var_names": list(launch.get("env_var_names") or []),
+        "containment_profile": launch.get("containment_profile") or NA,
+        "effort_reason": launch.get("effort_reason") or NA,
+        "recorder_version": launch.get("recorder_version") or NA,
+    }
     return _normalise(cfg)
 
 

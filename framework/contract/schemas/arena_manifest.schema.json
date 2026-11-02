@@ -104,6 +104,13 @@
           "max": {
             "type": "integer"
           },
+          "levels": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {"type": "integer"},
+            "description": "Optional: the only levels this axis takes when they are not every integer from min to max (e.g. a track with only a clean-control and a full-composition tier)."
+          },
           "description": {
             "type": "string"
           }

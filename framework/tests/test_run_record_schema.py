@@ -117,6 +117,11 @@ SHAPE_FINGERPRINT_BY_VERSION = {
     # RunRecordWriter) and call_config_sha256 (content-addressed call settings,
     # null for players that make no model request). CC8 runner image.
     12: "5c55eab3f4afaa57ad6932cb86155faeb0cda3523dc76236227af6bdeb833d98",
+    # v13 (2026-11-01) added the top-level `model_call` block (framework.model_call):
+    # what an agentic CLI was launched with and what its own session log says it
+    # sent, with the effort check. Required (null allowed) by a schema_version>=13
+    # conditional; an agentic CLI record said nothing about its effort until then.
+    13: "425e2f5b8801ad9149e1f8575d582046041f3adfe5c572214a23c5bed3c34f8b",
 }
 
 

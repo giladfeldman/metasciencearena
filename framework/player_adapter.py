@@ -16,7 +16,7 @@ from typing import Sequence
 
 import requests
 
-from framework import hermetic
+from framework import hermetic, model_call
 
 
 #: Machine-local values for `${NAME}` placeholders in a player's
@@ -390,6 +390,15 @@ class PlayerAdapter(ABC):
         re-score without calling the model again. Default ``None``.
         """
         return None
+
+    def last_model_call(self) -> dict | None:
+        """The ``framework.model_call`` block(s) for the most recent ``play_task`` (schema v13).
+
+        What the CLI was launched with and what its own session log says it sent: effort,
+        thinking, output ceiling, harness version, offered and called tools, injected
+        context, token split, timings. Default ``None``: an adapter that launches no CLI.
+        """
+        return getattr(self, "_last_model_call", None)
 
     def cleanup(self) -> None:
         """One-time teardown (stop server, etc.). Default: no-op."""
@@ -881,6 +890,9 @@ ADAPTER_EXTRA_KWARGS = {
     "cli_json_envelope", "prompt_template_path",
     # Claude CLI output ceiling, passed as CLAUDE_CODE_MAX_OUTPUT_TOKENS (d-60b28c).
     "cli_max_output_tokens",
+    # Explicit effort for a claude/codex CLI player (framework/model_call.py, 2026-11-01):
+    # a level the CLI accepts, or "not-applicable" with cli_effort_reason.
+    "cli_effort", "cli_effort_reason",
     "catalog_path", "api_key_env", "api_url_env",
     # pdf-text-fidelity-v1 adapters:
     "docpluck_level", "pdftotext_binary", "output_message_flag",
@@ -927,7 +939,7 @@ ADAPTER_EXTRA_KWARGS = {
     # regcheck multi-provider adapter (prereg-deviation-v1): pins the LLM provider
     # + model per registry player so one adapter class serves distinct
     # regcheck-groq / regcheck-deepseek / regcheck-openai players.
-    "regcheck_client", "regcheck_model",
+    "regcheck_client", "regcheck_model", "regcheck_commit", "regcheck_embeddings",
     # Human evaluators (players/adapters/human_replay.py, T6 2026-09-28): the
     # per-person answers file written by tools/human_score.py.
     "responses_path",
@@ -954,7 +966,8 @@ ADAPTER_EXTRA_KWARGS = {
     # This is a CLI-agent route, distinct from the legacy Gemini CLI and from
     # direct Gemini API keys.
     # Anthropic Messages API players (players/adapters/anthropic_api.py) -- the
-    # one approved API exception (owner, 2026-10-23). Effort is required there.
+    # one approved API exception (owner, 2026-10-23), CLOSED 2026-10-29 (replay
+    # only). Effort is required there.
     "anthropic_model", "anthropic_effort", "anthropic_max_tokens",
     "anthropic_thinking", "anthropic_output_coercer", "anthropic_document_to_text",
     "agy_model", "agy_effort", "agy_agent", "agy_print_timeout",
@@ -1001,9 +1014,13 @@ class SubprocessCliAdapter(PlayerAdapter):
 
     def __init__(self, *args, cli_command: list[str], prompt_template_path: str | Path,
                  cli_json_envelope: str | None = None,
-                 cli_max_output_tokens: int | None = None, **kwargs):
+                 cli_max_output_tokens: int | None = None,
+                 cli_effort: str | None = None, cli_effort_reason: str | None = None, **kwargs):
         super().__init__(*args, **kwargs)
         self.cli_command = list(cli_command)
+        self.cli_effort = cli_effort
+        self.cli_effort_reason = cli_effort_reason
+        self._last_model_call: dict | None = None
         #: The output ceiling for the `claude` CLI, sent as
         #: CLAUDE_CODE_MAX_OUTPUT_TOKENS. Measured 2026-09-30: left unset the CLI
         #: stops at 64000 output tokens ("exceeded the 64000 output token
@@ -1055,10 +1072,11 @@ class SubprocessCliAdapter(PlayerAdapter):
         # is what let eight consecutive tasks share a chat and return the same
         # stale answer.
         self._fresh_session = hermetic.needs_fresh_session(self._resolved_command)
-        if not self._fresh_session:
-            self._resolved_command, self._spawn_kwargs = hermetic.spawn_kwargs(
-                self._resolved_command, allow_tools=(),
-            )
+        # Fail at prepare(), before the first paid task, if the effort cannot be stated.
+        # The launch itself is planned per task (framework.model_call): every call gets
+        # its own session id and its own record of what the CLI sent.
+        model_call.prepare(self._resolved_command, effort=self.cli_effort,
+                           effort_reason=self.cli_effort_reason, purpose="player-preflight")
 
     def play_task(self, envelope: dict, *, timeout_s: int) -> dict:
         if self._template is None or self._resolved_command is None:
@@ -1086,11 +1104,13 @@ class SubprocessCliAdapter(PlayerAdapter):
             # New workspace per task, so no two tasks can share a conversation.
             import uuid as _uuid
             workspace = hermetic.hermetic_cwd(tag=f"task-{_uuid.uuid4().hex[:12]}")
-            argv, self._spawn_kwargs = hermetic.spawn_kwargs(
-                self._resolved_command, allow_tools=(), cwd=workspace,
-            )
-        else:
-            argv = list(self._resolved_command)
+        extra_env = ({"CLAUDE_CODE_MAX_OUTPUT_TOKENS": str(self.cli_max_output_tokens)}
+                     if self.cli_max_output_tokens is not None else None)
+        plan = model_call.prepare(self._resolved_command, effort=self.cli_effort,
+                                  effort_reason=self.cli_effort_reason, cwd=workspace,
+                                  purpose=f"player-{self.player_id}", extra_env=extra_env)
+        argv, self._spawn_kwargs = list(plan.argv), plan.spawn
+        self._last_model_call = None
 
         stdin_payload: str | None = prompt
         if not hermetic.takes_stdin_prompt(argv):
@@ -1112,15 +1132,20 @@ class SubprocessCliAdapter(PlayerAdapter):
                 argv.append(prompt)
             stdin_payload = None
         spawn = dict(self._spawn_kwargs)
-        if self.cli_max_output_tokens is not None:
-            env = dict(spawn.get("env") or os.environ)
-            env["CLAUDE_CODE_MAX_OUTPUT_TOKENS"] = str(self.cli_max_output_tokens)
-            spawn["env"] = env
-        proc = subprocess.run(
-            argv, input=stdin_payload, capture_output=True, text=True,
-            encoding="utf-8", errors="replace",
-            timeout=timeout_s, check=False, **spawn,
-        )
+        proc = None
+        try:
+            proc = subprocess.run(
+                argv, input=stdin_payload, capture_output=True, text=True,
+                encoding="utf-8", errors="replace",
+                timeout=timeout_s, check=False, **spawn,
+            )
+        finally:
+            # Recorded on every exit path, a timeout included: a failed paid call is evidence too.
+            self._last_model_call = model_call.finish(
+                plan, returncode=proc.returncode if proc else None,
+                stdout=proc.stdout if proc else None, stderr=proc.stderr if proc else None)
+        #: Raw stdout of the last call, so a subclass can keep an unparseable reply.
+        self._last_stdout = proc.stdout
         if proc.returncode != 0:
             reason = proc.stderr.strip()[:300]
             # The Claude CLI reports its own failures (usage limit, API error) in the

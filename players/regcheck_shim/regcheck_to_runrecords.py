@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -102,10 +103,16 @@ _THREEWAY = {"yes": "deviation", "no": "no_deviation", "missing": "insufficient_
 _CONF_THREEWAY = 0.9
 
 
+#: RegCheck >= 50c8017 prefixes each retrieved chunk with "[PAPER_0032, relevance_score=0.186] ".
+#: The tag is not source text; same pattern RegCheck strips itself (comparisons._EVIDENCE_ID_RE).
+_EVIDENCE_ID_RE = re.compile(r"\[(?:PREREG|PAPER)_\d+(?:, relevance_score=[0-9.]+)?\]\s*")
+
+
 def _first_quote(value) -> str | None:
     for chunk in str(value or "").split("\n\n"):
-        if chunk.strip():
-            return chunk.strip()
+        chunk = _EVIDENCE_ID_RE.sub("", chunk).strip()
+        if chunk:
+            return chunk
     return None
 
 

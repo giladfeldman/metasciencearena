@@ -53,6 +53,48 @@ def test_openai_call_config_maps_every_knob_and_keeps_unknown_keys(monkeypatch):
     assert cfg["other_body_keys"] == {"mystery_knob": 3}               # unknown -> kept, never dropped
 
 
+def test_recording_a_call_never_strips_a_setting_from_the_next_request(tmp_path, monkeypatch):
+    """d-02eea6 (uni-desktop report 2026-10-30): the builder popped enable_thinking out of the
+    adapter's own chat_template_kwargs, so from the second task on a host-run player sent no
+    switch at all (the model's default, often thinking ON) and recorded "n/a". Containerised
+    players were spared only because each task gets a fresh adapter."""
+    from players.adapters import openai_compatible as oc
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text("Return JSON only.\n{{INPUT_TEXT}}", encoding="utf-8")
+    monkeypatch.setenv("X_BASE", "https://api.invalid/v1")
+    monkeypatch.setenv("X_API_KEY", "k")
+    sent = []
+
+    class _Resp:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"choices": [{"message": {"content": "{\"ok\": true}"}}]}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        sent.append(__import__("copy").deepcopy(json))
+        return _Resp()
+
+    monkeypatch.setattr(oc.requests, "post", fake_post)
+    entry = {"adapter_class": "OpenAIChatCompletionsAdapter", "openai_model": "m",
+             "openai_extra_body": {"chat_template_kwargs": {"enable_thinking": False, "keep": 1}}}
+    adapter = oc.OpenAIChatCompletionsAdapter(
+        player_id="p", player_version="m", player_type="ai-model", confidence_strategy="native",
+        deterministic=False, openai_model="m", prompt_template_path=str(prompt),
+        openai_base_url_env="X_BASE", openai_api_key_env="X_API_KEY",
+        openai_extra_body=entry["openai_extra_body"])
+    recorded = []
+    for i in range(3):                       # what framework/runner.py does after each task
+        adapter.play_task({"input": {"text": f"T{i}"}}, timeout_s=5)
+        recorded.append(run_env.build_call_config(entry=entry, body=adapter.last_request_body(),
+                                                  prompt_template_sha256=None, timeout_s=5))
+    assert [b["chat_template_kwargs"] for b in sent] == [{"enable_thinking": False, "keep": 1}] * 3
+    assert [c["enable_thinking"] for c in recorded] == [False, False, False]
+    assert [c["other_body_keys"] for c in recorded] == [{"chat_template_kwargs": {"keep": 1}}] * 3
+    assert entry["openai_extra_body"] == {"chat_template_kwargs": {"enable_thinking": False, "keep": 1}}
+
+
 def test_gemini_call_config_reads_generation_config():
     entry = {"adapter_class": "GeminiGenerateContentAdapter", "gemini_model": "gemini-flash-latest"}
     body = {"model": "gemini-flash-latest", "api": "gemini-generate-content", "contents_sha256": "x",
@@ -196,7 +238,9 @@ def test_tournament_records_env_call_config_and_raw(tmp_path, fake_http, monkeyp
     recs = read_records(out)
     assert len(recs) == 2 and len(fake_http) == 2        # both tasks went through the container path
     for r in recs:
-        assert r["schema_version"] == 12
+        assert r["schema_version"] >= 12
+        assert r["model_call"] is None                   # an API player makes no CLI call
+        assert r["preflight"]["run_size"] == "pretest"   # a model player always carries the gate's verdict
         env = run_env.load_env(r["env_sha"])
         assert env["isolation"] == "container"
         assert env["network"]["allow_hosts"] == ["api.invalid"]
@@ -305,3 +349,66 @@ def test_writer_refuses_an_env_sha_with_no_stored_env(tmp_path):
     with RunRecordWriter(tmp_path / "r.jsonl") as w:
         with pytest.raises(RunRecordValidationError, match="names no stored env"):
             w.append(rec)
+
+
+def test_a_cli_player_record_carries_model_call_and_a_cli_call_config(tmp_path, monkeypatch, in_process_runner):
+    """Schema v13 (2026-11-01): a Claude Code player's record says what effort it was launched
+    with, and its call_config is the CLI launch with per-call values masked."""
+    import subprocess
+    from framework import cli_session_log, hermetic
+    from framework.runner import run_tournament
+
+    monkeypatch.setattr(hermetic, "cli_version", lambda b: "9.9.9-test")
+    log = tmp_path / "session.jsonl"
+    log.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(cli_session_log, "find_claude_transcript", lambda sid: log)
+    monkeypatch.setattr(cli_session_log, "extract_claude", lambda p: {
+        "effort_sent": "high", "harness_version": "9.9.9-test", "models_billed": ["claude-sonnet-x"],
+        "model_requested": "claude-sonnet-x", "models_served": ["claude-sonnet-x"], "tools_called": [],
+        "usage": {"output_tokens": 3}})
+    import shutil
+    real = shutil.which
+    monkeypatch.setattr(shutil, "which", lambda c, *a, **k: real(c, *a, **k) or (f"/usr/bin/{c}" if c == "claude" else None))
+    seen = []
+
+    def fake_run(argv, **kw):
+        if list(argv)[1:] == ["--version"]:
+            return subprocess.CompletedProcess(argv, 0, stdout="9.9.9-test", stderr="")
+        seen.append(list(argv))
+        return subprocess.CompletedProcess(argv, 0, stderr="", stdout=json.dumps(
+            {"type": "result", "result": json.dumps({"records": []}), "session_id": "x", "usage": {},
+             "stop_reason": "end_turn"}))
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    entry = {"player_id": "v13-cli-probe", "player_type": "ai-model", "player_version": "claude-sonnet-x",
+             "adapter_class": "SubprocessCliAdapter", "cli_command": ["claude", "--print", "--model", "claude-sonnet-x"],
+             "cli_json_envelope": "claude", "cli_effort": "high",
+             "prompt_template_path": "players/prompts/grim_consistency.txt",
+             "confidence_strategy": "native", "deterministic": False}
+    reg = tmp_path / "registry.yaml"
+    reg.write_text(yaml.safe_dump([entry]), encoding="utf-8")
+    out = tmp_path / "run.jsonl"
+    run_tournament(arena_dir=GRIM, task_set_version="v1", registry_path=reg, player_ids=["v13-cli-probe"],
+                   output_path=out, trials=1, timeout_s=60, seed=0, split="revealed", max_tasks=2,
+                   public_only=True)
+    recs = read_records(out)
+    seen = [a for a in seen if a and "claude" in str(a[0]).lower()]   # not the runner's own git/host probes
+    assert len(recs) == 2 and all("--effort" in a and a[a.index("--effort") + 1] == "high" for a in seen), seen
+    shas = set()
+    for r in recs:
+        assert r["schema_version"] == 13
+        mc = r["model_call"]
+        assert mc["launch"]["effort_requested"] == "high" and mc["launch"]["binary"] == "claude"
+        assert mc["checks"]["session_log"] == "found" and mc["checks"]["effort_applied"] is True
+        assert "_raw" not in mc
+        cfg = run_env.load_call_config(r["call_config_sha256"])
+        assert cfg["api_type"] == "cli:claude" and cfg["reasoning_effort"] == "high"
+        assert cfg["endpoint"] == "claude@9.9.9-test" and cfg["model_requested"] == "claude-sonnet-x"
+        assert "<per-call>" in cfg["other_body_keys"]["cli_argv"]
+        # The gate's verdict travels with the record: 2 tasks is a pretest, which needs no review.
+        pf = r["preflight"]
+        assert pf["run_size"] == "pretest" and pf["review"] is None
+        assert (run_env.store_root() / "preflight_configs" / f"{pf['config_digest']}.json").exists()
+        shas.add(r["call_config_sha256"])
+    assert len(shas) == 1          # two calls, same settings, same hash: the per-call values are masked
+    raw = run_env.read_raw(tmp_path / "run.raw.jsonl.gz")       # the CLI's raw output is kept
+    assert len(raw) == 2 and json.loads(raw[0]["raw_response"]["cli"]["stdout"])["type"] == "result"

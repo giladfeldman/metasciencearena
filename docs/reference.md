@@ -164,6 +164,9 @@ Benchmarks `@kbench.task` module for the arena's public split, plus its tasks as
 | `METACHECK_DEV_RLIB` | a per-user R library path | R library holding metacheck's development build, used by `MetacheckDevAdapter` |
 | `R_LIBS` | the R default | prepended with `METACHECK_DEV_RLIB` by `MetacheckDevAdapter` when it starts Rscript |
 | `SCIENCEARENA_TOOL_ENV_<TOOL>` | `players/tool_envs/<tool>/.venv` | interpreter for an out-of-process tool worker (`DOCLING`, `MARKER`, `MINERU`) |
+| `CLAUDE_CONFIG_DIR` | `~/.claude` | Claude Code's own setting, read (never set) to find its session transcript after each CLI call, from which the record takes the effort sent, the models that answered and the tokens |
+| `CODEX_HOME` | `~/.codex` | the Codex CLI's own setting, read (never set) to find its session rollout and state database after each CLI call, for the same facts |
+| `SCIENCEARENA_CALL_CUSTODY_DIR` | unset: the maintainer's custody folder if one is configured, else nothing is kept | folder for the copy of each CLI call's session log and the call ledger (the test suite points it at a temporary folder) |
 
 ### Provider credentials (OpenAI-compatible players)
 
@@ -194,10 +197,12 @@ must be listed in it.
 | Variable | Used by | Meaning |
 |---|---|---|
 | `REGCHECK_DIR`, `REGCHECK_PYTHON` | `RegcheckShimAdapter` | a regcheck clone and a Python with its dependencies (both required) |
-| `REGCHECK_CLIENT` | `RegcheckShimAdapter` | `openai` (default, via the local shim), `groq` or `deepseek` |
+| `REGCHECK_HOME` | `RegcheckShimAdapter` | folder holding commit-pinned clones `regcheck-<commit>` for entries with `regcheck_commit` (default `~/regcheck_run`); a clone at another commit is refused |
+| `REGCHECK_CLIENT` | `RegcheckShimAdapter` | `openai` (default, via the local shim), `groq`, `deepseek`, `groq-gpustack` or `nvidia-gpustack` (RegCheck's GPUStack client pointed at that free host); an entry's `regcheck_embeddings: nvidia-nim` takes retrieval embeddings from NVIDIA NIM (`NVIDIA_NIM_API_KEY`) |
 | `REGCHECK_PARSER_CHOICE` | `RegcheckShimAdapter` | `pymupdf` (default) or `dpt2` |
 | `REGCHECK_GROQ_MODEL`, `REGCHECK_DEEPSEEK_MODEL` | `RegcheckShimAdapter` | model when the entry names none |
 | `REGCHECK_SHIM_CODEX`, `REGCHECK_SHIM_CODEX_MODEL`, `REGCHECK_SHIM_CODEX_TIMEOUT_S` | regcheck shim | codex binary (default `codex`), model, timeout (default 600) |
+| `REGCHECK_SHIM_CODEX_EFFORT` | regcheck shim | reasoning effort passed to codex; set by the adapter from the entry's `cli_effort` (required: the shim refuses to call codex without it) |
 | `REGCHECK_SHIM_PORT` | regcheck shim | port (default 8765) |
 | `REGCHECK_SHIM_NO_ST` | regcheck shim | set: skip sentence-transformers, use hashing embeddings |
 | `MODEL_PROXY_URL`, `MODEL_PROXY_API_KEY`, `LLMS_AVAILABLE` | `ModelProxyAdapter` (Kaggle proxy; no registry entry) | proxy URL, token, and the funded-model list |
@@ -218,6 +223,7 @@ The `adapter_class` values used by the bundled registry:
 | `LocalGgufAdapter` | a local llama-server; records the GGUF file's SHA-256 |
 | `SubprocessCliAdapter` | an agentic CLI (Claude Code, Codex, Gemini, Cursor): templated prompt in, JSON out, hermetically contained |
 | `AntigravityCliAdapter` | the Antigravity `agy` CLI |
+| `PowerReviewCliAdapter` | an agentic CLI given PowerBench's own review prompt (power-review arenas); a hermetically contained `SubprocessCliAdapter` |
 | `AgenticContainerAdapter` | Claude Code with Bash/R/Python inside a locked Docker container, one fresh container per task (`framework.agentic_container`); counts as cloud for the held-out egress gate |
 | `LlmCliPdfAdapter`, `LlmCliPdfSectionsAdapter`, `LlmCliPdfTablesAdapter` | an LLM CLI reading a PDF for text / sections / tables |
 | `LlmPdfReferencesAdapter`, `LlmPdfCitationsAdapter` | an LLM reading a PDF for references / citations |
@@ -279,6 +285,8 @@ Shipped as package data under `framework/contract/schemas/`.
 | `response_meta` | provider metadata such as `finish_reason` and the served model |
 | `env_sha` | (v12) SHA-256 of the run environment stored once at `run_env/envs/<env_sha>.json`: runner image, its full `pip freeze`, egress proxy, network policy, resource limits, orchestrator, generator fingerprint; or `isolation: host-exempt` with the named exemption. Required on every v12 record |
 | `call_config_sha256` | (v12) SHA-256 of the call settings stored at `run_env/call_configs/<sha>.json`: every knob that can change a model's answer, read off the request actually sent (`n/a` where a provider has none); null when no model request was made |
+| `model_call` | (v13) what an agentic command-line tool (Claude Code, Codex CLI) was launched with (binary and version, model, the reasoning effort the run required, tools, flags, environment variable names) and what that tool's own session log says it sent (effort, thinking, output ceiling, models served and billed, injected context), with checks that the effort asked for is the effort sent; one object per call or `{blocks: [...]}` when one record made several calls. Required on every v13 record; null when no command-line tool made the call. Held-out records keep only an allowlist of these facts |
+| `preflight` | (v13) the pre-run gate's verdict: `config_digest` (SHA-256 of the player's full configuration, stored at `run_env/preflight_configs/<digest>.json`), `review` (the stored two-model review that cleared a run of more than 3 tasks; null for a pretest), and `run_size` (`pretest` or `costly`). Required on every v13 record; null for a player that makes no model call |
 
 From v12 the provider's raw response is kept too: `<run file>.raw.jsonl.gz` beside the run file
 for public tasks, and in article custody for held-out tasks (it can quote the real document).
@@ -328,7 +336,7 @@ and the constants `DEFAULT_ALPHA`, `DEFAULT_RESAMPLES`, `MIN_TASKS_FOR_TESTING`.
 `ArenaPublishability`, `scan_for_leaks(repo_root, files)`, `held_out_shingles`, `code_only`,
 `imports_a_private_package`, and the rule tables `PUBLIC_TOP_LEVEL`, `PUBLIC_ARENA_GLOBS`,
 `MIRROR_RENAMES`, `PRIVATE_GOLD_MARKERS`, `ARENA_EXTRA_GOLD_MARKERS`, `PRIVATE_PACKAGES`, `PRIVATE_TEST_FILES`,
-`PUBLISHED_ARENAS_FILE`.
+`PUBLISHED_ARENAS_FILE`, and `MIRROR_WITHHELD_ARENAS` (arenas on the board whose code is not mirrored, each with its reason).
 
 Other modules used in the README examples: `framework.runner` (`run_tournament`,
 `ADAPTER_ENTRY_POINT_GROUP`), `framework.player_adapter` (`PlayerAdapter`,

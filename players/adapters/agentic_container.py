@@ -19,6 +19,7 @@ import re
 from pathlib import Path
 
 from framework import agentic_container as ac
+from framework import model_call
 from framework.player_adapter import (VERSION_ABSENT_BY_DESIGN, PlayerAdapter, VersionAbsence,
                                       register_adapter_class)
 
@@ -47,8 +48,13 @@ def _last_json_object(text: str) -> dict | None:
 class AgenticContainerAdapter(PlayerAdapter):
 
     def __init__(self, *args, cli_command: list[str], prompt_template_path: str | Path,
-                 docker_container: str | None = None, **kwargs):
+                 docker_container: str | None = None, cli_effort: str | None = None,
+                 cli_effort_reason: str | None = None, **kwargs):
         super().__init__(*args, **kwargs)
+        #: Explicit effort, validated like every other Claude call (framework.model_call).
+        self.cli_effort = cli_effort
+        self.cli_effort_reason = cli_effort_reason
+        self._last_model_call: dict | None = None
         # cli_command carries the model the same way the single-shot entries do:
         # ["claude", "--print", "--model", "<model>"]; only the model is used here.
         if "--model" not in cli_command:
@@ -68,7 +74,10 @@ class AgenticContainerAdapter(PlayerAdapter):
         self._template = self.prompt_template_path.read_text(encoding="utf-8")
         self._wrapper = WRAPPER.read_text(encoding="utf-8")
         ac.image_id(self.image)  # raises ContainerUnavailable now, not mid-run
-        self.containment_argv = ac.build_argv(self.model, Path("task"), Path("out"), image=self.image)
+        model_call.resolve_effort("claude", ["claude", "--model", self.model], self.cli_effort,
+                                  self.cli_effort_reason, f"player-{self.player_id}")
+        self.containment_argv = ac.build_argv(self.model, Path("task"), Path("out"), image=self.image,
+                                              effort=self.cli_effort)
 
     def containment_block(self) -> dict:
         """provenance.containment for this player: the container, not the CLI flags.
@@ -95,7 +104,25 @@ class AgenticContainerAdapter(PlayerAdapter):
         files = {"task_prompt.txt": prompt.encode("utf-8")}
         for name, b64 in (inp.get("documents") or {}).items():
             files[name] = base64.b64decode(b64)
-        res = ac.run_task(self.model, self._wrapper, files, image=self.image, timeout_s=timeout_s)
+        self._last_model_call = None
+        started = model_call._utc_now()
+        res = ac.run_task(self.model, self._wrapper, files, image=self.image, timeout_s=timeout_s,
+                          effort=self.cli_effort)
+        envelope_out = _last_json_object(res.stdout) or {}
+        # The CLI runs inside the container and its transcript dies with it (debt: mount it out),
+        # so the block holds the launch and the CLI's own result envelope, not a session log.
+        self._last_model_call = {
+            "recorder_version": model_call.RECORDER_VERSION,
+            "launch": {"binary": "claude", "where": f"agentic container {self.image}", "argv": res.argv_redacted,
+                       "cli_version": f"pinned in image {res.image_id[:19]}", "model_requested": self.model,
+                       "effort_requested": self.cli_effort, "effort_reason": self.cli_effort_reason,
+                       "effort_validated_against": "claude-code accepted values",
+                       "containment_profile": ac.AGENTIC_PROFILE_VERSION},
+            "started_utc": started, "ended_utc": model_call._utc_now(), "returncode": res.returncode,
+            "session_id": envelope_out.get("session_id"), "session_log": None,
+            "envelope": {k: v for k, v in envelope_out.items() if k != "result"} or None, "facts": None,
+            "checks": {"session_log": "inside-container-not-kept", "effort_applied": "unverified"},
+        }
         if not res.egress_locked:
             raise RuntimeError("container did not report its egress lock; refusing the answer")
         envelope_json = _last_json_object(res.stdout) or {}

@@ -34,7 +34,7 @@ from pathlib import Path  # noqa: F401  (kept for adapter parity)
 
 from framework.player_adapter import PlayerAdapter, register_adapter_class
 
-from framework import hermetic
+from framework import hermetic, model_call
 
 
 def _strip_fences(s: str) -> str:
@@ -91,8 +91,13 @@ class LlmCliPdfAdapter(PlayerAdapter):
 
     def __init__(self, *args, cli_command: list[str], prompt_template_path: str | Path,
                  output_message_flag: str | None = None,
-                 document_to_text: str | None = None, **kwargs):
+                 document_to_text: str | None = None,
+                 cli_effort: str | None = None, cli_effort_reason: str | None = None, **kwargs):
         super().__init__(*args, **kwargs)
+        #: Explicit effort (framework.model_call); refused at prepare() when unstated.
+        self.cli_effort = cli_effort
+        self.cli_effort_reason = cli_effort_reason
+        self._last_model_call: dict | None = None
         # "pdftotext": the model receives the text poppler extracts on this
         # machine, inside the prompt, instead of the PDF itself. Set so that
         # every AI player of an arena gets the SAME input (owner decision
@@ -115,6 +120,20 @@ class LlmCliPdfAdapter(PlayerAdapter):
             raise RuntimeError(f"CLI binary not on PATH: {first}")
         self._resolved = [resolved] + self.cli_command[1:]
         self._template = self.prompt_template_path.read_text(encoding="utf-8")
+        # Refuse before the first paid task if the effort cannot be stated.
+        model_call.prepare(self._resolved, effort=self.cli_effort, effort_reason=self.cli_effort_reason,
+                           purpose="player-preflight")
+
+    def _run_cli(self, argv: list[str], *, prompt: str, timeout_s: int, cwd, allow_tools=()):
+        """One recorded CLI call (framework.model_call); the block is kept on every exit path."""
+        self._last_model_call = None
+
+        def keep(block):
+            self._last_model_call = block
+        proc, _ = model_call.run(argv, effort=self.cli_effort, effort_reason=self.cli_effort_reason,
+                                 purpose=f"player-{self.player_id}", input=prompt, timeout_s=timeout_s,
+                                 cwd=cwd, allow_tools=allow_tools, sink=keep)
+        return proc
 
     def _coerce_response(self, raw: str) -> dict:
         """Coerce raw CLI output into the arena output shape.
@@ -130,11 +149,8 @@ class LlmCliPdfAdapter(PlayerAdapter):
         text = _pdf_to_text(envelope["input"]["document_bytes_b64"], timeout_s)
         tmp_dir = hermetic.hermetic_cwd(tag="text-workspace")
         tmp_dir.mkdir(parents=True, exist_ok=True)
-        argv, spawn = hermetic.spawn_kwargs(list(self._resolved), allow_tools=(), cwd=tmp_dir)
         prompt = self._template.replace("{{INPUT_TEXT}}", text)
-        proc = subprocess.run(argv, input=prompt, capture_output=True, text=True,
-                              encoding="utf-8", errors="replace", timeout=timeout_s,
-                              check=False, **spawn)
+        proc = self._run_cli(list(self._resolved), prompt=prompt, timeout_s=timeout_s, cwd=tmp_dir)
         if proc.returncode != 0:
             raise RuntimeError(f"{self.cli_command[0]} exited {proc.returncode}: "
                                f"{proc.stderr.strip()[:300]}")
@@ -184,22 +200,12 @@ class LlmCliPdfAdapter(PlayerAdapter):
 
         # every adapter flag, so nothing is appended past the final flag.
 
-        argv, spawn = hermetic.spawn_kwargs(
-
-            argv, allow_tools=("Read",), cwd=tmp_dir)
-
-
         try:
             prompt = (self._template
                       .replace("{{PDF_PATH}}", pdf_path_fwd)
                       .replace("{{N_PAGES}}", str(n_pages)))
-            proc = subprocess.run(
-                argv,
-                input=prompt,
-                capture_output=True, text=True,
-                encoding="utf-8", errors="replace",
-                timeout=timeout_s, check=False, **spawn,
-            )
+            proc = self._run_cli(argv, prompt=prompt, timeout_s=timeout_s, cwd=tmp_dir,
+                                 allow_tools=("Read",))
             if proc.returncode != 0:
                 raise RuntimeError(
                     f"{self.cli_command[0]} exited {proc.returncode}: "

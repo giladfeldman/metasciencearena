@@ -380,13 +380,20 @@ what does it test, anything that favours a particular tool>"}}
 """
 
 
+AI_EFFORT = "medium"
+
+
 def claude_runner(prompt: str, *, timeout_s: int = 600) -> str:
     """Run ``claude --print`` contained by framework.hermetic (no tools, cwd outside the repo)."""
-    from framework.hermetic import spawn_kwargs
+    from framework import model_call
 
-    argv, kw = spawn_kwargs(["claude", "--print", "--model", AI_MODEL])
-    proc = subprocess.run(argv, input=prompt, capture_output=True, timeout=timeout_s,
-                          encoding="utf-8", errors="replace", **kw)
+    # Effort is explicit (framework.model_call refuses a call without one). "medium" is what
+    # Claude Code 2.1.316 applies, when none is sent, to the 5.5 models the opus/sonnet aliases
+    # now name (measured 2026-11-01; Opus 5, Sonnet 5, Opus 4.8 and Sonnet 4.6 get "high"), and
+    # the owner's level for the latest frontier models (2026-11-01).
+    proc, _ = model_call.run(["claude", "--print", "--model", AI_MODEL], effort=AI_EFFORT,
+                             purpose="contribution-review", input=prompt, timeout_s=timeout_s,
+                             allow_alias=True)
     if proc.returncode != 0:
         raise RuntimeError(f"claude exited {proc.returncode}: {(proc.stderr or '')[:300]}")
     if not proc.stdout or not proc.stdout.strip():

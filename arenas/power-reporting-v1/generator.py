@@ -174,6 +174,9 @@ def _task(task_set_version, seed, tier, idx, kind_or_mistake, *, mistake: bool,
 
 
 def generate(task_set_version: str, seed: int, split: str = "revealed"):
+    if task_set_version == "v2":
+        yield from _generate_v2(seed, split)
+        return
     visibility = "public" if split == "revealed" else "held_out"
 
     def clean(tier, idx, kind):
@@ -219,6 +222,18 @@ def generate(task_set_version: str, seed: int, split: str = "revealed"):
     yield injected(6, 1, "posthoc_as_apriori")
     yield injected(6, 2, "missing_fields")
     yield injected(6, 3, "no_power_analysis")
+
+
+def _generate_v2(seed: int, split: str):
+    """Task set v2 (DEVELOPMENT, not declared in arena.yaml): the PowerBench extraction
+    contract, built by arenas/power_review_v4.py. A separate code path, so v1's
+    tasks and fingerprint cannot move. See DEVELOPMENT_v2.md."""
+    from arenas import power_review_v4
+
+    for envelope in power_review_v4.generate_family("extraction", "power-reporting-v1", "v2", seed, split):
+        gold = power_review_v4.ground_truth("power-reporting-v1", envelope["task_id"])
+        _GROUND_TRUTH_CACHE[envelope["task_id"]] = {**gold, "instrument": "power-review-v4-extraction"}
+        yield envelope
 
 
 def ground_truth(task_id: str) -> dict:

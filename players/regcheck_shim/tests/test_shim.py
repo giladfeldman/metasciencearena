@@ -121,3 +121,34 @@ def test_embeddings_accepts_single_string(running_shim):
     body = {"model": "text-embedding-3-large", "input": "just one"}
     data = _post(running_shim, "/v1/embeddings", body)
     assert len(data["data"]) == 1
+
+
+def test_codex_runs_contained_with_the_prompt_on_stdin(monkeypatch):
+    # Failing-first 2026-10-30: codex_complete ran `codex exec` with the runner's cwd
+    # (the repo, which holds arena answer keys), the user's config, no sandbox, and the
+    # whole prompt as argv (full papers exceed Windows' 32,767-char command line).
+    import subprocess
+    from pathlib import Path
+    seen = {}
+
+    def fake_run(argv, input=None, **kw):
+        seen.update(argv=list(argv), input=input, cwd=kw.get("cwd"))
+        out = argv[argv.index("-o") + 1]
+        Path(out).write_text('{"ok": true}', encoding="utf-8")
+        return subprocess.CompletedProcess(argv, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(openai_shim.subprocess, "run", fake_run)
+    monkeypatch.setattr(openai_shim, "CODEX_EFFORT", "low")
+    prompt = "Compare the preregistration and the paper. " * 2000
+    assert openai_shim.codex_complete(prompt, want_json=True) == '{"ok": true}'
+    argv = seen["argv"]
+    assert "--sandbox" in argv and argv[argv.index("--sandbox") + 1] == "read-only"
+    assert "--ignore-user-config" in argv
+    assert prompt not in argv and seen["input"] == prompt
+    repo = Path(__file__).resolve().parents[3]
+    cwd = Path(seen["cwd"]).resolve()
+    assert cwd != repo and repo not in cwd.parents
+    # Found by the 2026-10-30 smoke run: codex exits 2 on a flag given twice
+    # ("--skip-git-repo-check cannot be used multiple times"), which the fake hid.
+    flags = [a for a in argv if a.startswith("--")]
+    assert len(flags) == len(set(flags)), flags

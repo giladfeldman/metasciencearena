@@ -69,7 +69,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO))
-from framework import hermetic  # noqa: E402
+from framework import hermetic, model_call  # noqa: E402
 
 CUSTODY = Path(os.environ["ARTICLE_REPOSITORY"]) / "ground_truth" / "citeclaim-2026-10"
 BUILD_V1 = CUSTODY / "build_v1"
@@ -113,12 +113,16 @@ def _sid(*parts: str) -> str:
 
 
 # ------------------------------------------------------------------ claude
-def claude(model: str, prompt: str, *, timeout: int = 900) -> tuple[str, str | None]:
+def claude(model: str, prompt: str, *, timeout: int = 900, effort: str = "medium") -> tuple[str, str | None]:
     """One hermetic Claude CLI call (Claude Max). Returns (text, resolved model id)."""
-    argv, kw = hermetic.spawn_kwargs(["claude", "--print", "--model", model, "--output-format", "json"])
+    # Effort is explicit (framework.model_call refuses a call without one). "medium" is what
+    # Claude Code 2.1.316 applies, when none is sent, to the 5.5 models the opus/sonnet aliases
+    # now name (measured 2026-11-01; Opus 5, Sonnet 5, Opus 4.8 and Sonnet 4.6 get "high"), and
+    # the owner's level for the latest frontier models (2026-11-01).
     for attempt in range(1, 4):
-        cp = subprocess.run(argv, input=prompt, capture_output=True, text=True, encoding="utf-8",
-                            errors="replace", timeout=timeout, **kw)
+        cp, _ = model_call.run(["claude", "--print", "--model", model, "--output-format", "json"],
+                               effort=effort, purpose="citeclaim-build-tasks", input=prompt, timeout_s=timeout,
+                               allow_alias=True)
         if cp.returncode == 0:
             try:
                 d = json.loads(cp.stdout)

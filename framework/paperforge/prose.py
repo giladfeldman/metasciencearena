@@ -29,7 +29,9 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 
-from framework import hermetic
+from framework import hermetic, model_call
+
+PROSE_EFFORT = "medium"
 
 #: Case-insensitive patterns the prose may never contain, with the reason shown to
 #: the model on retry. Digits first: the model must never write a number.
@@ -130,17 +132,20 @@ def call_claude(prompt: str, model: str, timeout: int = 900) -> tuple[str, dict]
     binary = shutil.which("claude")
     if not binary:
         raise RuntimeError("claude CLI not on PATH")
-    argv, kw = hermetic.spawn_kwargs(
-        [binary, "-p", "--model", model, "--output-format", "json"],
-        cwd=hermetic.hermetic_cwd(tag="paperforge"))
-    r = subprocess.run(argv, input=prompt, capture_output=True, text=True,
-                       encoding="utf-8", timeout=timeout, **kw)
+    # Effort is explicit (framework.model_call refuses a call without one). "medium" is what
+    # Claude Code 2.1.316 applies, when none is sent, to the 5.5 models the opus/sonnet aliases
+    # now name (measured 2026-11-01; Opus 5, Sonnet 5, Opus 4.8 and Sonnet 4.6 get "high"), and
+    # the owner's level for the latest frontier models (2026-11-01).
+    r, call = model_call.run([binary, "-p", "--model", model, "--output-format", "json"],
+                             effort=PROSE_EFFORT, purpose="paperforge-prose", input=prompt, timeout_s=timeout,
+                             cwd=hermetic.hermetic_cwd(tag="paperforge"), allow_alias=True)
     if r.returncode != 0 or not r.stdout:
         raise RuntimeError(f"claude exited {r.returncode}: {(r.stderr or '')[:400]}")
     payload = json.loads(r.stdout)
     if payload.get("is_error"):
         raise RuntimeError(f"claude returned an error: {str(payload.get('result'))[:400]}")
-    meta = {"model_requested": model,
+    meta = {"model_requested": model, "effort_requested": PROSE_EFFORT,
+            "effort_applied": (call.get("checks") or {}).get("effort_applied"),
             "model_returned": sorted((payload.get("modelUsage") or {}).keys()),
             "cli_version": hermetic.cli_version(binary),
             "containment": hermetic.PROFILE_VERSION,

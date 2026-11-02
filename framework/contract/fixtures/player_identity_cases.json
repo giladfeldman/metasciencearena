@@ -213,6 +213,27 @@
         "entry": {"openai_temperature": 0.0},
         "expect": {"temperature": 0.0},
         "expect_sha_null": false
+      },
+      {
+        "name": "anthropic-effort-is-a-configuration",
+        "why": "The effort ladder runs one model at five effort levels. Without effort in the config the five are identical to rule B, and every record stamped null although an effort was sent (2026-10-28).",
+        "entry": {"adapter_class": "AnthropicApiAdapter", "anthropic_model": "claude-haiku-5-5", "anthropic_effort": "low", "anthropic_max_tokens": 32000},
+        "expect": {"output_config": {"effort": "low"}},
+        "expect_sha_null": false
+      },
+      {
+        "name": "anthropic-max-tokens-is-a-budget-not-a-configuration",
+        "why": "Same reasoning as max_tokens in openai_extra_body: correcting a ceiling must not mint a new instrument.",
+        "entry": {"adapter_class": "AnthropicApiAdapter", "anthropic_model": "claude-haiku-5-5", "anthropic_effort": "low", "anthropic_max_tokens": 64000},
+        "expect": {"output_config": {"effort": "low"}},
+        "expect_sha_null": false
+      },
+      {
+        "name": "anthropic-thinking-is-sent-verbatim",
+        "why": "An optional thinking object is a request knob the adapter sends as written.",
+        "entry": {"adapter_class": "AnthropicApiAdapter", "anthropic_effort": "high", "anthropic_thinking": {"type": "disabled"}},
+        "expect": {"output_config": {"effort": "high"}, "thinking": {"type": "disabled"}},
+        "expect_sha_null": false
       }
     ]
   }

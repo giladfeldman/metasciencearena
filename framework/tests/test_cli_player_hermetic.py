@@ -116,6 +116,9 @@ def _capture_spawn(monkeypatch, module=subprocess) -> list[dict]:
     calls: list[dict] = []
 
     def fake_run(argv, **kwargs):
+        if list(argv)[1:] == ["--version"]:
+            # framework.model_call records the CLI version; that probe is not the task spawn.
+            return subprocess.CompletedProcess(argv, 0, stdout="0.0.0-test", stderr="")
         calls.append({"argv": list(argv), **kwargs})
         return subprocess.CompletedProcess(
             argv, 0, stdout='{"label": "ok"}', stderr="",
@@ -152,6 +155,8 @@ def test_subprocess_cli_player_is_spawned_hermetically(monkeypatch, tmp_path):
         "confidence_strategy": "native", "deterministic": False,
         "adapter_class": "SubprocessCliAdapter",
         "cli_command": ["claude", "--print", "--model", "claude-haiku-4-5"],
+        "cli_effort": "not-applicable",
+        "cli_effort_reason": "test fixture",
         "prompt_template_path": str(prompt),
     })
 
@@ -201,6 +206,8 @@ def test_pdf_cli_player_keeps_read_but_only_inside_its_workspace(monkeypatch, tm
         "confidence_strategy": "native", "deterministic": False,
         "adapter_class": "LlmCliPdfSectionsAdapter",
         "cli_command": ["claude", "--print", "--model", "claude-haiku-4-5"],
+        "cli_effort": "not-applicable",
+        "cli_effort_reason": "test fixture",
         "prompt_template_path": str(prompt),
     })
 
@@ -342,6 +349,7 @@ def _envelope_adapter(tmp_path, model: str):
         "adapter_class": "SubprocessCliAdapter",
         "cli_command": ["claude", "--print", "--model", model],
         "cli_json_envelope": "claude",
+        "cli_effort": "high",
         "prompt_template_path": str(prompt),
     })
 

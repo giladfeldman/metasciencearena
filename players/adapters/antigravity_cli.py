@@ -123,23 +123,37 @@ class AntigravityCliAdapter(PlayerAdapter):
         # `HERMETIC_PROFILES["agy"].verified` is False and these records must be
         # labelled "hardened, unverified" — never "hermetic".
         workspace = hermetic.hermetic_cwd(tag=f"agy-task-{uuid.uuid4().hex[:12]}")
-        hardened, spawn = hermetic.spawn_kwargs(cmd, allow_tools=(), cwd=workspace)
+        # Launched through framework.model_call like every CLI player: the launch spec,
+        # CLI version and environment are recorded (agy writes no session log we read).
+        from framework import model_call
+        self._last_model_call = None
+
+        def keep(block):
+            self._last_model_call = block
+        plan = model_call.prepare(cmd, effort=self.agy_effort or None,
+                                  purpose=f"player-{self.player_id}", cwd=workspace, redact=(prompt,))
+        hardened, spawn = plan.argv, plan.spawn
         # The prompt is dropped: `provenance.containment` describes the
         # INSTRUMENT, and a per-task prompt would make every record's
         # fingerprint unique for no gain.
         self.containment_argv = [hardened[0]] + [
             a for a in hardened[1:] if a not in (prompt, "-p")
         ]
-        proc = subprocess.run(
-            hardened,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout_s,
-            check=False,
-            **spawn,
-        )
+        proc = None
+        try:
+            proc = subprocess.run(
+                hardened,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout_s,
+                check=False,
+                **spawn,
+            )
+        finally:
+            keep(model_call.finish(plan, returncode=proc.returncode if proc else None,
+                                   stdout=None, stderr=proc.stderr if proc else None))
         if proc.returncode != 0:
             detail = (proc.stderr.strip() or proc.stdout.strip())[:500]
             raise RuntimeError(f"agy exited {proc.returncode}: {detail}")

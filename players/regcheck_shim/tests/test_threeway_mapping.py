@@ -22,7 +22,7 @@ needs_gold = pytest.mark.skipif(not GOLD.is_file(), reason="committed gold is NE
 #: The arena is a draft and not in the public mirror yet, while this test file is; there the
 #: whole module skips with this reason instead of failing on an absent catalog.
 pytestmark = pytest.mark.skipif(not FULLPAPER_DIMENSIONS_YAML.is_file(),
-                                reason="prereg-deviation-fullpaper-v1 not in this checkout (draft arena, public mirror)")
+                                reason="prereg-deviation-fullpaper-v1 not in this checkout (public mirror without it)")
 
 
 def _scorer():
@@ -100,3 +100,21 @@ def test_a_two_way_collapse_would_lose_the_insufficient_evidence_class():
         if it["deviation_judgement"] == "missing":
             it["deviation_judgement"] = "no"
     assert scorer.score(regcheck_items_to_threeway_output(items), gold)["breakdown"]["judgement_macro_f1"] < 1.0
+
+
+def test_regcheck_chunk_tags_are_not_part_of_the_quote():
+    # Found by the 2026-10-30 fullpaper smoke run: RegCheck 50c8017 prefixes every
+    # retrieved chunk with "[PAPER_0032, relevance_score=0.186] ". That tag is not paper
+    # text, so a quote carrying it can never be found in the paper (RegCheck strips it
+    # itself with _EVIDENCE_ID_RE in backend/services/comparisons.py).
+    from players.regcheck_shim.regcheck_to_runrecords import (
+        regcheck_items_to_threeway_output,
+    )
+    out = regcheck_items_to_threeway_output([{
+        "dimension": "hypotheses", "deviation_judgement": "yes",
+        "paper_content_quotes": "[PAPER_0032, relevance_score=0.186] We tested two hypotheses.\n\n[PAPER_0040] Other.",
+        "registration_content_quotes": "[PREREG_0003, relevance_score=1.000] H1 predicts more.",
+    }], {"hypotheses": "hypothesis_change"})
+    d = out["deviations"][0]
+    assert d["paper_quote"] == "We tested two hypotheses."
+    assert d["prereg_quote"] == "H1 predicts more."

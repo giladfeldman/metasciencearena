@@ -34,6 +34,21 @@ from __future__ import annotations
 #: fourth share of it.
 FORMULA_ID = "power-reporting-MEAN3xCAL-v1"
 
+#: Task set v2 (DEVELOPMENT, not declared in arena.yaml) scores the public
+#: PowerBench extraction contract: per-analysis fields with verbatim quotes whose
+#: offsets must fall inside the target analysis' own span. primary =
+#: correct / (expected fields + wrong or unassigned claims). Not comparable with v1.
+FORMULA_ID_V2 = "power-reporting-EXTRACT-SPAN-v2"
+FORMULA_IDS = (FORMULA_ID, FORMULA_ID_V2)
+V2_MARKER = "power-review-v4-extraction"
+
+
+def formula_id_for(ground_truth) -> str:
+    """v2 records name the v2 formula; anything else is a v1 record."""
+    if isinstance(ground_truth, dict) and ground_truth.get("instrument") == V2_MARKER:
+        return FORMULA_ID_V2
+    return FORMULA_ID
+
 FIELDS = ["test", "sample", "alpha", "power", "effect_size", "software"]
 
 
@@ -63,6 +78,9 @@ def _norm(v) -> str:
 
 
 def score(player_output: dict, ground_truth: dict) -> dict:
+    if ground_truth.get("instrument") == V2_MARKER:
+        from arenas.power_review_v4 import score as score_v2  # needs the powerbench engine
+        return score_v2(player_output, ground_truth)
     gold_has = bool(ground_truth.get("has_power_analysis", False))
     gold_kind = ground_truth.get("kind")
     gold_fields = ground_truth.get("fields", {}) or {}

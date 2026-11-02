@@ -29,6 +29,7 @@ from framework.discovery import (
     resolve_task_set_version,
     task_set_status,
 )
+from framework.custody_sink import CustodyRunSink
 from framework.holdout import redact_held_out_record
 from framework.paths import schema_path
 from framework.player_adapter import build_adapter, resolve_rscript_binary
@@ -36,7 +37,7 @@ from framework.registry import load_registry
 from framework.storage import RunRecordWriter
 from framework import adherence
 from framework import container, run_env
-from framework import hermetic, host, identity, timeouts
+from framework import hermetic, host, identity, model_call, preflight, timeouts
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +198,7 @@ def run_tournament(
     split: str = "revealed",
     overwrite: bool = False,
     only_tasks: set[str] | None = None,
+    custody_sink: CustodyRunSink | None = None,
 ) -> int:
     """Run a tournament. Returns the number of run records written.
 
@@ -329,6 +331,22 @@ def run_tournament(
     # records that can never land (debt d-19134a).
     for entry, adapter in adapters:
         _refuse_version_drift(entry, adapter)
+    # THE GATE (owner, 2026-11-01): a run larger than the pretest, with a player that calls a
+    # model, needs committed run-shaping files and a stored cross-model review of each
+    # configuration. See framework/preflight.py. Nothing has been spent yet.
+    try:
+        scorer_path = Path(inspect.getfile(scorer_mod))
+    except (TypeError, OSError):
+        scorer_path = None
+    gate = preflight.check(arena=arena, arena_dir=Path(arena_dir), task_set_version=task_set_version,
+                           adapters=adapters, env_shas=env_shas, scorer_path=scorer_path,
+                           max_tasks=max_tasks, only_tasks=only_tasks, trials=trials)
+    for pid, dg in gate["digests"].items():
+        logger.info("configuration %s = %s (run_env/preflight_configs/%s.json)%s", pid, dg, dg,
+                    f"; reviewed: {gate['reviews'][pid]}" if pid in gate["reviews"] else "")
+    contract_problems: list[str] = []
+    pretest_seen: Counter = Counter()
+    pretest_bad: Counter = Counter()
 
     written = 0
     tasks_seen = 0
@@ -373,7 +391,16 @@ def run_tournament(
                                            arena["arena_id"], trials=n_trials, seed=seed, split=split,
                                            enum_values=output_enum_values,
                                            env_sha=env_shas[entry["player_id"]],
-                                           run_file=Path(output_path))
+                                           run_file=Path(output_path),
+                                           custody_sink=custody_sink)
+                        # Which gate verdict this record ran under (schema v13): the configuration
+                        # digest and, for a costly run, the stored review that cleared it.
+                        pid_ = entry["player_id"]
+                        record["preflight"] = ({
+                            "config_digest": gate["digests"][pid_],
+                            "review": Path(gate["reviews"][pid_]).stem if pid_ in gate["reviews"] else None,
+                            "run_size": "costly" if gate["costly"] else "pretest",
+                        } if pid_ in gate["digests"] else None)
                         outcome = _record_outcome(record)
                         outcomes[(entry["player_id"], outcome)] += 1
                         if outcome != "ok":
@@ -382,6 +409,22 @@ def run_tournament(
                                             envelope["task_id"], err)
                         writer.append(record)
                         written += 1
+                        # The evidence contract, after the write: a paid answer is never lost.
+                        problems = preflight.record_problems(record, entry)
+                        if problems:
+                            msg = f"{entry['player_id']} / {envelope['task_id']}: " + "; ".join(problems)
+                            if gate["costly"]:
+                                raise preflight.RecordContractViolation(msg)
+                            contract_problems.append(msg)
+                        pid = entry["player_id"]
+                        if preflight.spends(entry) and pretest_seen[pid] < preflight.PRETEST_N:
+                            pretest_seen[pid] += 1
+                            pretest_bad[pid] += outcome != "ok"
+                            if (gate["costly"] and pretest_seen[pid] == preflight.PRETEST_N
+                                    and pretest_bad[pid] == preflight.PRETEST_N):
+                                raise preflight.PreflightRefused(
+                                    f"{pid}: every one of its first {preflight.PRETEST_N} records failed "
+                                    f"(pretest); stopping before the rest of the run is spent")
     finally:
         for _, adapter in adapters:
             try:
@@ -391,6 +434,10 @@ def run_tournament(
                                getattr(adapter, "player_id", adapter.__class__.__name__), exc)
 
     _log_run_summary(arena["arena_id"], outcomes, written)
+    if contract_problems:
+        raise preflight.RecordContractViolation(
+            f"{len(contract_problems)} record(s) lack their evidence (all {written} were written):\n  "
+            + "\n  ".join(contract_problems[:30]))
     return written
 
 
@@ -715,7 +762,7 @@ def _validate_findings(score: dict, arena_id: str, task_id: str | None) -> None:
 #: from now cannot tell a field's ABSENCE ("that run predates the field") from its
 #: omission ("not applicable to that run") — Codex and Sonnet both flagged this
 #: as the first thing a replication attempt would demand.
-RECORD_SCHEMA_VERSION = 12
+RECORD_SCHEMA_VERSION = 13
 
 
 def _code_version_for(repo_root) -> str | None:
@@ -981,7 +1028,8 @@ def _refuse_version_drift(entry: dict, adapter) -> None:
 
 def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validator, timeout_s,
               arena_id, *, trials, seed, split, enum_values=frozenset(),
-              env_sha: str | None = None, run_file: Path | None = None) -> dict:
+              env_sha: str | None = None, run_file: Path | None = None,
+              custody_sink=None) -> dict:
     started = time.monotonic()
     visibility = envelope.get("visibility", "held_out")
     # The answer the schema refused, kept so the violation can be diagnosed
@@ -1105,6 +1153,28 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
         call_config_sha = run_env.store_call_config(run_env.build_call_config(
             entry=entry, body=body, prompt_template_sha256=prompt_sha,
             timeout_s=timeout_s, group_size=group_size))
+    # WHAT THE CLI WAS LAUNCHED WITH AND WHAT IT SENT (schema v13). An agentic CLI player
+    # makes no request body we could read, so until v13 its record said nothing about the
+    # effort, thinking or output ceiling it ran at: three power-review arenas published
+    # "effort not recorded" (2026-11-01). framework.model_call refuses a CLI call whose
+    # effort is unstated and reads the CLI's own session log afterwards; its block is kept
+    # here (reduced for held-out tasks; the full block and the log copy are in custody), and
+    # its launch settings are content-addressed as this record's call_config.
+    try:
+        model_call_block = adapter.last_model_call() if hasattr(adapter, "last_model_call") else None
+    except Exception as exc:  # noqa: BLE001 -- no block fails the record check; the reason is logged
+        logger.warning("%s: last_model_call() raised %s: %s; the record has no model_call block",
+                       type(adapter).__name__, type(exc).__name__, exc)
+        model_call_block = None
+    if model_call_block:
+        launches = ([b["launch"] for b in model_call_block["blocks"]] if "blocks" in model_call_block
+                    else [model_call_block["launch"]])
+        if call_config_sha is None:
+            prompt_sha = (run_env.file_sha256(Path(entry["prompt_template_path"]))
+                          if entry.get("prompt_template_path") else None)
+            call_config_sha = run_env.store_call_config(run_env.build_cli_call_config(
+                entry=entry, launch=launches[0], prompt_template_sha256=prompt_sha, timeout_s=timeout_s))
+    record["model_call"] = model_call.public_block(model_call_block, held_out=(visibility == "held_out"))
     record["call_config_sha256"] = call_config_sha
     # The provider's raw answer, kept so a scorer fix can re-score without a new
     # call. Public tasks: gzipped beside the run file. Held-out tasks: article
@@ -1114,6 +1184,11 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
         raw = adapter.last_raw_response() if hasattr(adapter, "last_raw_response") else None
     except Exception:
         raw = None
+    if raw is None and model_call_block:
+        # A CLI player keeps no provider body; its raw stdout/stderr is the raw response.
+        parts = [b.get("_raw") for b in (model_call_block.get("blocks") or [model_call_block])]
+        parts = [p for p in parts if p]
+        raw = ({"cli": parts[0]} if len(parts) == 1 else {"cli_calls": parts}) if parts else None
     if raw is not None and run_file is not None:
         try:
             run_env.append_raw(
@@ -1246,4 +1321,8 @@ def _play_one(envelope, ground_truth, entry, adapter, scorer_mod, output_validat
     # metadata) — score.primary + the already-stripped {category,count} findings
     # survive so aggregate ranking and the category-level report still work.
     # Enforced at write time so a leak of the tracked JSONL reveals no gold.
+    if custody_sink is not None:
+        if not isinstance(custody_sink, CustodyRunSink):
+            raise TypeError("Raw evidence requires the bounded OS-temp custody sink")
+        custody_sink.write(record)
     return redact_held_out_record(record)

@@ -66,7 +66,9 @@ def test_tier_pivot_values_cover_axis_range(arena_yaml):
         pytest.skip("tier_pivot optional during phase 1")
     axis = next(a for a in manifest["difficulty_axes"] if a["id"] == pivot["axis"])
     declared_values = {v["value"] for v in pivot["values"]}
-    expected_values = set(range(axis["min"], axis["max"] + 1))
+    # An axis may declare the only levels it takes (fullpaper: tiers 2 and 6).
+    expected_values = set(axis.get("levels") or range(axis["min"], axis["max"] + 1))
+    assert all(axis["min"] <= v <= axis["max"] for v in expected_values)
     assert declared_values == expected_values, (
         f"tier_pivot.values declares {sorted(declared_values)}, "
         f"axis {pivot['axis']} range is {sorted(expected_values)}"

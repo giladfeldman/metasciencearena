@@ -193,6 +193,27 @@ def test_the_audit_is_not_vacuous():
     assert any("not slug-safe" in p for p in identity.audit_registry(c))
 
 
+def test_rules_a_and_b_see_a_cli_players_stated_effort():
+    """Two efforts of one CLI model must not hide under one instrument (2026-11-01).
+
+    A CLI player's effort is the registry key ``cli_effort``, not an inference-config
+    knob, so rules A and B compare it beside the config. It stays OUT of the record
+    stamp: records before 2026-11 carry no effort there, and audit_records would read
+    every re-run CLI instrument as two instruments.
+    """
+    import copy
+
+    a = copy.deepcopy(REGISTRY)
+    same = [e for e in a if e.get("instrument") == "claude-opus-5"
+            and e.get("adapter_class") == "SubprocessCliAdapter"]
+    assert len(same) >= 2 and len({e.get("cli_effort") for e in same}) == 1
+    same[0]["cli_effort"] = "low"
+    assert any("DIFFERENT inference configs" in p for p in identity.audit_registry(a))
+    same[0]["instrument"] = "claude-opus-5-elow"
+    assert identity.audit_registry(a) == []
+    assert identity.record_identity(same[0])["inference_config"] is None
+
+
 def test_the_registry_loader_refuses_an_inconsistent_declaration(tmp_path):
     """The rules are enforced at LOAD, not only in a test that someone must run."""
     from framework.registry import RegistryError, load_registry

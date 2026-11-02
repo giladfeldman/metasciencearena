@@ -7,9 +7,14 @@ adapter sends one Messages request with no tools and no system prompt, so the
 only thing the model sees is the arena prompt and the task.
 
 POLICY. The project's standing rule is "Claude only via the Max subscription,
-never the API". This adapter is the single approved exception (owner,
+never the API". This adapter was the single approved exception (owner,
 2026-10-23): API use ONLY for ScienceArena players, funded ONLY by the
-Max-included monthly API credit. It uses `requests`, not the `anthropic` SDK, so
+Max-included API credit (one-time as far as the owner knows; corrected 2026-10-28).
+CLOSED 2026-10-29 (owner: "No more API or cloud usage, all should be claude max
+local from now on"). The adapter stays for MODE=replay, which scores collected
+batches with no network. read_key() refuses every key read, so live, plan and the
+batch script's submit/collect all stop, unless SCIENCEARENA_ANTHROPIC_REOPENED is
+set, which only an owner decision to reopen may do. It uses `requests`, not the `anthropic` SDK, so
 the import/dependency commit gate still holds everywhere else. The key is read from SCIENCEARENA_ANTHROPIC_KEY -- never
 ANTHROPIC_API_KEY, which the Claude Code CLI would pick up and bill against, and
 which hermetic.py strips for that reason. The SCIENCEARENA_ prefix means the
@@ -58,11 +63,13 @@ from players.adapters import _anthropic_budget as budget
 
 logger = logging.getLogger(__name__)
 
-API_BASE = "https://api.anthropic.com"  # hard-rule-ok: approved ScienceArena API exception, 2026-10-23
+API_BASE = "https://api.anthropic.com"  # hard-rule-ok: ScienceArena API exception, 2026-10-23 (closed 2026-10-29, replay only)
 API_VERSION = "2023-06-01"
 KEY_ENV = "SCIENCEARENA_ANTHROPIC_KEY"
 WORKSPACE_ENV = "SCIENCEARENA_ANTHROPIC_WORKSPACE_ID"
 MODE_ENV = "SCIENCEARENA_ANTHROPIC_MODE"
+#: Set ONLY on an owner decision to reopen the API exception closed 2026-10-29.
+REOPEN_ENV = "SCIENCEARENA_ANTHROPIC_REOPENED"
 BATCH_DIR_ENV = "SCIENCEARENA_ANTHROPIC_BATCH_DIR"
 MODES = ("live", "plan", "replay")
 
@@ -109,7 +116,17 @@ def _user_env(name: str) -> str:
 
 
 def read_key() -> str:
-    """The API key (see _user_env)."""
+    """The API key (see _user_env), refused while the exception is closed.
+
+    Every paid path reads the key here: live and plan in this adapter, and submit/collect
+    in scripts/anthropic_batch.py. Replay reads no key, so collected batches still score.
+    """
+    if os.environ.get(REOPEN_ENV, "").strip().lower() in ("", "0", "false", "no", "off"):
+        raise RuntimeError(
+            "The ScienceArena API exception is CLOSED (owner, 2026-10-29: \"No more API or cloud "
+            "usage, all should be claude max local from now on\"). No live, plan, submit or collect "
+            f"call may read {KEY_ENV}; replay mode needs no key and still works. Only an owner "
+            f"decision can reopen it, recorded by setting {REOPEN_ENV}.")
     return _user_env(KEY_ENV)
 
 
@@ -430,8 +447,14 @@ class AnthropicApiAdapter(PlayerAdapter):
                                f"{response.text[:500]}")
         message = response.json()
         usage = message.get("usage") or {}
-        self._ledger.settle(rid, budget.usage_cost(self.anthropic_model, usage, batch=False),
-                            detail=json.dumps(usage)[:300])
+        if all(isinstance(usage.get(k), int) and not isinstance(usage.get(k), bool)
+               for k in ("input_tokens", "output_tokens")):
+            cost = budget.usage_cost(self.anthropic_model, usage, batch=False)
+        else:
+            # No usable token counts: the call was billed, but for how much is unknown.
+            # Keep the worst case rather than settle at $0 (review F4, 2026-11-01).
+            cost = worst
+        self._ledger.settle(rid, cost, detail=json.dumps(usage)[:300])
         self._last_usage = usage_record(usage)
         self._last_meta = self._meta(message, attempts=attempt, tier="standard", sent=body)
         return self._parse(text_of(message))

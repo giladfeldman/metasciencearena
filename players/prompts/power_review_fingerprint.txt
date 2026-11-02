@@ -1,0 +1,2 @@
+Exact prompt version, system/user messages and contract SHA256 come from the installed public library through PowerReviewFreeAdapter. The run identity binds their authored sources; this file never supplies a replacement prompt.
+{{INPUT_TEXT}}

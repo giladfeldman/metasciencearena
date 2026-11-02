@@ -110,17 +110,13 @@ class LlmCliPdfTablesAdapter(LlmCliPdfAdapter):
         # 2.1.224): Read returns a file inside that cwd and reports BLOCKED
         # for an absolute path into the repo. Hardening happens HERE, after
         # every adapter flag, so nothing is appended past the final flag.
-        argv, spawn = hermetic.spawn_kwargs(
-            argv, allow_tools=("Read",), cwd=tmp_dir)
 
         try:
             prompt = (self._template
                       .replace("{{PDF_PATH}}", pdf_path_fwd)
                       .replace("{{N_PAGES}}", str(n_pages)))
-            proc = subprocess.run(
-                argv, input=prompt, capture_output=True, text=True,
-                encoding="utf-8", errors="replace", timeout=timeout_s, check=False, **spawn,
-            )
+            proc = self._run_cli(argv, prompt=prompt, timeout_s=timeout_s, cwd=tmp_dir,
+                                 allow_tools=("Read",))
             if proc.returncode != 0:
                 raise RuntimeError(
                     f"{self.cli_command[0]} exited {proc.returncode}: "

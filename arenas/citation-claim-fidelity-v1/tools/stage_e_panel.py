@@ -47,7 +47,7 @@ ARENA = Path(__file__).resolve().parents[1]
 REPO = ARENA.parents[1]
 sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(ARENA))
-from framework import hermetic  # noqa: E402
+from framework import hermetic, model_call  # noqa: E402
 import scorer  # noqa: E402
 from generator import render_sentences  # noqa: E402
 
@@ -59,8 +59,13 @@ MIN_ABSTRACT_CHARS = 200  # citeclaim eligibility.MIN_ABSTRACT_CHARS
 MAX_GROUP = 6
 
 SEATS = {
-    "opus": {"argv": ["claude", "--print", "--model", "opus", "--output-format", "json"], "family": "anthropic"},
-    "sonnet": {"argv": ["claude", "--print", "--model", "sonnet", "--output-format", "json"], "family": "anthropic"},
+    # Effort explicit (framework.model_call): "medium" is what Claude Code 2.1.316 applies to the 5.5
+    # models these aliases name when none is sent (measured 2026-11-01), and the owner's level for the
+    # latest frontier models. The Sol seat's "high" and the decider's "xhigh" predate this and are kept.
+    "opus": {"argv": ["claude", "--print", "--model", "opus", "--effort", "medium", "--output-format", "json"],
+             "family": "anthropic"},
+    "sonnet": {"argv": ["claude", "--print", "--model", "sonnet", "--effort", "medium", "--output-format", "json"],
+               "family": "anthropic"},
     "sol": {"argv": ["codex", "exec", "-m", "gpt-6.1-sol", "-c", 'model_reasoning_effort="high"'], "family": "openai"},
 }
 
@@ -132,12 +137,12 @@ def extract_json_object(text: str):
 
 
 def call_seat(seat: str, prompt: str) -> dict:
-    argv, kw = hermetic.spawn_kwargs(SEATS[seat]["argv"])
     t0 = time.time()
-    cp = subprocess.run(argv, input=prompt, capture_output=True, text=True, encoding="utf-8",
-                        errors="replace", timeout=1200, **kw)
-    rec = {"argv_hardened": argv, "exit": cp.returncode, "seconds": round(time.time() - t0, 1),
-           "stderr_tail": cp.stderr[-600:]}
+    cp, call = model_call.run(SEATS[seat]["argv"], effort=None, purpose=f"stage-e-{seat}", input=prompt,
+                              timeout_s=1200, allow_alias=True)
+    rec = {"argv_hardened": call["launch"]["argv"], "exit": cp.returncode, "seconds": round(time.time() - t0, 1),
+           "stderr_tail": cp.stderr[-600:], "model_call_checks": call["checks"],
+           "effort_requested": call["launch"]["effort_requested"]}
     if seat in ("opus", "sonnet"):
         try:
             d = json.loads(cp.stdout)
@@ -488,10 +493,9 @@ def adjudicate(limit: int | None) -> None:
                                        reviewers=_reviewer_block(order, sv))
         final = None
         for attempt in (1, 2):
-            argv, kw = hermetic.spawn_kwargs(DECIDER_ARGV)
             t0 = time.time()
-            cp = subprocess.run(argv, input=prompt, capture_output=True, text=True, encoding="utf-8",
-                                errors="replace", timeout=1800, **kw)
+            cp, _call = model_call.run(DECIDER_ARGV, effort=None, purpose="stage-e-decider", input=prompt,
+                                       timeout_s=1800, allow_alias=True)
             rec = {**meta_run, "at": _now(), "citation_id": cid, "purpose": it["purpose"], "attempt": attempt,
                    "seat_order": dict(zip("ABC", order)), "prompt_sha256": _sha(prompt),
                    "seconds": round(time.time() - t0, 1), "exit": cp.returncode}

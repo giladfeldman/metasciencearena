@@ -55,6 +55,7 @@ Optional extras:
 | `[pdf-docling]` | Docling (pulls torch, ~2 GB) | the Docling PDF players |
 | `[pdf-liteparse]` | liteparse | the liteparse PDF players |
 | `[contrib-triage]` | openpyxl, python-docx | reading contributed `.xlsx` / `.docx` test material during local triage |
+| `[power-review]` | `powerbench==0.9.0` (exact release) | the power-review arenas (`power-reporting-v1` v2, `power-review-{audit,rewrite,code}-v1`), whose gold is checked against that engine build |
 | `[dev]` | pytest | running the test suite |
 
 **Arena data is not bundled.** The package is the scoring machinery; the arenas are the data it
@@ -159,6 +160,7 @@ adapter module is importable (see [Writing your own player](#writing-your-own-pl
 | `p-curve-v1` | evidential value from a set of significant results (p-curve; Simonsohn, Nelson & Simmons, 2014) |
 | `power-reporting-v1` | detect and extract a power analysis from a methods excerpt |
 | `prereg-deviation-v1` | find deviations between a preregistration and the paper |
+| `prereg-deviation-fullpaper-v1` | judge a full synthetic paper against its preregistration, per dimension (development preview) |
 | `prereg-extraction-v1` | find a paper's preregistration link |
 | `publication-bias-v1` | publication-bias verdict on a meta-analytic dataset |
 | `reference-integrity-v1` | reconcile a reference list with in-text citations |
@@ -232,7 +234,7 @@ wrong score):
 |---|---|
 | `RCliAdapter` | R on PATH (or `RSCRIPT_BINARY`) with the tool's package installed |
 | `OpenAIChatCompletionsAdapter` | the base-URL and key variables the entry names, e.g. `GROQ_BASE_URL` + `GROQ_API_KEY` |
-| `AnthropicApiAdapter` | `SCIENCEARENA_ANTHROPIC_KEY`, `SCIENCEARENA_ANTHROPIC_MODE`, and for live calls a spend budget (`SCIENCEARENA_ANTHROPIC_BUDGET_USD`, `SCIENCEARENA_ANTHROPIC_PERIOD`); optional: `SCIENCEARENA_ANTHROPIC_LEDGER` (spend-ledger path, default `~/.sciencearena/anthropic_spend.jsonl`), `SCIENCEARENA_ANTHROPIC_WORKSPACE_ID` (sent as the `anthropic-workspace-id` header, needed when the key is not scoped to a workspace), `SCIENCEARENA_ANTHROPIC_BATCH_DIR` (batch-plan and batch-replay modes: where each player's `requests.jsonl` and `results.jsonl` live) |
+| `AnthropicApiAdapter` | `SCIENCEARENA_ANTHROPIC_KEY`, `SCIENCEARENA_ANTHROPIC_MODE`, and for live calls a spend budget (`SCIENCEARENA_ANTHROPIC_BUDGET_USD`, `SCIENCEARENA_ANTHROPIC_PERIOD`); optional: `SCIENCEARENA_ANTHROPIC_LEDGER` (spend-ledger path, default `~/.sciencearena/anthropic_spend.jsonl`), `SCIENCEARENA_ANTHROPIC_WORKSPACE_ID` (sent as the `anthropic-workspace-id` header, needed when the key is not scoped to a workspace), `SCIENCEARENA_ANTHROPIC_BATCH_DIR` (batch-plan and batch-replay modes: where each player's `requests.jsonl` and `results.jsonl` live); the API exception closed 2026-10-29 (replay only): `read_key` refuses live and plan modes unless an owner reopens it with `SCIENCEARENA_ANTHROPIC_REOPENED` |
 | `SubprocessCliAdapter`, `LlmCliPdfAdapter` | the CLI on PATH, logged in with its own account |
 | `LocalGgufAdapter` | a running llama-server at the entry's `endpoint` |
 | `GrobidTextAdapter` and the other GROBID adapters | a GROBID server (default `http://localhost:8070`) |

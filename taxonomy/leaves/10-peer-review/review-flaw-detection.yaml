@@ -17,5 +17,23 @@ ground_truth_feasibility: medium
 arena_status: design
 scope_tier: B
 notes: |
-  Arena: review-flaw-detection-v1 (design only). Depends on the full-paper
-  generation engine.
+  Arena: review-flaw-detection-v1, built 2026-10-27 on the full-paper engine
+  (framework/paperforge), revised the same day (fix round 1) and on
+  2026-10-28 (fix round 2: flaw catalogue redesigned so that matching the
+  public templates no longer finds the flaws; fix round 3: flaw and twin
+  control share every passage and differ only in values). Still at
+  design: its manifest is arena.draft.yaml, so it is not discovered or
+  runnable until the owner commits the proposed pass bars; no player scored.
+  It measures synthetic flaw detection on template manuscripts. Fix round 3
+  showed a scripted reference checker finds every numeric flaw, so (owner
+  decision 2026-10-28) a prose-dependent flaw class was added: 12 flaws
+  decided by what a passage means (BUILD_REPORT.md section 11). Owner
+  decision 2026-10-29: v1 scores the numeric flaws only; the prose class stays
+  in the manuscripts, unscored and reported as exploratory. A scripted
+  non-reading checker passes every v1 bar, and the arena states what a v1
+  pass means (section 15). Approved by the owner on 2026-10-31, after
+  re-review 16, for release as code in design status; the bar levels stay
+  proposed until the README "Minting" steps (model-written prose bank,
+  cross-model answer-key check, private seed, seat calibration) are done.
+  See arenas/review-flaw-detection-v1/README.md and BUILD_REPORT.md
+  "Owner approval".

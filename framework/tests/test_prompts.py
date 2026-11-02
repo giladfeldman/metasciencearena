@@ -432,9 +432,18 @@ def test_every_prompt_template_interpolates_its_input():
     )
 
     offenders: list[str] = []
+    not_shipped: list[str] = []
     for rel in referenced:
         p = REPO / rel
         if not p.is_file():
+            parts = Path(rel).parts
+            in_mirror = not (REPO / "contract" / "public_manifest.txt").is_file()   # a private-only file
+            if in_mirror and parts[0] == "arenas" and not (REPO / "arenas" / parts[1]).is_dir():
+                # The public mirror ships the registry but not a private arena's own folder
+                # (mirrored suite, 2026-11-02: arenas/stats-from-pdf-v1/prompts/v1.md). In the private
+                # repo, or where the arena IS present, a missing template still fails below.
+                not_shipped.append(rel)
+                continue
             offenders.append(f"{rel}: referenced by the registry but does not exist")
             continue
         marks = format_field if rel in str_format else placeholder
@@ -445,6 +454,10 @@ def test_every_prompt_template_interpolates_its_input():
                 f"is not the one actually sent"
             )
     assert offenders == [], "\n  ".join(["published prompt templates:"] + offenders)
+    if not_shipped:
+        import warnings
+        warnings.warn(f"{len(not_shipped)} template(s) of arenas not in this checkout -- NOT verified here: "
+                      + ", ".join(not_shipped))
 
 
 def test_two_digest_variants_of_one_template_are_not_a_mix():

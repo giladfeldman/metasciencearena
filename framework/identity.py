@@ -109,7 +109,15 @@ def inference_config(entry: dict) -> dict | None:
     """
     body = entry.get("openai_extra_body") or {}
     temp = entry.get("openai_temperature")
-    if temp is None and not body:
+    # The Messages-API adapter's knobs (players/adapters/anthropic_api.py), in the
+    # shape it SENDS them: `output_config.effort` and a verbatim `thinking` object.
+    # Effort was missing here until the effort ladder (2026-10-28), so five effort
+    # levels of one model were indistinguishable to rule B and records stamped
+    # `null` although an effort was sent. `anthropic_max_tokens` is a budget, like
+    # `max_tokens` above, and is deliberately not read.
+    effort = entry.get("anthropic_effort")
+    thinking = entry.get("anthropic_thinking")
+    if temp is None and not body and effort is None and not thinking:
         return None
     cfg: dict = {}
     if temp is not None:
@@ -118,6 +126,10 @@ def inference_config(entry: dict) -> dict | None:
         if k in _BUDGET_KEYS:
             continue
         cfg[k] = v
+    if effort is not None:
+        cfg["output_config"] = {"effort": effort}
+    if thinking:
+        cfg["thinking"] = dict(thinking)
     return cfg or None
 
 
@@ -157,6 +169,20 @@ def record_identity(entry: dict) -> dict:
         "inference_config": cfg,
         "inference_config_sha256": inference_config_sha256(cfg),
     }
+
+
+def _declared_settings(entry: dict) -> str:
+    """What rules A and B compare: the inference config, plus a CLI player's stated effort.
+
+    ``cli_effort`` (2026-11-01) is a registry setting the record carries in its call
+    settings and ``model_call`` block, not in ``player_identity``: stamping it there would
+    make every re-run CLI instrument's older records (stamped ``None``) disagree with its
+    new ones under :func:`audit_records`. The registry rules still need it, or two
+    efforts of one model could be declared as one instrument.
+    """
+    cfg = canonical_json(inference_config(entry))
+    eff = entry.get("cli_effort")
+    return cfg if eff is None else f"{cfg} cli_effort={eff}"
 
 
 def audit_registry(entries: list[dict]) -> list[str]:
@@ -219,12 +245,11 @@ def audit_registry(entries: list[dict]) -> list[str]:
                 f"characters, over the {INSTRUMENT_MAX_LEN}-character bound.")
             continue
         by_instrument.setdefault(inst, []).append(e)
-        shape = (e.get("player_version"), canonical_json(inference_config(e)),
-                 e.get("adapter_class"))
+        shape = (e.get("player_version"), _declared_settings(e), e.get("adapter_class"))
         by_shape.setdefault(shape, []).append(e)
 
     for inst, group in sorted(by_instrument.items()):
-        configs = {canonical_json(inference_config(e)) for e in group}
+        configs = {_declared_settings(e) for e in group}
         if len(configs) > 1:
             ids = ", ".join(sorted(str(e.get("player_id")) for e in group))
             problems.append(

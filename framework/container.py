@@ -91,6 +91,8 @@ EXEMPT_ADAPTER_CLASSES: dict[str, str] = {
     "XlatFixtureAdapter": "no I/O fixture",
     "FredFridaOnlyAdapter": "no I/O fixture",
     "HumanReplayAdapter": "replays human answers from a file; no model call",
+    "PowerReviewFreeAdapter": "imports the PowerBench engine (prompt + validator; published 0.9.2, pinned in requirements.lock), which is not yet in the runner image; containerise by adding it to the image (d-d770bf)",
+    "PowerReviewCliAdapter": "subscription CLI (claude --print / codex exec) contained by framework.hermetic, as SubprocessCliAdapter; also imports the PowerBench engine, not yet in the runner image (d-d770bf)",
     "AnthropicApiAdapter": "published runs replay Anthropic Batch API answers from local result files (no model call during the run); live mode needs a key path and api.anthropic.com egress in the image (d-7aca62)",
     "StubPassAdapter": "test stub, no I/O",
     "StubFailAdapter": "test stub, no I/O",

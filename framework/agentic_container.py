@@ -107,9 +107,12 @@ def container_prefix(task_dir: Path, out_dir: Path, *, image: str = DEFAULT_IMAG
 MAX_TURNS = 80
 
 
-def agent_command(model: str, *, max_turns: int = MAX_TURNS) -> list[str]:
+def agent_command(model: str, *, max_turns: int = MAX_TURNS, effort: str | None = None) -> list[str]:
+    # effort: a level Claude Code accepts, or None / "not-applicable" for a model without one
+    # (validated by framework.model_call.resolve_effort in the adapter before any task runs).
     return [
         "claude", "--print", "--model", model,
+        *(["--effort", effort] if effort and effort != "not-applicable" else []),
         "--tools", AGENT_TOOLS,
         "--setting-sources", "",
         "--strict-mcp-config",
@@ -120,13 +123,14 @@ def agent_command(model: str, *, max_turns: int = MAX_TURNS) -> list[str]:
 
 
 def build_argv(model: str, task_dir: Path, out_dir: Path, *, image: str = DEFAULT_IMAGE,
-               max_turns: int = MAX_TURNS) -> list[str]:
-    return container_prefix(task_dir, out_dir, image=image) + agent_command(model, max_turns=max_turns)
+               max_turns: int = MAX_TURNS, effort: str | None = None) -> list[str]:
+    return container_prefix(task_dir, out_dir, image=image) + agent_command(model, max_turns=max_turns,
+                                                                             effort=effort)
 
 
 def run_task(model: str, prompt: str, files: dict[str, bytes], *, image: str = DEFAULT_IMAGE,
              timeout_s: int = 1800, env: dict[str, str] | None = None,
-             command: list[str] | None = None) -> ContainerResult:
+             command: list[str] | None = None, effort: str | None = None) -> ContainerResult:
     """Run one task in a fresh container. ``files`` land read-only under /task.
 
     ``command`` replaces the agent CLI with an arbitrary command run as the same
@@ -150,7 +154,7 @@ def run_task(model: str, prompt: str, files: dict[str, bytes], *, image: str = D
         # orphaned agentic containers after 120 s client timeouts.
         name = "sa-agentic-" + uuid.uuid4().hex[:12]
         prefix = container_prefix(task_dir, out_dir, image=image, name=name)
-        argv = prefix + (command if command else agent_command(model))
+        argv = prefix + (command if command else agent_command(model, effort=effort))
         t0 = time.monotonic()
         try:
             proc = subprocess.run(argv, input=prompt, capture_output=True, text=True,

@@ -88,19 +88,21 @@ def test_cli_player_gets_the_same_text_and_no_tools(text_prompt, monkeypatch):
     monkeypatch.setattr(oc, "_pdf_to_text", lambda b64, t: "PAPER TEXT FROM PDFTOTEXT")
     seen = {}
 
-    def fake_spawn(argv, *, allow_tools=(), cwd=None):
+    def fake_spawn(argv, *, allow_tools=(), cwd=None, via_recorder=False):
         seen["allow_tools"] = tuple(allow_tools)
         return list(argv), {"cwd": cwd}
 
     def fake_run(argv, input=None, **kw):
+        if list(argv)[1:] == ["--version"]:  # the recorder's CLI-version probe, not the task call
+            return types.SimpleNamespace(returncode=0, stdout="0.0.0-test", stderr="")
         seen["prompt"] = input
         return types.SimpleNamespace(returncode=0, stdout='{"references": []}', stderr="")
 
     monkeypatch.setattr(llm_pdf.hermetic, "spawn_kwargs", fake_spawn)
     monkeypatch.setattr(llm_pdf.subprocess, "run", fake_run)
-    ad = LlmPdfReferencesAdapter(**BASE, cli_command=["claude", "--print"],
+    ad = LlmPdfReferencesAdapter(**BASE, cli_command=["claude", "--print", "--model", "claude-x"], cli_effort="low",
                                  prompt_template_path=str(text_prompt), document_to_text="pdftotext")
-    ad._resolved, ad._template = ["claude", "--print"], text_prompt.read_text(encoding="utf-8")
+    ad._resolved, ad._template = ["claude", "--print", "--model", "claude-x"], text_prompt.read_text(encoding="utf-8")
     out = ad.play_task(ENVELOPE, timeout_s=10)
     assert "PAPER TEXT FROM PDFTOTEXT" in seen["prompt"] and PDF_B64 not in seen["prompt"]
     assert seen["allow_tools"] == ()

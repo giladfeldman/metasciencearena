@@ -54,13 +54,36 @@ from players.regcheck_shim.regcheck_to_runrecords import (  # noqa: E402
     regcheck_items_to_threeway_output,
 )
 
+# Free OpenAI-compatible hosts RegCheck's GPUStack client can be pointed at:
+# client name -> (base URL, environment variable holding the key).
+GPUSTACK_HOSTS = {
+    "groq-gpustack": ("https://api.groq.com/openai/v1", "GROQ_API_KEY"),
+    "nvidia-gpustack": ("https://integrate.api.nvidia.com/v1", "NVIDIA_NIM_API_KEY"),
+}
+
+# Retrieval embeddings a player may pin instead of the shim's hashing stand-in:
+# route name -> (base URL, key environment variable, embeddings model).
+# nemotron-3-embed-1b is the NIM embeddings model that accepts a plain OpenAI request
+# (the asymmetric ones demand an input_type RegCheck does not send; measured 2026-10-30).
+EMBEDDING_ROUTES = {
+    "nvidia-nim": ("https://integrate.api.nvidia.com/v1", "NVIDIA_NIM_API_KEY",
+                   "nvidia/nemotron-3-embed-1b"),
+}
+
 
 class RegcheckShimAdapter(PlayerAdapter):
     """Drives regcheck's `backend.cli general` through the local codex shim."""
 
     def __init__(self, *args, regcheck_client: str | None = None,
-                 regcheck_model: str | None = None, **kwargs):
+                 regcheck_model: str | None = None, regcheck_commit: str | None = None,
+                 regcheck_embeddings: str | None = None,
+                 cli_effort: str | None = None, cli_effort_reason: str | None = None, **kwargs):
         super().__init__(*args, **kwargs)
+        #: Effort for the codex calls the shim makes (client "openai"); framework.model_call
+        #: refuses those calls without it.
+        self.cli_effort = cli_effort
+        self.cli_effort_reason = cli_effort_reason
+        self._last_model_call: dict | None = None
         self._server = None
         self._thread = None
         self._base_url = None
@@ -74,11 +97,23 @@ class RegcheckShimAdapter(PlayerAdapter):
         # registry entry omits them (back-compat with the single `regcheck` player).
         self._registry_client = (regcheck_client or "").strip().lower() or None
         self._registry_model = (regcheck_model or "").strip() or None
+        #: A player may pin the RegCheck commit it measures. Its clone is then
+        #: $REGCHECK_HOME/regcheck-<commit> (default ~/regcheck_run), and prepare()
+        #: refuses a clone whose HEAD is another commit, so the label names what ran.
+        self._registry_commit = (regcheck_commit or "").strip() or None
+        #: None = the local shim's embeddings (hashing fallback without sentence-transformers).
+        self._embeddings = (regcheck_embeddings or "").strip().lower() or None
+        if self._embeddings and self._embeddings not in EMBEDDING_ROUTES:
+            raise ValueError(f"unknown regcheck_embeddings {self._embeddings!r}; "
+                             f"known: {sorted(EMBEDDING_ROUTES)}")
 
     # -- lifecycle ----------------------------------------------------------
 
     def prepare(self) -> None:
         regcheck_dir = os.environ.get("REGCHECK_DIR", "").strip()
+        if self._registry_commit:
+            home = os.environ.get("REGCHECK_HOME", "").strip() or str(Path.home() / "regcheck_run")
+            regcheck_dir = str(Path(home) / f"regcheck-{self._registry_commit}")
         python_exe = os.environ.get("REGCHECK_PYTHON", "").strip()
         if not regcheck_dir or not python_exe:
             raise RuntimeError(
@@ -89,6 +124,13 @@ class RegcheckShimAdapter(PlayerAdapter):
         self._regcheck_dir = Path(regcheck_dir)
         if not (self._regcheck_dir / "backend" / "cli.py").exists():
             raise RuntimeError(f"REGCHECK_DIR has no backend/cli.py: {self._regcheck_dir}")
+        if self._registry_commit:
+            head = subprocess.run(["git", "-C", str(self._regcheck_dir), "rev-parse", "HEAD"],
+                                  capture_output=True, text=True, check=False).stdout.strip()
+            if not head.startswith(self._registry_commit):
+                raise RuntimeError(
+                    f"{self._regcheck_dir} is at {head[:7] or 'an unknown commit'}, but this "
+                    f"player pins regcheck {self._registry_commit}")
         self._python = python_exe
         self._dimension_kinds = load_dimension_kinds()
 
@@ -105,18 +147,42 @@ class RegcheckShimAdapter(PlayerAdapter):
             self._registry_client
             or (os.environ.get("REGCHECK_CLIENT", "openai").strip().lower() or "openai")
         )
-        _key_env = {"groq": "GROQ_API_KEY", "deepseek": "DEEPSEEK_API_KEY"}.get(self._client)
+        #   "groq-gpustack" → regcheck's GPUStack client (its gpt-oss-120b route, built
+        #                for the Uni Bern endpoint) pointed at Groq's OpenAI-compatible
+        #                API, which serves the same open-weight model on a free tier.
+        #                regcheck >= 2026-10 has no native Groq client.
+        #   "nvidia-gpustack" → the same GPUStack client pointed at NVIDIA NIM's free
+        #                OpenAI-compatible endpoint. Groq's free tier caps every chat
+        #                model at <= 8000 tokens/minute, below one full-paper request.
+        _key_env = {"groq": "GROQ_API_KEY", "deepseek": "DEEPSEEK_API_KEY",
+                    **{c: k for c, (_u, k) in GPUSTACK_HOSTS.items()}}.get(self._client)
         if _key_env and not os.environ.get(_key_env, "").strip():
             raise RuntimeError(
                 f"REGCHECK_CLIENT={self._client} but {_key_env} is not set in the "
                 "environment. Export it for the run only; never commit it."
             )
+        if self._embeddings:
+            _emb_key = EMBEDDING_ROUTES[self._embeddings][1]
+            if not os.environ.get(_emb_key, "").strip():
+                raise RuntimeError(
+                    f"regcheck_embeddings={self._embeddings} but {_emb_key} is not set in "
+                    "the environment. Export it for the run only; never commit it.")
 
         # The shim is started in BOTH modes. In "openai" mode it serves chat +
         # embeddings (codex-backed, no key). In "groq" mode the chat goes to Groq
         # natively (fast), but regcheck still builds an OpenAI client for
         # EMBEDDINGS (Groq has no embeddings API) — those calls are routed to the
         # shim's local /v1/embeddings, so no real OpenAI key is ever needed.
+        if self._client == "openai" and self._registry_model:
+            # The shim answers through `codex exec --model <this>` (ChatGPT subscription).
+            openai_shim.CODEX_MODEL = self._registry_model
+        if self._client == "openai":
+            # Set fresh for every player: never inherit the previous player's level from the module.
+            openai_shim.CODEX_EFFORT = (self.cli_effort
+                                        or os.environ.get("REGCHECK_SHIM_CODEX_EFFORT", "").strip() or None)
+            if not openai_shim.CODEX_EFFORT:
+                raise RuntimeError("regcheck via the codex shim needs cli_effort in the registry "
+                                   "(or REGCHECK_SHIM_CODEX_EFFORT): an unstated effort is not reproducible")
         self._server = openai_shim.make_server(port=0)
         port = self._server.server_address[1]
         self._base_url = f"http://127.0.0.1:{port}/v1"
@@ -141,6 +207,19 @@ class RegcheckShimAdapter(PlayerAdapter):
             self.prepare()
         inp = envelope["input"]
         dims = inp["dimensions"]
+        with openai_shim._CALL_LOCK:
+            openai_shim.CALL_BLOCKS.clear()
+        self._last_model_call = None
+        try:
+            return self._play(envelope, inp, dims, timeout_s)
+        finally:
+            with openai_shim._CALL_LOCK:
+                blocks = list(openai_shim.CALL_BLOCKS)
+            if blocks:
+                from framework import model_call
+                self._last_model_call = model_call.aggregate_blocks(blocks)
+
+    def _play(self, envelope: dict, inp: dict, dims, timeout_s: int) -> dict:
         parser_choice = os.environ.get("REGCHECK_PARSER_CHOICE", "pymupdf").strip() or "pymupdf"
 
         with tempfile.TemporaryDirectory(prefix="regcheck_task_") as td:
@@ -170,6 +249,16 @@ class RegcheckShimAdapter(PlayerAdapter):
                 groq_model = self._registry_model or os.environ.get("REGCHECK_GROQ_MODEL", "").strip()
                 if groq_model:
                     env["GROQ_MODEL"] = groq_model
+            elif self._client in GPUSTACK_HOSTS:
+                client_choice = "gpustack"
+                base_url, key_env = GPUSTACK_HOSTS[self._client]
+                env["GPUSTACK_BASE_URL"] = base_url
+                env["GPUSTACK_API_KEY"] = os.environ[key_env]  # env only, never argv
+                if self._registry_model:
+                    env["GPUSTACK_MODEL"] = self._registry_model
+                # Neither host serves embeddings: retrieval embeddings go to the local shim.
+                env["EMBEDDINGS_BASE_URL"] = self._base_url
+                env["EMBEDDINGS_API_KEY"] = "dummy-local-shim"
             elif self._client == "deepseek":
                 # DEEPSEEK_API_KEY is already in os.environ (validated in prepare).
                 # regcheck builds its own OpenAI(base_url="https://api.deepseek.com")
@@ -192,6 +281,11 @@ class RegcheckShimAdapter(PlayerAdapter):
                 "--output-format", "json",
                 "--output", str(result_json),
             ]
+            if self._embeddings:
+                emb_url, emb_key, emb_model = EMBEDDING_ROUTES[self._embeddings]
+                env["EMBEDDINGS_BASE_URL"] = emb_url
+                env["EMBEDDINGS_API_KEY"] = os.environ[emb_key]  # env only, never argv
+                cmd += ["--embedding-model", emb_model]
             proc = subprocess.run(
                 cmd,
                 cwd=str(self._regcheck_dir),

@@ -53,7 +53,9 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import html
 import io
+import json
 import re
 import tokenize
 from dataclasses import dataclass, field
@@ -71,6 +73,7 @@ __all__ = [
     "classify_arenas",
     "code_only",
     "MIRROR_RENAMES",
+    "MIRROR_WITHHELD_ARENAS",
     "held_out_shingles",
     "PUBLISHED_ARENAS_FILE",
     "public_manifest",
@@ -243,6 +246,11 @@ PUBLIC_ARENA_GLOBS = (
     # generator signature. `NEVER_PUBLISH` still blocks everything else under
     # `task_sets/` — `_held_out/`, `.private_seed`, `_ground_truth.json`.
     "task_sets/*/manifest.yaml",
+    # prereg-deviation-fullpaper-v1's REVEALED prose bank: the generator renders each task
+    # from `task_sets/<v>/prose/<task_id>.json` and raises FileNotFoundError without it.
+    # Revealed tasks are public by design; the private half lives in `_held_out/prose/`,
+    # which this single-segment pattern does not match and NEVER_PUBLISH blocks.
+    "task_sets/*/prose/*.json",
     # code-translation-r-v1's revealed half: the SPSS/Stata inputs, the fixed
     # dataset, the catalog, and the executed-R gold cached under
     # `source_scripts/gold/`.
@@ -354,6 +362,9 @@ PRIVATE_TEST_FILES = frozenset({
     # Read private arenas, or run the private side of the publish boundary
     # (whose answer differs by construction inside the mirror).
     "framework/tests/test_publish.py",
+    # Runs tools/audit_fullpaper_overlap.py (not mirrored) on the private split and the
+    # held-out prose bank: the private side of the publish boundary again (d-4333a2).
+    "framework/tests/test_fullpaper_overlap_audit.py",
     # Resolve the route to the eval-only gold corpus / assert on the PRIVATE
     # repo's tree. `scan_for_leaks` flagged both on sight (2026-08-13) — correctly:
     # publishing a module that resolves gold publishes the route to the answer key.
@@ -530,6 +541,14 @@ PRIVATE_TEST_FILES = frozenset({
     "framework/tests/test_qa_c1_per_tier_sample.py",
     "arenas/citation-claim-fidelity-v1/tests/test_board_agrees_with_guard.py",
     "players/adapters/tests/test_stats_pipeline_mapping.py",
+    #   * ADDED 2026-11-02 (measured: `sync_public_mirror.sh` dry run, 1 collection error
+    #     that stopped the mirrored suite). Reads stats-from-pdf-v1's schema, prompt,
+    #     scorer and ground truth at import time; that arena is private.
+    "players/adapters/tests/test_llm_stats_pdf.py",
+    #   * ADDED 2026-11-02 (measured: mirrored suite, 2 failures). Both tests compare the
+    #     Python held-out reduction with leaderboard-app/scripts/lib/model-call.mjs, and the
+    #     site is not in the mirror.
+    "framework/tests/test_model_call_site_parity.py",
     #   * Its real-repo half asserts unlisted arenas EXIST (two-sided), and the mirror
     #     by design carries none of them.
     "framework/tests/test_public_mirror_unlisted.py",
@@ -576,6 +595,9 @@ NEVER_PUBLISH = re.compile(
     # into held-out gold, so it is gold-AUTHORING code like framework/jats.py.
     r"|^framework/jats_citations\.py$"
     r"|^framework/tests/test_jats_citations\.py$"
+    # Contamination assertions over the registered custody baseline (2026-10-23):
+    # it resolves framework.gold through article-finder, so it is private-only.
+    r"|^framework/tests/test_holdout_contamination_custody_baseline\.py$"
 )
 
 #: Windows that DO overlap held-out material but are not answers.
@@ -589,11 +611,9 @@ NEVER_PUBLISH = re.compile(
 #: Adding an entry is a deliberate act. It suppresses ONE exact window, so any
 #: other overlap in the same file still fails.
 ACKNOWLEDGED_OVERLAPS: dict[str, str] = {
-    # arenas/code-translation-r-v1/tests/test_scorer.py — the arena's own
-    # harvest CONTRACT (the R named-list shape a translated script must print).
-    # It appears in the held-out R sources because every case must satisfy it.
-    # Publishing the contract is the point of the arena; it reveals no answer.
-    "d0cb6a0da66a5d6a4cba7e51": "code-translation-r-v1 harvest contract (public API, not gold)",
+    # (Removed 2026-11-01: the code-translation-r-v1 harvest-contract fingerprint. Its file,
+    # arenas/code-translation-r-v1/tests/test_scorer.py, is no longer mirrored, so it matched
+    # nothing; if the file returns, the scan flags it and the overlap is reviewed afresh.)
     # arenas/open-practices-repro-v1/catalogs/repo_templates.yaml — the stock
     # "data available from the corresponding author upon reasonable request"
     # sentence. It is a published journal cliché the arena GENERATES from, and
@@ -602,6 +622,27 @@ ACKNOWLEDGED_OVERLAPS: dict[str, str] = {
     "118dba40a0705026638354af": "open-practices-repro-v1 data-availability boilerplate (1/3)",
     "535aee089e12455d4f39fdbe": "open-practices-repro-v1 data-availability boilerplate (2/3)",
     "ac2083f169dd8ac49d82913b": "open-practices-repro-v1 data-availability boilerplate (3/3)",
+    # The same sentence, matched against four held-out pdf-text-fidelity-v1 JATS papers once
+    # the scan reads XML as decoded text (d-dd42fb, 2026-11-01): the stock journal wording again.
+    "4f79d32def53535ed77613b2": "open-practices-repro-v1 data-availability boilerplate vs held-out JATS (1/4)",
+    "b6a6dbccd68514f82bdfc665": "open-practices-repro-v1 data-availability boilerplate vs held-out JATS (2/4)",
+    "e54cd99240349fc18eb4fdd8": "open-practices-repro-v1 data-availability boilerplate vs held-out JATS (3/4)",
+    "abecf0ea61d4b9033bd14a82": "open-practices-repro-v1 data-availability boilerplate vs held-out JATS (4/4)",
+}
+
+#: Whole public files whose overlap with held-out material was reviewed as a SET:
+#: ``posix path -> (sha256 of the file's whitespace-normalised text, sha256 of the exact
+#: window set it shares, sha256 of the held-out files those windows come from and their
+#: content, number of windows, reason)``. Both sides are pinned: any edit to the file, any
+#: change in what it shares, or any edit to a held-out file it shares with re-arms the check
+#: for that file (the message says the acknowledgement no longer matches). The seed check is
+#: never waived. For a file whose shared windows are too many to list one by one above;
+#: compute an entry with :func:`file_overlap_acknowledgement` after reviewing the overlap.
+ACKNOWLEDGED_FILE_OVERLAPS: dict[str, tuple[str, str, str, int, str]] = {
+    # Empty since 2026-11-01. The 13 prereg-deviation-fullpaper-v1 prose files were cleared
+    # here after an audit and three consult rounds, but the owner withheld that arena from the
+    # mirror instead (MIRROR_WITHHELD_ARENAS, d-6dd964). If it is un-withheld, re-run
+    # tools/audit_fullpaper_overlap.py and re-pin each file with file_overlap_acknowledgement().
 }
 
 #: Length of the verbatim run `scan_for_leaks` detects. Long enough that normal
@@ -614,6 +655,9 @@ _TEXT_SUFFIXES = {
     ".py", ".md", ".yaml", ".yml", ".json", ".jsonl", ".txt", ".toml",
     ".cff", ".csv", ".tsv", ".r", ".R", ".sps", ".do", ".cfg", ".lock",
 }
+#: Also read by the verbatim leak scan: mirrored text files with no listed suffix
+#: (LICENSE, publish_templates/public.gitignore), which it used to skip (2026-11-01).
+_LEAK_SCAN_ALSO = frozenset({"", ".gitignore"})
 
 
 @dataclass
@@ -748,6 +792,29 @@ def classify_arenas(arenas_root: Path) -> list[ArenaPublishability]:
     return out
 
 
+#: LISTED arenas whose code stays out of the public mirror, each with its reason. They are on
+#: the board (unlike `unlisted:`), but their directory, scorer and generator are not mirrored.
+#: Power review (2026-10-31): the generators share arenas/power_review_*.py, which hold the
+#: PRIVATE split's phrase banks (split-disjoint wording, so held-out tasks cannot be
+#: memorised from the revealed ones). Mirroring them would publish the held-out wording.
+MIRROR_WITHHELD_ARENAS = {
+    "power-review-audit-v1": "generator modules hold the private split's phrase banks",
+    "power-review-rewrite-v1": "generator modules hold the private split's phrase banks",
+    "power-review-code-v1": "generator modules hold the private split's phrase banks",
+    # Full-paper track (owner, 2026-11-01): the 13 revealed prose banks share verbatim
+    # passages with the held-out prose -- ethics/consent text, but also study-specific
+    # titles, introductions, manipulations and measures (315 distinct runs, about a third
+    # study-specific), so the held-out papers reuse the revealed scenarios. Withheld until
+    # that is adjudicated (d-6dd964); the pre-push leak gate refused the push otherwise.
+    "prereg-deviation-fullpaper-v1": "revealed prose shares study-specific passages with the held-out prose (d-6dd964)",
+    # Never mirrored so far: built 2026-10-27 in design status (no board, not released), and every
+    # manifest on main was generated where its seed was absent. With the seed present it classified
+    # publishable, and 27 of its tests failed in the mirrored suite (they read its build report,
+    # scripts and seed). Kept out until the owner releases it (2026-11-02).
+    "code-paper-consistency-v1": "design status, not released; its tests read files the mirror does not ship",
+}
+
+
 #: Committed list of arenas that exist in the public mirror.
 #:
 #: The Next.js app needs this and CANNOT compute it: publishability turns on
@@ -760,8 +827,10 @@ PUBLISHED_ARENAS_FILE = "contract/published_arenas.json"
 
 
 def published_arena_ids(arenas_root: Path) -> list[str]:
-    """Sorted ids of arenas that appear in the public mirror."""
-    return sorted(a.arena_id for a in classify_arenas(arenas_root) if a.publishable)
+    """Sorted ids of arenas that appear in the public mirror (never an unlisted one)."""
+    unlisted = set(unlisted_arena_ids(arenas_root.parent)) | set(MIRROR_WITHHELD_ARENAS)
+    return sorted(a.arena_id for a in classify_arenas(arenas_root)
+                  if a.publishable and a.arena_id not in unlisted)
 
 
 def imports_a_private_package(path: Path) -> str | None:
@@ -862,8 +931,11 @@ def public_manifest(repo_root: Path) -> list[Path]:
 
     arenas_root = repo_root / "arenas"
     if arenas_root.is_dir():
+        # An unlisted (owner-gated) arena stays out whole, not only the files that
+        # happen to name it: its scorer and schemas never do (2026-10-30).
+        gated = set(unlisted_arena_ids(repo_root)) | set(MIRROR_WITHHELD_ARENAS)
         for arena in classify_arenas(arenas_root):
-            if not arena.publishable:
+            if not arena.publishable or arena.arena_id in gated:
                 continue
             for pattern in PUBLIC_ARENA_GLOBS:
                 for p in arena.root.glob(pattern):
@@ -940,6 +1012,86 @@ def _shingles(text: str, stride: int) -> set[str]:
 MIN_DETECTED_RUN = SHINGLE_CHARS + SHINGLE_STRIDE - 1
 
 
+def _json_strings(text: str, suffix: str) -> list[str]:
+    """The string values of a .json or .jsonl document in document order; [] if it does not parse.
+
+    Hardened after consult 2026-11-01 (round 3): a leading byte-order mark is dropped
+    (json.loads refuses it); JSONL is split on "\\n" only, because str.splitlines() also
+    splits on U+2028 inside a string; nesting too deep to parse counts as unparseable, and the
+    walk is iterative. test_every_held_out_json_file_parses keeps the raw-only fallback loud.
+    """
+    text = text.lstrip("﻿")
+    if suffix == ".json":
+        lines = [text]
+    elif suffix == ".jsonl":
+        lines = text.split("\n")
+    else:
+        return []
+    docs = []
+    for line in lines:
+        if not line.strip():
+            continue
+        try:
+            docs.append(json.loads(line))
+        except (ValueError, RecursionError):
+            continue
+    out: list[str] = []
+    stack = list(reversed(docs))
+    while stack:
+        x = stack.pop()
+        if isinstance(x, str):
+            out.append(x)
+        elif isinstance(x, dict):
+            stack.extend(reversed(list(x.values())))
+        elif isinstance(x, list):
+            stack.extend(reversed(x))
+    return out
+
+
+#: JATS inline elements: removed without a space so ``<italic>t</italic>-test`` reads as a
+#: reader sees it. Every other tag (paragraph, table cell, title, comment, declaration) becomes
+#: a space, so blocks written with nothing between them are not glued together (all 30
+#: held-out JATS papers have such tags; consult 2026-11-01, round 3).
+_XML_INLINE_TAG = re.compile(
+    r"</?(?:italic|bold|sup|sub|sc|underline|overline|monospace|roman|sans-serif|xref|ext-link|uri|"
+    r"email|named-content|styled-content|inline-formula|abbrev)(?=[\s/>])[^>]*>")
+_XML_TAG = re.compile(r"<[^>]*>")
+
+
+def _decoded_text(text: str, suffix: str) -> str:
+    """What a reader of the file sees, where storage encodes it; "" for other files.
+
+    JSON: the string values joined in document order with a space, so a run that crosses two
+    values still matches. XML: inline tags removed, other tags read as a space, character
+    references resolved.
+    """
+    if suffix in (".json", ".jsonl"):
+        return " ".join(_json_strings(text, suffix))
+    if suffix == ".xml":
+        return html.unescape(_XML_TAG.sub(" ", _XML_INLINE_TAG.sub("", text)))
+    return ""
+
+
+def _text_shingles(text: str, suffix: str, stride: int) -> set[str]:
+    """Windows of a file's text as stored and, for JSON and XML, as a reader sees it.
+
+    Raw JSON escapes every quotation mark and line break (and, with json.dumps' default,
+    every non-ASCII character); raw XML interrupts prose with inline tags and character
+    references. A passage stored that way and the same passage pasted into a .md or .py file
+    share no raw window once those interruptions fall closer together than MIN_DETECTED_RUN.
+    Measured 2026-11-01 (d-dd42fb): a 1,213-character held-out passage with a quotation mark
+    every ~90 characters, pasted decoded into a public .md, went unflagged; 121 of 1,874 long
+    paragraphs of the held-out JATS papers had no clean run that long. Both sides decode, so
+    the mirror case (plain held-out text escaped by a public JSON file) is caught too.
+    Not decoded: Python string escapes and CSV doubled quotes (no held-out CSV uses them).
+    """
+    windows = _shingles(text, stride)
+    decoded = _decoded_text(text, suffix.lower())
+    if decoded:
+        windows |= _shingles(decoded, stride)
+    return windows
+
+
 def held_out_shingles(repo_root: Path) -> tuple[set[str], int]:
     """Fingerprints of every held-out artifact, plus how many files fed them.
 
@@ -955,7 +1107,8 @@ def held_out_shingles(repo_root: Path) -> tuple[set[str], int]:
                 continue
             n_files += 1
             try:
-                shingles |= _shingles(p.read_text(encoding="utf-8", errors="replace"), SHINGLE_STRIDE)
+                shingles |= _text_shingles(p.read_text(encoding="utf-8", errors="replace"), p.suffix,
+                                           SHINGLE_STRIDE)
             except OSError:
                 continue
 
@@ -1120,6 +1273,7 @@ def scan_for_leaks(repo_root: Path, files: list[Path], *, gates: str = "all") ->
     reasons += unlisted_leaks(repo_root, files)
     seeds = private_seed_values(repo_root)
     ho_shingles, ho_files = held_out_shingles(repo_root)
+    ho_by_file: dict[str, tuple[str, set[str]]] | None = None  # built only if a file acknowledgement is met
 
     # A module that REACHES the gold path is as dangerous as gold itself, and
     # the verbatim scan below cannot see it: such a file contains code that
@@ -1185,7 +1339,7 @@ def scan_for_leaks(repo_root: Path, files: list[Path], *, gates: str = "all") ->
 
     for rel in files:
         p = repo_root / rel
-        if p.suffix not in _TEXT_SUFFIXES:
+        if p.suffix not in _TEXT_SUFFIXES and p.suffix not in _LEAK_SCAN_ALSO:
             continue
         try:
             text = p.read_text(encoding="utf-8", errors="replace")
@@ -1198,15 +1352,81 @@ def scan_for_leaks(repo_root: Path, files: list[Path], *, gates: str = "all") ->
         if ho_shingles:
             # Stride 1 on the candidate: see _shingles for why symmetry here
             # silently defeats the whole check.
-            overlap = (_shingles(text, 1) & ho_shingles) - set(ACKNOWLEDGED_OVERLAPS)
+            overlap = (_text_shingles(text, p.suffix, 1) & ho_shingles) - set(ACKNOWLEDGED_OVERLAPS)
+            ack = ACKNOWLEDGED_FILE_OVERLAPS.get(rel.as_posix())
+            if (overlap and ack and ack[:2] == (_normalised_sha256(text), _window_set_sha256(overlap))
+                    and ack[3] == len(overlap)):
+                if ho_by_file is None:
+                    ho_by_file = _held_out_file_shingles(repo_root)
+                if ack[2] == _sources_sha256(overlap, ho_by_file):
+                    continue
             if overlap:
+                stale = (" A file acknowledgement for it no longer matches (the file, what it shares, or a held-out "
+                         "file it shares with changed): review the overlap again before renewing it." if ack else "")
                 reasons.append(
                     f"{rel}: shares {len(overlap)} verbatim {SHINGLE_CHARS}-char window(s) "
                     f"with held-out material. If a window is shared BOILERPLATE rather "
                     f"than an answer, add its fingerprint to ACKNOWLEDGED_OVERLAPS with "
-                    f"a reason: {sorted(overlap)[:3]}"
+                    f"a reason: {sorted(overlap)[:3]}.{stale}"
                 )
     return reasons
+
+
+def _normalised_sha256(text: str) -> str:
+    """The text as the shingler sees it (whitespace-normalised), so line endings do not matter."""
+    return hashlib.sha256(" ".join(text.split()).encode("utf-8")).hexdigest()
+
+
+def _window_set_sha256(windows: set[str]) -> str:
+    return hashlib.sha256("\n".join(sorted(windows)).encode("utf-8")).hexdigest()
+
+
+def _held_out_file_shingles(repo_root: Path) -> dict[str, tuple[str, set[str]]]:
+    """``posix path -> (normalised text sha256, coarse-stride windows)`` for every local held-out file."""
+    out: dict[str, tuple[str, set[str]]] = {}
+    for held_out_dir in repo_root.glob("arenas/*/task_sets/*/_held_out"):
+        for p in held_out_dir.rglob("*"):
+            if not p.is_file():
+                continue
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
+            out[p.relative_to(repo_root).as_posix()] = (_normalised_sha256(text),
+                                                         _text_shingles(text, p.suffix, SHINGLE_STRIDE))
+    return out
+
+
+def _sources_sha256(overlap: set[str], ho_by_file: dict[str, tuple[str, set[str]]]) -> str:
+    """Pin the HELD-OUT side: which held-out files the shared windows come from, at what content.
+
+    The window set alone misses a held-out file that changes around windows it still shares
+    (consult 2026-11-01, Sonnet): the public text is unchanged, but what it sits next to in the
+    held-out item is not, so the overlap must be reviewed again. Windows no local held-out file
+    accounts for (custody papers) are counted, so a change in them shows too.
+    """
+    lines, seen = [], set()
+    for path in sorted(ho_by_file):
+        text_sha, windows = ho_by_file[path]
+        if windows & overlap:
+            lines.append(f"{path}\t{text_sha}")
+            seen |= windows & overlap
+    lines.append(f"unattributed\t{len(overlap - seen)}")
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+
+
+def file_overlap_acknowledgement(repo_root: Path, rel: Path) -> tuple[str, str, str, int]:
+    """``(text sha256, window-set sha256, held-out sources sha256, n windows)`` for an
+    ACKNOWLEDGED_FILE_OVERLAPS entry.
+
+    Run only after the file's overlap has been reviewed; the entry then holds until the file,
+    what it shares, or a held-out file it shares with changes.
+    """
+    ho_shingles, _ = held_out_shingles(repo_root)
+    text = (repo_root / rel).read_text(encoding="utf-8", errors="replace")
+    overlap = (_text_shingles(text, rel.suffix, 1) & ho_shingles) - set(ACKNOWLEDGED_OVERLAPS)
+    return (_normalised_sha256(text), _window_set_sha256(overlap),
+            _sources_sha256(overlap, _held_out_file_shingles(repo_root)), len(overlap))
 
 
 scan_for_leaks.__doc__ = (scan_for_leaks.__doc__ or "").replace("{MINRUN}", str(MIN_DETECTED_RUN))

@@ -45,6 +45,12 @@ CODEX_BINARY = os.environ.get("REGCHECK_SHIM_CODEX", "codex")
 # Default model left to codex's own default; override via env if desired.
 CODEX_MODEL = os.environ.get("REGCHECK_SHIM_CODEX_MODEL", "").strip()
 CODEX_TIMEOUT_S = int(os.environ.get("REGCHECK_SHIM_CODEX_TIMEOUT_S", "600"))
+#: Explicit reasoning effort for every codex call (framework.model_call refuses a call without
+#: one). Set by RegcheckShimAdapter from the registry's cli_effort; the env var is for manual runs.
+CODEX_EFFORT = os.environ.get("REGCHECK_SHIM_CODEX_EFFORT", "").strip() or None
+#: One framework.model_call block per codex call, collected by the adapter per task.
+CALL_BLOCKS: list[dict] = []
+_CALL_LOCK = __import__("threading").Lock()
 
 
 def _messages_to_prompt(messages: list[dict], *, want_json: bool) -> str:
@@ -88,19 +94,21 @@ def codex_complete(prompt: str, *, want_json: bool = False, timeout_s: int | Non
     timeout_s = timeout_s or CODEX_TIMEOUT_S
     with tempfile.TemporaryDirectory(prefix="regcheck_shim_") as td:
         last_path = os.path.join(td, "last.txt")
-        cmd = [CODEX_BINARY, "exec", "--skip-git-repo-check", "-o", last_path]
+        cmd = [CODEX_BINARY, "exec", "-o", last_path]  # hermetic adds --skip-git-repo-check
         if CODEX_MODEL:
             cmd += ["--model", CODEX_MODEL]
-        cmd += [prompt]
-        proc = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout_s,
-            check=False,
-        )
+        # CONTAINMENT (2026-10-30): codex is an agent. Run it through framework.hermetic
+        # (read-only sandbox, no user config, a scratch cwd outside the repo, which holds
+        # arena answer keys) and send the prompt on stdin: a full paper as argv overflows
+        # Windows' 32,767-character command line. RECORDING (2026-11-01): through
+        # framework.model_call, one folder per call so its Codex thread can be found.
+        from framework import model_call
+
+        def keep(block):
+            with _CALL_LOCK:
+                CALL_BLOCKS.append(block)
+        proc, _ = model_call.run(cmd, effort=CODEX_EFFORT, purpose="regcheck-shim", input=prompt,
+                                 timeout_s=timeout_s, sink=keep)
         answer = ""
         if os.path.exists(last_path):
             with open(last_path, "r", encoding="utf-8", errors="replace") as fh:

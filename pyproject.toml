@@ -57,6 +57,8 @@ pdf-docling = ["docling>=2.120.3,<3"]
 # the published one — needs it. Declared so the equivalence claim is testable
 # rather than asserted (Fable 5 cross-review, 2026-08-15).
 inspect = ["inspect-ai>=0.3.250"]
+# power-review arenas: exact release, because the v4 gold is checked against this engine build.
+power-review = ["powerbench==0.9.2"]
 # `framework export-kaggle` WRITES a Kaggle Benchmarks module without this; the
 # round-trip test that runs it against the real SDK needs it (d-eb52f6).
 kaggle = ["kaggle-benchmarks>=0.6.1"]
@@ -134,6 +136,9 @@ testpaths = [
   "framework",
   "arenas",
   "players",
+  # Cross-arena power-review instrument controls (2026-10-23). The draft put 12
+  # test files here and none of them were collected by a plain `pytest -q`.
+  "tests",
 ]
 python_files = "test_*.py"
 # Don't descend into generated/vendored trees while recursing the roots above.
