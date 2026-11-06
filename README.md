@@ -89,13 +89,11 @@ from framework.player_adapter import PlayerAdapter, register_adapter_class
 from framework.runner import run_tournament
 from framework.storage import read_records
 
-
 def grim_possible(value, n, decimals, scale):
     """Can `value` (a mean, or a percentage with scale=100) arise from k/n for integer k?"""
     step = 10 ** -decimals
     lo, hi = (value - step / 2) * n / scale, (value + step / 2) * n / scale
     return math.floor(hi + 1e-9) >= math.ceil(lo - 1e-9)
-
 
 class MyGrimAdapter(PlayerAdapter):
     """A complete player: read the task envelope, return the arena's output schema."""
@@ -112,7 +110,6 @@ class MyGrimAdapter(PlayerAdapter):
             records.append({"stat_id": s["stat_id"], "flagged": not ok,
                             "issue_kind": None if ok else kind, "confidence": 1.0})
         return {"records": records}
-
 
 register_adapter_class("MyGrimAdapter", MyGrimAdapter)
 # The runner refuses an adapter class nobody classified: name it as a host-run exemption (the record
@@ -344,10 +341,9 @@ reference.
 See [`CITATION.cff`](CITATION.cff). If you cite a specific score, cite the arena id and task-set
 version alongside it.
 
-## Licence
+## Repository layout
 
-MIT. The private repository holds the web application, the held-out corpora and the private
-seeds; this package holds the verifiable logic.
+The private repository holds the web application, the held-out corpora and the private seeds; this package holds the verifiable logic.
 
 ## Contributing
 
