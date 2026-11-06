@@ -8,13 +8,13 @@ name = "metasciencearena"
 version = "0.4.0"
 description = "Reproducible benchmark arenas for meta-science tools: task generation, scoring, contamination control, and leaderboards"
 readme = "PACKAGE_README.md"
-license = { text = "MIT" }
+license = {text = "AGPL-3.0-only"}
 authors = [{ name = "Gilad Feldman" }]
 keywords = ["meta-science", "benchmark", "reproducibility", "research-integrity", "leaderboard"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering",
